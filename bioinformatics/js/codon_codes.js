@@ -17,13 +17,34 @@ let codon_vert = {
     'CGT': 'R', 'CGC': 'R', 'CGA': 'R', 'CGG': 'R',
     'AGT': 'S', 'AGC': 'S', 'AGA': 'R', 'AGG': 'R',
     'GGT': 'G', 'GGC': 'G', 'GGA': 'G', 'GGG': 'G',
-
-    'GCN': 'A', 'CGN': 'R', 'AAY': 'N', 'GAY': 'D',
-    'TGY': 'C', 'CAR': 'Q', 'GAR': 'E', 'GGN': 'G',
-    'CAY': 'H', 'ATH': 'I', 'CTN': 'L', 'AAR': 'K',
-    'TTY': 'F', 'CCN': 'P', 'TCN': 'S', 'ACN': 'T',
-    'TAY': 'Y', 'GTN': 'V', 'AGR': 'R', 'TTR': 'L',
-    'AGY': 'S', 'TRA': '*'
+    'GCN': 'A', 'CGN': 'R', 'AAY': 'N', 'GAY': 'D', // compressed
+    'TGY': 'C', 'CAR': 'Q', 'GAR': 'E', 'GGN': 'G', // compressed
+    'CAY': 'H', 'ATH': 'I', 'CTN': 'L', 'AAR': 'K', // compressed
+    'TTY': 'F', 'CCN': 'P', 'TCN': 'S', 'ACN': 'T', // compressed
+    'TAY': 'Y', 'GTN': 'V', 'AGR': 'R', 'TTR': 'L', // compressed
+    'AGY': 'S', 'TRA': '*'                          // compressed
+}; // end object
+let reverse_codon_vert = {
+    'A': [ 'GCN' ],
+    'C': [ 'TGY' ],
+    'D': [ 'GAY' ],
+    'E': [ 'GAR' ],
+    'F': [ 'TTY' ],
+    'G': [ 'GGN' ],
+    'H': [ 'CAY' ],
+    'I': [ 'ATH' ],
+    'K': [ 'AAR' ],
+    'L': [ 'CTN', 'TTR' ],
+    'M': [ 'ATG' ],
+    'N': [ 'AAY' ],
+    'P': [ 'CCN' ],
+    'Q': [ 'CAR' ],
+    'R': [ 'CGN', 'AGR' ],
+    'S': [ 'TCN', 'AGY' ],
+    'T': [ 'ACN' ],
+    'V': [ 'GTN' ],
+    'W': [ 'TGG' ],
+    'Y': [ 'TAY' ],
 }; // end object
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // THE STANDARD VERTEBRATE MITOCHONDRIAL CODON CODE ///////////////////////////////////////////////
@@ -46,7 +67,6 @@ let codon_vert_mito = {
     'GGT': 'G', 'GGC': 'G', 'GGA': 'G', 'GGG': 'G'
 }; // end object
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-
 function reverse_complement(dna) {
     let new_letter = '';
     let new_dna = '';
@@ -75,9 +95,7 @@ function reverse_complement(dna) {
     } // end for loop
     return new_dna;
 } // end function
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-
 function translate(dna, start, codon_code) {
     if (typeof(start) === 'undefined') { start = 0; }
     if (typeof(codon_code) === 'undefined') { codon_code = codon_vert; }
@@ -93,9 +111,7 @@ function translate(dna, start, codon_code) {
     } // end for loop
     return protein;
 } // ned function
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-
 function translate_all_six_frames(dna, codon_code) {
     if (typeof(codon_code) === 'undefined') { codon_code = codon_vert; }
     let translations = [];
@@ -108,5 +124,137 @@ function translate_all_six_frames(dna, codon_code) {
     translations.push(translate(rc_dna, 2, codon_code));
     return translations;
 } // end function
-
+///////////////////////////////////////////////////////////////////////////////////////////////////
+function reverse_translate(protein, codon_code) {
+    let dna = ['', ''];
+    for (let i = 0; i < protein.length; i++) {
+        let codon_options = reverse_codon_vert[protein[i]];
+        dna[0] += codon_options[0];
+        if (codon_options[1]) { dna[1] += codon_options[1]; }
+        else { dna[1] += codon_options[0]; }
+    } // end for loop
+    return dna;
+} // end function
+///////////////////////////////////////////////////////////////////////////////////////////////////
+function decompress_dna(dna) {
+    let sequences = []; sequences.push('');
+    for (let i = 0; i < dna.length; i ++) {
+        let letter = dna[i];
+        let new_sequences = [];
+        switch(letter) {
+            case 'A': { for (let j = 0; j < sequences.length; j++) { sequences[j] += 'A'; } break; }
+            case 'C': { for (let j = 0; j < sequences.length; j++) { sequences[j] += 'C'; } break; }
+            case 'G': { for (let j = 0; j < sequences.length; j++) { sequences[j] += 'G'; } break; }
+            case 'T': { for (let j = 0; j < sequences.length; j++) { sequences[j] += 'T'; } break; }
+            case 'U': { for (let j = 0; j < sequences.length; j++) { sequences[j] += 'U'; } break; }
+            case 'W': {
+                for (let j = 0; j < sequences.length; j++) {
+                    new_sequences.push(sequences[j] + 'A');
+                    new_sequences.push(sequences[j] + 'T');
+                } // end for loop
+                delete sequences;
+                sequences = new_sequences;
+                break;
+            } // end case
+            case 'S': {
+                for (let j = 0; j < sequences.length; j++) {
+                    new_sequences.push(sequences[j] + 'C');
+                    new_sequences.push(sequences[j] + 'G');
+                } // end for loop
+                delete sequences;
+                sequences = new_sequences;
+                break;
+            } // end case
+            case 'M': {
+                for (let j = 0; j < sequences.length; j++) {
+                    new_sequences.push(sequences[j] + 'A');
+                    new_sequences.push(sequences[j] + 'C');
+                } // end for loop
+                delete sequences;
+                sequences = new_sequences;
+                break;
+            } // end case
+            case 'K': {
+                for (let j = 0; j < sequences.length; j++) {
+                    new_sequences.push(sequences[j] + 'G');
+                    new_sequences.push(sequences[j] + 'T');
+                } // end for loop
+                delete sequences;
+                sequences = new_sequences;
+                break;
+            } // end case
+            case 'R': {
+                for (let j = 0; j < sequences.length; j++) {
+                    new_sequences.push(sequences[j] + 'A');
+                    new_sequences.push(sequences[j] + 'G');
+                } // end for loop
+                delete sequences;
+                sequences = new_sequences;
+                break;
+            } // end case
+            case 'Y': {
+                for (let j = 0; j < sequences.length; j++) {
+                    new_sequences.push(sequences[j] + 'C');
+                    new_sequences.push(sequences[j] + 'T');
+                } // end for loop
+                delete sequences;
+                sequences = new_sequences;
+                break;
+            } // end case
+            case 'B': {
+                for (let j = 0; j < sequences.length; j++) {
+                    new_sequences.push(sequences[j] + 'C');
+                    new_sequences.push(sequences[j] + 'G');
+                    new_sequences.push(sequences[j] + 'T');
+                } // end for loop
+                delete sequences;
+                sequences = new_sequences;
+                break;
+            } // end case
+            case 'D': {
+                for (let j = 0; j < sequences.length; j++) {
+                    new_sequences.push(sequences[j] + 'A');
+                    new_sequences.push(sequences[j] + 'G');
+                    new_sequences.push(sequences[j] + 'T');
+                } // end for loop
+                delete sequences;
+                sequences = new_sequences;
+                break;
+            } // end case
+            case 'H': {
+                for (let j = 0; j < sequences.length; j++) {
+                    new_sequences.push(sequences[j] + 'A');
+                    new_sequences.push(sequences[j] + 'C');
+                    new_sequences.push(sequences[j] + 'T');
+                } // end for loop
+                delete sequences;
+                sequences = new_sequences;
+                break;
+            } // end case
+            case 'V': {
+                for (let j = 0; j < sequences.length; j++) {
+                    new_sequences.push(sequences[j] + 'A');
+                    new_sequences.push(sequences[j] + 'C');
+                    new_sequences.push(sequences[j] + 'G');
+                } // end for loop
+                delete sequences;
+                sequences = new_sequences;
+                break;
+            } // end case
+            case 'N': {
+                for (let j = 0; j < sequences.length; j++) {
+                    new_sequences.push(sequences[j] + 'A');
+                    new_sequences.push(sequences[j] + 'C');
+                    new_sequences.push(sequences[j] + 'G');
+                    new_sequences.push(sequences[j] + 'T');
+                } // end for loop
+                delete sequences;
+                sequences = new_sequences;
+                break;
+            } // end case
+            default: { break; }
+        } // end switch
+    } // end for loop
+    return sequences;
+} // end function
 ///////////////////////////////////////////////////////////////////////////////////////////////////

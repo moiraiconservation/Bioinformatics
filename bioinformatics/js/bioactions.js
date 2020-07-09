@@ -158,9 +158,31 @@ function BioactionRecord() {
 } // end object
 ///////////////////////////////////////////////////////////////////////////////
 // OBJECT /////////////////////////////////////////////////////////////////////
+function BioactionSkin() {
+  this.area           = undefined;
+  this.button         = undefined;
+  this.common_name    = undefined;
+  this.dd             = undefined;
+  this.id             = undefined;
+  this.lock           = undefined;
+  this.lock_bar       = undefined;
+  this.lock_text      = undefined;
+  this.metadata       = undefined;
+  this.option         = undefined;
+  this.option_toggle  = undefined;
+  this.organism_name  = undefined;
+  this.status         = undefined;
+  this.text           = undefined;
+  this.self_id        = undefined;
+  this.tile           = undefined;
+  this.title          = undefined;
+  this.update         = function(action) { }
+} // end object
+///////////////////////////////////////////////////////////////////////////////
+// OBJECT /////////////////////////////////////////////////////////////////////
 function BioactionState(description, lock_delay) {
   if (typeof(description) === "undefined") { description = "generic"; }
-  if (typeof(lock_delay ) === "undefined") { lock_delay = 300; /* 5 min */ }
+  if (typeof(lock_delay ) === "undefined") { lock_delay = 300; }
   this.callback           = undefined;
   this.callback_arguments = [];
   this.cleanup            = undefined;
@@ -173,27 +195,38 @@ function BioactionState(description, lock_delay) {
   this.skin               = undefined;
   this.status             = "loading";
   this.timer              = undefined;
+  this.update_record      = function() { }
 } // end object
 ///////////////////////////////////////////////////////////////////////////////
 // OBJECT /////////////////////////////////////////////////////////////////////
 function BioactionOptions() {
-  this.callback = undefined;
+  this.callback           = undefined;
   this.callback_arguments = [];
-  this.element_id = undefined;
-  this.initial_status = "loading";
-  this.note = undefined;
-  this.skin = undefined;
+  this.element_id         = undefined;
+  this.initial_status     = "loading";
+  this.note               = undefined;
+  this.skin               = undefined;
 } // end function
 ///////////////////////////////////////////////////////////////////////////////
+// OBJECT /////////////////////////////////////////////////////////////////////
+function BioactionRegistration(element_name, record_name, state_name) {
+  this.element_name = element_name,
+  this.record_name  = record_name;
+  this.state_name   = state_name;
+} // end object
 // BIOACTION OBJECT ///////////////////////////////////////////////////////////
 function Bioaction() {
   //////////////////////////////////////////////////////////////////////
   // INITIALIZE VARIABLES //////////////////////////////////////////////
   this.common_name      = "";
   this.genus            = "";
+  this.html_elements    = { };
   this.id               = guid();
+  this.records          = { };
+  this.registry         = [];
   this.scientific_name  = "";
   this.species          = "";
+  this.states           = { };
   // loading box text
   this.loading_box_text           =  { };
   this.loading_box_text.working   =   [];
@@ -206,124 +239,21 @@ function Bioaction() {
   //////////////////////////////////////////////////////////////////////
   // METHOD ////////////////////////////////////////////////////////////
   this.reset = function() {
-    this.reset_actions();
-    this.reset_cds_index_record();
-    this.reset_cds_record();
-    this.reset_cross_species_proteome_map_record();
-    this.reset_gene_map_record();
-    this.reset_genome_index_record();
-    this.reset_genome_record();
-    this.reset_html_elements();
-    this.reset_last_focus();
-    this.reset_lifespan_estimator_record();
-    this.reset_mrca();
-    this.reset_ncbi_record();
-    this.reset_proteome_index_record();
-    this.reset_proteome_record();
-  } // end function
-  //////////////////////////////////////////////////////////////////////
-  // METHOD ////////////////////////////////////////////////////////////
-  this.reset_actions = function() {
-    // protein import
-    this.actions = { };
-    this.actions.cds_import = new BioactionState("cds import", 300); // 5 minute delay
-    this.actions.cds_index = new BioactionState("cds index", 300); // 5 minute delay
-    this.actions.cross_species_proteome_map = new BioactionState("cross-species protein map", 300); // 5 minute delay
-    this.actions.cross_species_proteome_map.species1 = undefined;
-    this.actions.cross_species_proteome_map.species2 = undefined;
-    this.actions.gene_map = new BioactionState("gene map", 300); // 5 minute delay
-    this.actions.genome_import = new BioactionState("genome import", 300); // 5 minute delay
-    this.actions.genome_index = new BioactionState("genome index", 1800); // 30 minute delay
-    this.actions.lifespan_estimator = new BioactionState("lifespan estimator", 1800); // 30 minute delay
-    this.actions.proteome_import = new BioactionState("proteome import", 300); // 5 minute delay
-    this.actions.proteome_index = new BioactionState("proteome index", 300); // 5 minute delay
-    this.actions.proteome_statistics = new BioactionState("statistics", 0);
-  } // end function
-  //////////////////////////////////////////////////////////////////////
-  // METHOD ////////////////////////////////////////////////////////////
-  this.reset_cds_index_record = function() {
-    if (this.cds_index_record) { delete this.cds_index_record; }
-    this.cds_index_record = new BioactionRecord;
-  } // end function
-  //////////////////////////////////////////////////////////////////////
-  // METHOD ////////////////////////////////////////////////////////////
-  this.reset_cds_record = function() {
-    if (this.cds_record) { delete this.cds_record; }
-    this.cds_record = new BioactionRecord;
-  } // end function
-  //////////////////////////////////////////////////////////////////////
-  // METHOD ////////////////////////////////////////////////////////////
-  this.reset_cross_species_proteome_map_record = function() {
-    if (this.cross_species_proteome_map_record) { delete this.cross_species_proteome_map_record; }
-    this.cross_species_proteome_map_record = new BioactionRecord;
-    this.cross_species_proteome_map_record.species1 = new BioactionRecord;
-    this.cross_species_proteome_map_record.species2 = new BioactionRecord;
-  } // end function
-  //////////////////////////////////////////////////////////////////////
-  // METHOD ////////////////////////////////////////////////////////////
-  this.reset_gene_map_record = function() {
-    if (this.gene_map_record) { delete this.gene_map_record; }
-    this.gene_map_record = new BioactionRecord;
-  } // end function
-  //////////////////////////////////////////////////////////////////////
-  // METHOD ////////////////////////////////////////////////////////////
-  this.reset_genome_index_record = function() {
-    if (this.genome_index_record) { delete this.genome_index_record; }
-    this.genome_index_record = new BioactionRecord;
-  } // end function
-  //////////////////////////////////////////////////////////////////////
-  // METHOD ////////////////////////////////////////////////////////////
-  this.reset_genome_record = function() {
-    if (this.genome_record) { delete this.genome_record; }
-    this.genome_record = new BioactionRecord;
-  } // end function
-  //////////////////////////////////////////////////////////////////////
-  // METHOD ////////////////////////////////////////////////////////////
-  this.reset_html_elements = function() {
-    if (this.html_element) {
-      Object.values(this.html_element).forEach(element => {
+    this.registry = [];
+    this.states = { };
+    if (this.html_elements) {
+      Object.values(this.html_elements).forEach(element => {
         while (element.firstChild) { element.removeChild(element.firstChild); }
-        element.innerHTML = '';
+        element.innerHTML = "";
       }); // end forEach
     } // end if
-    this.html_element = { };
-  } // end function
-  //////////////////////////////////////////////////////////////////////
-  // METHOD ////////////////////////////////////////////////////////////
-  this.reset_last_focus = function() {
-    this.last_focus = '';
-  } // end function
-  //////////////////////////////////////////////////////////////////////
-  // METHOD ////////////////////////////////////////////////////////////
-  this.reset_lifespan_estimator_record = function() {
-    if (this.lifespan_estimator_record) { delete this.lifespan_estimator_record; }
-    this.lifespan_estimator_record = new BioactionRecord;
-    this.lifespan_estimator_record.estimate = 0.00;
-  } // end function
-  //////////////////////////////////////////////////////////////////////
-  // METHOD ////////////////////////////////////////////////////////////
-  this.reset_mrca = function() {
+    this.html_elements = { };
+    this.last_focus = "";
     this.mrca = { };
     this.mrca.maximum_longevity = 0;
-    this.mrca.organism_name = '';
+    this.mrca.organism_name = "";
     this.mrca.time = Infinity;
-  } // end function
-  //////////////////////////////////////////////////////////////////////
-  // METHOD ////////////////////////////////////////////////////////////
-  this.reset_ncbi_record = function() {
-    this.ncbi_record = { };
-  } // end function
-  //////////////////////////////////////////////////////////////////////
-  // METHOD ////////////////////////////////////////////////////////////
-  this.reset_proteome_index_record = function() {
-    if (this.proteome_index_record) { delete this.proteome_index_record; }
-    this.proteome_index_record = new BioactionRecord;
-  } // end function
-  //////////////////////////////////////////////////////////////////////
-  // METHOD ////////////////////////////////////////////////////////////
-  this.reset_proteome_record = function() {
-    if (this.proteome_record) { delete this.proteome_record; }
-    this.proteome_record = new BioactionRecord;
+    this.records.ncbi_record = { };
   } // end function
   //////////////////////////////////////////////////////////////////////
   // ACTIONS ///////////////////////////////////////////////////////////
@@ -361,6 +291,19 @@ Bioaction.prototype = {
 } // end prototype
 ///////////////////////////////////////////////////////////////////////////////
 // BIOACTION PROTOTYPE ////////////////////////////////////////////////////////
+Bioaction.prototype.add_registration = function(registration) {
+  if (typeof(registration.state_name) === "undefined") {
+    console.log("Incomplete registration: Please supply a complete BioactionRegistration object.");
+  }
+  else {
+    for (let i = 0; i < this.registry.length; i++) {
+      if (this.registry[i].state_name === registration.state_name) { this.registry[i].splice(i, 1); }
+    } // end for loop
+    this.registry.push(registration);
+  } // end else
+} // end prototype
+///////////////////////////////////////////////////////////////////////////////
+// BIOACTION PROTOTYPE ////////////////////////////////////////////////////////
 Bioaction.prototype.clean_defline = function(defline, no_name) {
   if (typeof(no_name) === "undefined") { no_name = false; }
   defline = defline.replace(/PREDICTED: /ig, '');
@@ -371,94 +314,78 @@ Bioaction.prototype.clean_defline = function(defline, no_name) {
 } // end prototype
 ///////////////////////////////////////////////////////////////////////////////
 // BIOACTION PROTOTYPE ////////////////////////////////////////////////////////
-Bioaction.prototype.evaluate_lock = function(action, record) {
-  if (typeof(action) == 'undefined') { return; }
-  if (typeof(record) == 'undefined') { return; }
+Bioaction.prototype.evaluate_lock = function(state, record) {
+  if (typeof(state) === "undefined") { return; }
+  if (typeof(record) === "undefined") { return; }
   ////////////////////////////////////////////////////////////////////////
   // ADJUST THE LOCK BAR WIDTH  //////////////////////////////////////////
-  action.delta_second = record.metadata.delta_second || 0;
-  if (action.skin.lock_bar && action.status == 'locked') {
-    if ((action.lock_delay - action.delta_second) > 0) {
-      const lock_bar_width = ((action.lock_delay - action.delta_second) / action.lock_delay) * 100;
-      action.skin.lock_bar.style.width = lock_bar_width.toFixed(2) + "%";
+  state.delta_second = record.metadata.delta_second || 0;
+  if (state.skin.lock_bar && state.status == 'locked') {
+    if ((state.lock_delay - state.delta_second) > 0) {
+      const lock_bar_width = ((state.lock_delay - state.delta_second) / state.lock_delay) * 100;
+      state.skin.lock_bar.style.width = lock_bar_width.toFixed(2) + "%";
     } // end if
-    else { action.skin.lock_bar.style.width = "0%"; }
+    else { state.skin.lock_bar.style.width = "0%"; }
   } // end if
   ////////////////////////////////////////////////////////////////////////
-  // EVALUATE THE ACTION STATUS //////////////////////////////////////////
-  if (action.status === "inactive") { action.skin.update(action); }
+  // EVALUATE THE STATUS /////////////////////////////////////////////////
+  if (state.status === "inactive") { state.skin.update(state); }
   else {
     if ((record.metadata.delta_second !== 0) || (record.metadata.year == 0)) {
-      if (action.skin.button && action.skin.status) {
-        // the action has not started, or the action has started and it's not locked
-        if ((!record.num_uploaded && !record.metadata.delta_second) || (isFinite(record.percent_uploaded) && (record.percent_uploaded < 100) && (record.metadata.delta_second >= action.lock_delay))) {
-          if ((action.status !== 'button') || (record.percent_uploaded > action.percent_complete)) {
-            action.status = 'button';
-            action.percent_complete = record.percent_uploaded;
-            action.skin.update(action);
+      if (state.skin.button && state.skin.status) {
+        // the state has not started, or the state has started and it's not locked
+        if ((!record.num_uploaded && !record.metadata.delta_second) || (isFinite(record.percent_uploaded) && (record.percent_uploaded < 100) && (record.metadata.delta_second >= state.lock_delay))) {
+          if ((state.status !== 'button') || (record.percent_uploaded > state.percent_complete)) {
+            state.status = 'button';
+            state.percent_complete = record.percent_uploaded;
+            state.skin.update(state);
           } // end if
-          if (typeof(action.timer) === 'undefined') {
-            if (action.id === this.actions.cds_import.id                ) { action.timer = setInterval(function() { this.get_cds_record();                        }.bind(this), 5000); }
-            if (action.id === this.actions.cds_index.id                 ) { action.timer = setInterval(function() { this.get_cds_index_record();                  }.bind(this), 5000); }
-            if (action.id === this.actions.cross_species_proteome_map.id) { action.timer = setInterval(function() { this.get_cross_species_proteome_map_record(); }.bind(this), 5000); }
-            if (action.id === this.actions.gene_map.id                  ) { action.timer = setInterval(function() { this.get_gene_map_record();                   }.bind(this), 5000); }
-            if (action.id === this.actions.genome_import.id             ) { action.timer = setInterval(function() { this.get_genome_record();                     }.bind(this), 5000); }
-            if (action.id === this.actions.genome_index.id              ) { action.timer = setInterval(function() { this.get_genome_index_record();               }.bind(this), 5000); }
-            if (action.id === this.actions.lifespan_estimator.id        ) { action.timer = setInterval(function() { this.get_lifespan_estimator_record();         }.bind(this), 5000); }
-            if (action.id === this.actions.proteome_import.id           ) { action.timer = setInterval(function() { this.get_proteome_record();                   }.bind(this), 5000); }
-            if (action.id === this.actions.proteome_index.id            ) { action.timer = setInterval(function() { this.get_proteome_index_record();             }.bind(this), 5000); }
+          if (typeof(state.timer) === 'undefined') {
+            state.timer = setInterval(() => { state.update_record.apply(this); }, 5000);
           } // end if
         } // end if
-        // the action is running and it's locked
-        else if (isFinite(record.percent_uploaded) && (record.percent_uploaded < 100) && (record.metadata.delta_second < action.lock_delay)) {
-          if ((action.status !== 'locked') || (record.percent_uploaded > action.percent_complete)) {
-            action.status = 'locked';
-            action.percent_complete = record.percent_uploaded;
-            action.skin.update(action);
+        // the state is running and it's locked
+        else if (isFinite(record.percent_uploaded) && (record.percent_uploaded < 100) && (record.metadata.delta_second < state.lock_delay)) {
+          if ((state.status !== 'locked') || (record.percent_uploaded > state.percent_complete)) {
+            state.status = 'locked';
+            state.percent_complete = record.percent_uploaded;
+            state.skin.update(state);
           } // end if
-          if (typeof(action.timer) === 'undefined') {
-            if (action.id === this.actions.cds_import.id                ) { action.timer = setInterval(function() { this.get_cds_record();                        }.bind(this), 5000); }
-            if (action.id === this.actions.cds_index.id                 ) { action.timer = setInterval(function() { this.get_cds_index_record();                  }.bind(this), 5000); }
-            if (action.id === this.actions.cross_species_proteome_map.id) { action.timer = setInterval(function() { this.get_cross_species_proteome_map_record(); }.bind(this), 5000); }
-            if (action.id === this.actions.gene_map.id                  ) { action.timer = setInterval(function() { this.get_gene_map_record();                   }.bind(this), 5000); }
-            if (action.id === this.actions.genome_import.id             ) { action.timer = setInterval(function() { this.get_genome_record();                     }.bind(this), 5000); }
-            if (action.id === this.actions.genome_index.id              ) { action.timer = setInterval(function() { this.get_genome_index_record();               }.bind(this), 5000); }
-            if (action.id === this.actions.lifespan_estimator.id        ) { action.timer = setInterval(function() { this.get_lifespan_estimator_record();         }.bind(this), 5000); }
-            if (action.id === this.actions.proteome_import.id           ) { action.timer = setInterval(function() { this.get_proteome_record();                   }.bind(this), 5000); }
-            if (action.id === this.actions.proteome_index.id            ) { action.timer = setInterval(function() { this.get_proteome_index_record();             }.bind(this), 5000); }
+          if (typeof(state.timer) === 'undefined') {
+            state.timer = setInterval(() => { state.update_record.apply(this); }, 5000);
           } // end if
         } // end else if
-        // the action has completed
+        // the state has completed
         else if (isFinite(record.percent_uploaded) && (record.percent_uploaded >= 100)) {
-          if (action.status !== 'complete') {
-            action.status = 'complete';
-            action.percent_complete = 100;
-            action.date = getDateFromDayNum(record.metadata.day, record.metadata.year);
-            action.skin.update(action);
+          if (state.status !== 'complete') {
+            state.status = 'complete';
+            state.percent_complete = 100;
+            state.date = getDateFromDayNum(record.metadata.day, record.metadata.year);
+            state.skin.update(state);
           } // end if
-          if (typeof(action.timer) !== 'undefined') {
-            clearInterval(action.timer);
-            action.timer = undefined;
+          if (typeof(state.timer) !== 'undefined') {
+            clearInterval(state.timer);
+            state.timer = undefined;
           } // end if
-          if (action.cleanup) {
-            window.removeEventListener('beforeunload', action.cleanup);
-            action.cleanup = undefined;
+          if (state.cleanup) {
+            window.removeEventListener('beforeunload', state.cleanup);
+            state.cleanup = undefined;
           } // end if
-          if (action.callback) {
-            if (action.callback_arguments.length) {
-              action.callback(...action.callback_arguments);
-              action.callback = undefined;
-              action.callBack_arguments = [];
+          if (state.callback) {
+            if (state.callback_arguments.length) {
+              state.callback(...state.callback_arguments);
+              state.callback = undefined;
+              state.callBack_arguments = [];
             } // end if
             else {
-              action.callback();
-              action.callback = undefined;
-            } // end else (action.callback_arguments.length)
-          } // end if (action.callback)
+              state.callback();
+              state.callback = undefined;
+            } // end else (state.callback_arguments.length)
+          } // end if (state.callback)
         } // end else if (isFinite(record.percent_uploaded) && (record.percent_uploaded >= 100))
-      } // end if (action.skin.button && action.skin.status)
+      } // end if (state.skin.button && state.skin.status)
     } // end if if ((record.metadata.delta_second !== 0) || (record.metadata.year == 0))
-  } // end else (action.status === "inactive")
+  } // end else (state.status === "inactive")
 } // end prototype
 ///////////////////////////////////////////////////////////////////////////////
 // BIOACTION PROTOTYPE ////////////////////////////////////////////////////////
@@ -472,380 +399,6 @@ Bioaction.prototype.format_organism_name = function(str) {
 } // end prototype
 ///////////////////////////////////////////////////////////////////////////////
 // BIOACTION PROTOTYPE ////////////////////////////////////////////////////////
-Bioaction.prototype.get_cds_index_record = function() {
-  return new Promise(function(resolve, reject) {
-    let obj1 = { };
-    let obj2 = { };
-    obj1.database   =   'cds_index_db';
-    obj1.table      =   'table_metadata';
-    obj1.command    =   'select';
-    obj1.where      =   [ { "key": "id", "value": this.organism_name.replace(/ /g, '_') } ];
-    obj2.database   =   'cds_index_db';
-    obj2.table      =   this.organism_name.replace(/ /g, '_');
-    obj2.command    =   "count";
-    let json1 = JSON.stringify(obj1);
-    let json2 = JSON.stringify(obj2);
-    db_guard(json1)
-    .then(responseText => {
-      if (responseText) {
-        this.reset_cds_index_record();
-        let db_record = JSON.parse(responseText);
-        if (typeof(db_record.owner       ) !== 'undefined') { this.cds_index_record.metadata.owner  = db_record.owner; }
-        if (typeof(db_record.records     ) !== 'undefined') { this.cds_index_record.num_records             = parseInt(db_record.records     ); }
-        if (typeof(db_record.year        ) !== 'undefined') { this.cds_index_record.metadata.year           = parseInt(db_record.year        ); }
-        if (typeof(db_record.day         ) !== 'undefined') { this.cds_index_record.metadata.day            = parseInt(db_record.day         ); }
-        if (typeof(db_record.hour        ) !== 'undefined') { this.cds_index_record.metadata.hour           = parseInt(db_record.hour        ); }
-        if (typeof(db_record.minute      ) !== 'undefined') { this.cds_index_record.metadata.minute         = parseInt(db_record.minute      ); }
-        if (typeof(db_record.second      ) !== 'undefined') { this.cds_index_record.metadata.second         = parseInt(db_record.second      ); }
-        if (typeof(db_record.delta_second) !== 'undefined') { this.cds_index_record.metadata.delta_second   = parseInt(db_record.delta_second); }
-        if (db_record.options) { this.cds_index_record.options = JSON.parse(db_record.options); }
-      } // end if
-    })
-    .then(() => db_guard(json2))
-    .then(responseText => {
-      if (responseText) {
-        let db_record = JSON.parse(responseText);
-        if (db_record['COUNT(*)']) {
-          this.cds_index_record.num_uploaded = parseInt(db_record['COUNT(*)']);
-          if (this.cds_index_record.num_records) {
-            this.cds_index_record.percent_uploaded = Math.floor((this.cds_index_record.num_uploaded / this.cds_index_record.num_records) * 100);
-            if (this.cds_index_record.percent_uploaded >= 100) { check_bounty("cds_index", "cds_index_db", this.organism_name, this.organism_name.replace(" ", "_")); }
-          } // end if
-        } // end if
-      } // end if
-    })
-    .then(() => { this.update(); resolve(); });
-  }.bind(this)); // end Promise
-} // end prototype
-///////////////////////////////////////////////////////////////////////////////
-// BIOACTION PROTOTYPE ////////////////////////////////////////////////////////
-Bioaction.prototype.get_cds_record = function() {
-  return new Promise(function(resolve, reject) {
-    let obj1 = { };
-    let obj2 = { };
-    obj1.database   =   'cds_db';
-    obj1.table      =   'table_metadata';
-    obj1.command    =   'select';
-    obj1.where      =   [ { "key": "id", "value": this.organism_name.replace(/ /g, '_') } ];
-    obj2.database   =   'cds_db';
-    obj2.table      =   this.organism_name.replace(/ /g, '_');
-    obj2.command    =   "count";
-    let json1 = JSON.stringify(obj1);
-    let json2 = JSON.stringify(obj2);
-    db_guard(json1)
-    .then(responseText => {
-      if (responseText) {
-        this.reset_cds_record();
-        let db_record = JSON.parse(responseText);
-        if (typeof(db_record.owner       ) !== 'undefined') { this.cds_record.metadata.owner  = db_record.owner; }
-        if (typeof(db_record.records     ) !== 'undefined') { this.cds_record.num_records             = parseInt(db_record.records     ); }
-        if (typeof(db_record.year        ) !== 'undefined') { this.cds_record.metadata.year           = parseInt(db_record.year        ); }
-        if (typeof(db_record.day         ) !== 'undefined') { this.cds_record.metadata.day            = parseInt(db_record.day         ); }
-        if (typeof(db_record.hour        ) !== 'undefined') { this.cds_record.metadata.hour           = parseInt(db_record.hour        ); }
-        if (typeof(db_record.minute      ) !== 'undefined') { this.cds_record.metadata.minute         = parseInt(db_record.minute      ); }
-        if (typeof(db_record.second      ) !== 'undefined') { this.cds_record.metadata.second         = parseInt(db_record.second      ); }
-        if (typeof(db_record.delta_second) !== 'undefined') { this.cds_record.metadata.delta_second   = parseInt(db_record.delta_second); }
-        if (db_record.options) { this.cds_record.options = JSON.parse(db_record.options); }
-      } // end if
-    })
-    .then(() => db_guard(json2))
-    .then(responseText => {
-      if (responseText) {
-        let db_record = JSON.parse(responseText);
-        if (db_record['COUNT(*)']) {
-          this.cds_record.num_uploaded = parseInt(db_record['COUNT(*)']);
-          if (this.cds_record.num_records) {
-            this.cds_record.percent_uploaded = Math.floor((this.cds_record.num_uploaded / this.cds_record.num_records) * 100);
-            if (this.cds_record.percent_uploaded >= 100) { check_bounty("cds_import", "cds_db", this.organism_name, this.organism_name.replace(" ", "_")); }
-          } // end if
-        } // end if
-      } // end if
-    })
-    .then(() => { this.update(); resolve(); });
-  }.bind(this)); // end Promise
-} // end prototype
-///////////////////////////////////////////////////////////////////////////////
-// BIOACTION PROTOTYPE ////////////////////////////////////////////////////////
-Bioaction.prototype.get_cross_species_proteome_map_record = function() {
-  return new Promise(function(resolve, reject) {
-    if (this.actions.cross_species_proteome_map.species1 && this.actions.cross_species_proteome_map.species2) {
-      let split_name1 = this.actions.cross_species_proteome_map.species1.organism_name.split(' ');
-      let split_name2 = this.actions.cross_species_proteome_map.species2.organism_name.split(' ');
-      let name1 = split_name1[0][0] + '_' + split_name1[1];
-      let name2 = split_name2[0][0] + '_' + split_name2[1];
-      let table_name1 = name1 + '_to_' + name2;
-      let table_name2 = name2 + '_to_' + name1;
-      let obj1 = { };
-      let obj2 = { };
-      let obj3 = { };
-      let obj4 = { };
-      obj1.database   =   'xspecies_db';
-      obj1.table      =   'table_metadata';
-      obj1.command    =   'select';
-      obj1.where      =   [ { "key": "id", "value": table_name1 } ];
-      obj2.database   =   'xspecies_db';
-      obj2.table      =   table_name1;
-      obj2.command    =   "count";
-      obj3.database   =   'xspecies_db';
-      obj3.table      =   'table_metadata';
-      obj3.command    =   'select';
-      obj3.where      =   [ { "key": "id", "value": table_name2 } ];
-      obj4.database   =   'xspecies_db';
-      obj4.table      =   table_name2;
-      obj4.command    =   "count";
-      let json1 = JSON.stringify(obj1);
-      let json2 = JSON.stringify(obj2);
-      let json3 = JSON.stringify(obj3);
-      let json4 = JSON.stringify(obj4);
-      db_guard(json1)
-      .then(responseText => {
-        if (responseText) {
-          this.reset_cross_species_proteome_map_record();
-          let db_record = JSON.parse(responseText);
-          if (typeof(db_record.owner       ) !== 'undefined') { this.cross_species_proteome_map_record.species1.metadata.owner          = db_record.owner; }
-          if (typeof(db_record.records     ) !== 'undefined') { this.cross_species_proteome_map_record.species1.num_records             = parseInt(db_record.records     ); }
-          if (typeof(db_record.year        ) !== 'undefined') { this.cross_species_proteome_map_record.species1.metadata.year           = parseInt(db_record.year        ); }
-          if (typeof(db_record.day         ) !== 'undefined') { this.cross_species_proteome_map_record.species1.metadata.day            = parseInt(db_record.day         ); }
-          if (typeof(db_record.hour        ) !== 'undefined') { this.cross_species_proteome_map_record.species1.metadata.hour           = parseInt(db_record.hour        ); }
-          if (typeof(db_record.minute      ) !== 'undefined') { this.cross_species_proteome_map_record.species1.metadata.minute         = parseInt(db_record.minute      ); }
-          if (typeof(db_record.second      ) !== 'undefined') { this.cross_species_proteome_map_record.species1.metadata.second         = parseInt(db_record.second      ); }
-          if (typeof(db_record.delta_second) !== 'undefined') { this.cross_species_proteome_map_record.species1.metadata.delta_second   = parseInt(db_record.delta_second); }
-          if (db_record.options) { this.cross_species_proteome_map_record.species1.options = JSON.parse(db_record.options); }
-        } // end if
-      }) // end then
-      .then(() => db_guard(json2))
-      .then(responseText => {
-        if (responseText) {
-          let db_record = JSON.parse(responseText);
-          if (db_record['COUNT(*)']) {
-            this.cross_species_proteome_map_record.species1.num_uploaded = parseInt(db_record['COUNT(*)']);
-            if (this.cross_species_proteome_map_record.species1.num_records) {
-              this.cross_species_proteome_map_record.species1.percent_uploaded = Math.floor((this.cross_species_proteome_map_record.species1.num_uploaded / this.cross_species_proteome_map_record.species1.num_records) * 100);
-            } // end if
-          } // end if
-        } // end if
-      }) // end then
-      .then(() => db_guard(json3))
-      .then(responseText => {
-        if (responseText) {
-          let db_record = JSON.parse(responseText);
-          if (typeof(db_record.owner       ) !== 'undefined') { this.cross_species_proteome_map_record.species2.metadata.owner          = db_record.owner; }
-          if (typeof(db_record.records     ) !== 'undefined') { this.cross_species_proteome_map_record.species2.num_records             = parseInt(db_record.records     ); }
-          if (typeof(db_record.year        ) !== 'undefined') { this.cross_species_proteome_map_record.species2.metadata.year           = parseInt(db_record.year        ); }
-          if (typeof(db_record.day         ) !== 'undefined') { this.cross_species_proteome_map_record.species2.metadata.day            = parseInt(db_record.day         ); }
-          if (typeof(db_record.hour        ) !== 'undefined') { this.cross_species_proteome_map_record.species2.metadata.hour           = parseInt(db_record.hour        ); }
-          if (typeof(db_record.minute      ) !== 'undefined') { this.cross_species_proteome_map_record.species2.metadata.minute         = parseInt(db_record.minute      ); }
-          if (typeof(db_record.second      ) !== 'undefined') { this.cross_species_proteome_map_record.species2.metadata.second         = parseInt(db_record.second      ); }
-          if (typeof(db_record.delta_second) !== 'undefined') { this.cross_species_proteome_map_record.species2.metadata.delta_second   = parseInt(db_record.delta_second); }
-          if (db_record.options) { this.cross_species_proteome_map_record.species2.options = JSON.parse(db_record.options); }
-        } // end if
-      }) // end then
-      .then(() => db_guard(json4))
-      .then(responseText => {
-        if (responseText) {
-          let db_record = JSON.parse(responseText);
-          if (db_record['COUNT(*)']) {
-            this.cross_species_proteome_map_record.species2.num_uploaded = parseInt(db_record['COUNT(*)']);
-            if (this.cross_species_proteome_map_record.species2.num_records) {
-              this.cross_species_proteome_map_record.species2.percent_uploaded = Math.floor((this.cross_species_proteome_map_record.species2.num_uploaded / this.cross_species_proteome_map_record.species2.num_records) * 100);
-            } // end if
-          } // end if
-        } // end if
-      }) // end then
-      .then(() => {
-        this.cross_species_proteome_map_record.num_records = this.cross_species_proteome_map_record.species1.num_records + this.cross_species_proteome_map_record.species2.num_records;
-        this.cross_species_proteome_map_record.num_uploaded = this.cross_species_proteome_map_record.species1.num_uploaded + this.cross_species_proteome_map_record.species2.num_uploaded;
-        if (this.cross_species_proteome_map_record.num_records) {
-          if (this.cross_species_proteome_map_record.num_records) {
-            this.cross_species_proteome_map_record.percent_uploaded = Math.floor((this.cross_species_proteome_map_record.num_uploaded / this.cross_species_proteome_map_record.num_records) * 100);
-          } // end if
-        } // end if
-        this.update();
-        resolve();
-      }); // end then
-    } // end if
-    else { resolve(); }
-  }.bind(this)); // end promise
-} // end prototype
-///////////////////////////////////////////////////////////////////////////////
-// BIOACTION PROTOTYPE ////////////////////////////////////////////////////////
-Bioaction.prototype.get_gene_map_record = function() {
-  return new Promise(function(resolve, reject) {
-    let obj1 = { };
-    let obj2 = { };
-    obj1.database   =   'gene_map_db';
-    obj1.table      =   'table_metadata';
-    obj1.command    =   'select';
-    obj1.where      =   [ { "key": "id", "value": this.organism_name.replace(/ /g, '_') } ];
-    obj2.database   =   'gene_map_db';
-    obj2.table      =   this.organism_name.replace(/ /g, '_');
-    obj2.command    =   "count";
-    let json1 = JSON.stringify(obj1);
-    let json2 = JSON.stringify(obj2);
-    db_guard(json1)
-    .then(responseText => {
-      if (responseText) {
-        this.reset_gene_map_record();
-        let db_record = JSON.parse(responseText);
-        if (typeof(db_record.owner       ) !== 'undefined') { this.gene_map_record.metadata.owner         = db_record.owner; }
-        if (typeof(db_record.records     ) !== 'undefined') { this.gene_map_record.num_records            = parseInt(db_record.records     ); }
-        if (typeof(db_record.year        ) !== 'undefined') { this.gene_map_record.metadata.year          = parseInt(db_record.year        ); }
-        if (typeof(db_record.day         ) !== 'undefined') { this.gene_map_record.metadata.day           = parseInt(db_record.day         ); }
-        if (typeof(db_record.hour        ) !== 'undefined') { this.gene_map_record.metadata.hour          = parseInt(db_record.hour        ); }
-        if (typeof(db_record.minute      ) !== 'undefined') { this.gene_map_record.metadata.minute        = parseInt(db_record.minute      ); }
-        if (typeof(db_record.second      ) !== 'undefined') { this.gene_map_record.metadata.second        = parseInt(db_record.second      ); }
-        if (typeof(db_record.delta_second) !== 'undefined') { this.gene_map_record.metadata.delta_second  = parseInt(db_record.delta_second); }
-        if (db_record.options) { this.gene_map_record.options = JSON.parse(db_record.options); }
-      } // end if
-    })
-    .then(() => db_guard(json2))
-    .then(responseText => {
-      if (responseText) {
-        let db_record = JSON.parse(responseText);
-        if (db_record['COUNT(*)']) {
-          this.gene_map_record.num_uploaded = parseInt(db_record['COUNT(*)']);
-          if (this.gene_map_record.num_records) {
-            this.gene_map_record.percent_uploaded = Math.floor((this.gene_map_record.num_uploaded / this.gene_map_record.num_records) * 100);
-          } // end if
-        } // end if
-      } // end if
-    }) // end then
-    .then(() => { this.update(); resolve(); });
-  }.bind(this)); // end Promise
-} // end prototype
-///////////////////////////////////////////////////////////////////////////////
-// BIOACTION PROTOTYPE ////////////////////////////////////////////////////////
-Bioaction.prototype.get_genome_index_record = function() {
-  return new Promise(function(resolve, reject) {
-    let obj1 = { };
-    let obj2 = { };
-    obj1.database   =   'genome_index_db';
-    obj1.table      =   'table_metadata';
-    obj1.command    =   'select';
-    obj1.where      =   [ { "key": "id", "value": this.organism_name.replace(/ /g, '_') } ];
-    obj2.database   =   'genome_index_db';
-    obj2.table      =   this.organism_name.replace(/ /g, '_');
-    obj2.command    =   "count";
-    let json1 = JSON.stringify(obj1);
-    let json2 = JSON.stringify(obj2);
-    db_guard(json1)
-    .then(responseText => {
-      if (responseText) {
-        this.reset_genome_index_record();
-        let db_record = JSON.parse(responseText);
-        if (typeof(db_record.owner       ) !== 'undefined') { this.genome_index_record.metadata.owner  = db_record.owner; }
-        if (typeof(db_record.records     ) !== 'undefined') { this.genome_index_record.num_records             = parseInt(db_record.records     ); }
-        if (typeof(db_record.year        ) !== 'undefined') { this.genome_index_record.metadata.year           = parseInt(db_record.year        ); }
-        if (typeof(db_record.day         ) !== 'undefined') { this.genome_index_record.metadata.day            = parseInt(db_record.day         ); }
-        if (typeof(db_record.hour        ) !== 'undefined') { this.genome_index_record.metadata.hour           = parseInt(db_record.hour        ); }
-        if (typeof(db_record.minute      ) !== 'undefined') { this.genome_index_record.metadata.minute         = parseInt(db_record.minute      ); }
-        if (typeof(db_record.second      ) !== 'undefined') { this.genome_index_record.metadata.second         = parseInt(db_record.second      ); }
-        if (typeof(db_record.delta_second) !== 'undefined') { this.genome_index_record.metadata.delta_second   = parseInt(db_record.delta_second); }
-        if (db_record.options) { this.genome_index_record.options = JSON.parse(db_record.options); }
-      } // end if
-    })
-    .then(() => db_guard(json2))
-    .then(responseText => {
-      if (responseText) {
-        let db_record = JSON.parse(responseText);
-        if (db_record['COUNT(*)']) {
-          this.genome_index_record.num_uploaded = parseInt(db_record['COUNT(*)']);
-          if (this.genome_index_record.num_records) {
-            this.genome_index_record.percent_uploaded = Math.floor((this.genome_index_record.num_uploaded / this.genome_index_record.num_records) * 100);
-            if (this.genome_index_record.percent_uploaded >= 100) { check_bounty("genome_index", "genome_index_db", this.organism_name, this.organism_name.replace(" ", "_")); }
-          } // end if
-        } // end if
-      } // end if
-    }) // end then
-    .then(() => { this.update(); resolve(); });
-  }.bind(this)); // end Promise
-} // end prototype
-///////////////////////////////////////////////////////////////////////////////
-// BIOACTION PROTOTYPE ////////////////////////////////////////////////////////
-Bioaction.prototype.get_genome_record = function() {
-  return new Promise(function(resolve, reject) {
-    let obj1 = { };
-    let obj2 = { };
-    obj1.database   =   'genome_db';
-    obj1.table      =   'table_metadata';
-    obj1.command    =   'select';
-    obj1.where      =   [ { "key": "id", "value": this.organism_name.replace(/ /g, '_') } ];
-    obj2.database   =   'genome_index_db';
-    obj2.table      =   this.organism_name.replace(/ /g, '_');
-    obj2.command    =   "count";
-    let json1 = JSON.stringify(obj1);
-    let json2 = JSON.stringify(obj2);
-    db_guard(json1)
-    .then(responseText => {
-      if (responseText) {
-        this.reset_genome_record();
-        let db_record = JSON.parse(responseText);
-        if (typeof(db_record.owner       ) !== 'undefined') { this.genome_record.metadata.owner         = db_record.owner; }
-        if (typeof(db_record.records     ) !== 'undefined') { this.genome_record.num_records            = parseInt(db_record.records     ); }
-        if (typeof(db_record.year        ) !== 'undefined') { this.genome_record.metadata.year          = parseInt(db_record.year        ); }
-        if (typeof(db_record.day         ) !== 'undefined') { this.genome_record.metadata.day           = parseInt(db_record.day         ); }
-        if (typeof(db_record.hour        ) !== 'undefined') { this.genome_record.metadata.hour          = parseInt(db_record.hour        ); }
-        if (typeof(db_record.minute      ) !== 'undefined') { this.genome_record.metadata.minute        = parseInt(db_record.minute      ); }
-        if (typeof(db_record.second      ) !== 'undefined') { this.genome_record.metadata.second        = parseInt(db_record.second      ); }
-        if (typeof(db_record.delta_second) !== 'undefined') { this.genome_record.metadata.delta_second  = parseInt(db_record.delta_second); }
-        if (db_record.options) {
-          this.genome_record.options = JSON.parse(db_record.options);
-          if (this.genome_record.options.bytes_read) { this.genome_record.num_uploaded = this.genome_record.options.bytes_read; }
-        } // end if
-        if (this.genome_record.num_records) {
-          this.genome_record.percent_uploaded = Math.floor((this.genome_record.num_uploaded / this.genome_record.num_records) * 100);
-          if (this.genome_record.percent_uploaded >= 100) { check_bounty("genome_import", "genome_db", this.organism_name, this.organism_name.replace(" ", "_")); }
-        } // end if
-      } // end if
-    })
-    .then(() => db_guard(json2))
-    .then(responseText => {
-      if (responseText) {
-        let db_record = JSON.parse(responseText);
-        if (db_record['COUNT(*)']) {
-          this.genome_record.options.num_records = parseInt(db_record['COUNT(*)']);
-        } // end if
-      } // end if
-    }) // end then
-    .then(() => { this.update(); resolve(); });
-  }.bind(this)); // end Promise
-}; // end prototype
-///////////////////////////////////////////////////////////////////////////////
-// BIOACTION PROTOTYPE ////////////////////////////////////////////////////////
-Bioaction.prototype.get_lifespan_estimator_record = function() {
-  return new Promise(function(resolve, reject) {
-    let obj = { };
-    obj.database   =   'moirai_db';
-    obj.table      =   'mayne';
-    obj.command    =   'select';
-    obj.where      =   [ { key: "organism_name", value: this.organism_name } ];
-    let json = JSON.stringify(obj);
-    db_guard(json)
-    .then(responseText => {
-      if (responseText) {
-        this.reset_lifespan_estimator_record();
-        let db_record = JSON.parse(responseText);
-        if (typeof(db_record.estimate    ) !== 'undefined') { this.lifespan_estimator_record.estimate               = parseFloat(db_record.estimate); }
-        if (typeof(db_record.owner       ) !== 'undefined') { this.lifespan_estimator_record.metadata.owner         = db_record.owner; }
-        if (typeof(db_record.records     ) !== 'undefined') { this.lifespan_estimator_record.num_records            = parseInt(db_record.records     ); }
-        if (typeof(db_record.year        ) !== 'undefined') { this.lifespan_estimator_record.metadata.year          = parseInt(db_record.year        ); }
-        if (typeof(db_record.day         ) !== 'undefined') { this.lifespan_estimator_record.metadata.day           = parseInt(db_record.day         ); }
-        if (typeof(db_record.hour        ) !== 'undefined') { this.lifespan_estimator_record.metadata.hour          = parseInt(db_record.hour        ); }
-        if (typeof(db_record.minute      ) !== 'undefined') { this.lifespan_estimator_record.metadata.minute        = parseInt(db_record.minute      ); }
-        if (typeof(db_record.second      ) !== 'undefined') { this.lifespan_estimator_record.metadata.second        = parseInt(db_record.second      ); }
-        if (typeof(db_record.delta_second) !== 'undefined') { this.lifespan_estimator_record.metadata.delta_second  = parseInt(db_record.delta_second); }
-        if (db_record.options) { this.lifespan_estimator_record.options = JSON.parse(db_record.options); }
-        if (this.lifespan_estimator_record.num_records) {
-          this.lifespan_estimator_record.num_uploaded = this.lifespan_estimator_record.num_records;
-          this.lifespan_estimator_record.percent_uploaded = 100;
-        } // end if
-      } // end if
-    })
-    .then(() => { this.update(); resolve(); });
-  }.bind(this)); // end Promise
-}; // end prototype
-///////////////////////////////////////////////////////////////////////////////
-// BIOACTION PROTOTYPE ////////////////////////////////////////////////////////
 Bioaction.prototype.get_ncbi_record = function() {
   return new Promise(function(resolve, reject) {
     let obj    = { };
@@ -857,111 +410,17 @@ Bioaction.prototype.get_ncbi_record = function() {
     db_guard(json)
     .then(responseText => {
       if (responseText && (responseText !== '{ }')) {
-        this.ncbi_record = JSON.parse(responseText);
-        if (this.ncbi_record.genbank) {
-          this.ncbi_record.genbank = this.ncbi_record.genbank.replace("&", "and");
-          this.ncbi_record.genbank = JSON.parse(this.ncbi_record.genbank);
+        this.records.ncbi_record = JSON.parse(responseText);
+        if (this.records.ncbi_record.genbank) {
+          this.records.ncbi_record.genbank = this.records.ncbi_record.genbank.replace("&", "and");
+          this.records.ncbi_record.genbank = JSON.parse(this.records.ncbi_record.genbank);
         } // end if
-        if (this.ncbi_record.refseq) {
-          this.ncbi_record.refseq = this.ncbi_record.refseq.replace("&", "and");
-          this.ncbi_record.refseq = JSON.parse(this.ncbi_record.refseq);
+        if (this.records.ncbi_record.refseq) {
+          this.records.ncbi_record.refseq = this.records.ncbi_record.refseq.replace("&", "and");
+          this.records.ncbi_record.refseq = JSON.parse(this.records.ncbi_record.refseq);
         } // end if
       } // end if
     }) // end then
-    .then(() => { this.update(); resolve(); });
-  }.bind(this)); // end Promise
-} // end prototype
-///////////////////////////////////////////////////////////////////////////////
-// BIOACTION PROTOTYPE ////////////////////////////////////////////////////////
-Bioaction.prototype.get_proteome_index_record = function() {
-  return new Promise(function(resolve, reject) {
-    let obj1 = { };
-    let obj2 = { };
-    obj1.database   =   'proteome_index_db';
-    obj1.table      =   'table_metadata';
-    obj1.command    =   'select';
-    obj1.where      =   [ { "key": "id", "value": this.organism_name.replace(/ /g, '_') } ];
-    obj2.database   =   'proteome_index_db';
-    obj2.table      =   this.organism_name.replace(/ /g, '_');
-    obj2.command    =   "count";
-    let json1 = JSON.stringify(obj1);
-    let json2 = JSON.stringify(obj2);
-    db_guard(json1)
-    .then(responseText => {
-      if (responseText) {
-        this.reset_proteome_index_record();
-        let db_record = JSON.parse(responseText);
-        if (typeof(db_record.owner       ) !== 'undefined') { this.proteome_index_record.metadata.owner  = db_record.owner; }
-        if (typeof(db_record.records     ) !== 'undefined') { this.proteome_index_record.num_records             = parseInt(db_record.records     ); }
-        if (typeof(db_record.year        ) !== 'undefined') { this.proteome_index_record.metadata.year           = parseInt(db_record.year        ); }
-        if (typeof(db_record.day         ) !== 'undefined') { this.proteome_index_record.metadata.day            = parseInt(db_record.day         ); }
-        if (typeof(db_record.hour        ) !== 'undefined') { this.proteome_index_record.metadata.hour           = parseInt(db_record.hour        ); }
-        if (typeof(db_record.minute      ) !== 'undefined') { this.proteome_index_record.metadata.minute         = parseInt(db_record.minute      ); }
-        if (typeof(db_record.second      ) !== 'undefined') { this.proteome_index_record.metadata.second         = parseInt(db_record.second      ); }
-        if (typeof(db_record.delta_second) !== 'undefined') { this.proteome_index_record.metadata.delta_second   = parseInt(db_record.delta_second); }
-        if (db_record.options) { this.proteome_index_record.options = JSON.parse(db_record.options); }
-      } // end if
-    })
-    .then(() => db_guard(json2))
-    .then(responseText => {
-      if (responseText) {
-        let db_record = JSON.parse(responseText);
-        if (db_record['COUNT(*)']) {
-          this.proteome_index_record.num_uploaded = parseInt(db_record['COUNT(*)']);
-          if (this.proteome_index_record.num_records) {
-            this.proteome_index_record.percent_uploaded = Math.floor((this.proteome_index_record.num_uploaded / this.proteome_index_record.num_records) * 100);
-            if (this.proteome_index_record.percent_uploaded >= 100) { check_bounty("proteome_index", "proteome_index_db", this.organism_name, this.organism_name.replace(" ", "_")); }
-          } // end if
-        } // end if
-      } // end if
-    })
-    .then(() => { this.update(); resolve(); });
-  }.bind(this)); // end Promise
-} // end prototype
-///////////////////////////////////////////////////////////////////////////////
-// BIOACTION PROTOTYPE ////////////////////////////////////////////////////////
-Bioaction.prototype.get_proteome_record = function() {
-  return new Promise(function(resolve, reject) {
-    let obj1 = { };
-    let obj2 = { };
-    obj1.database   =   'proteome_db';
-    obj1.table      =   'table_metadata';
-    obj1.command    =   'select';
-    obj1.where      =   [ { "key": "id", "value": this.organism_name.replace(/ /g, '_') } ];
-    obj2.database   =   'proteome_db';
-    obj2.table      =   this.organism_name.replace(/ /g, '_');
-    obj2.command    =   "count";
-    let json1 = JSON.stringify(obj1);
-    let json2 = JSON.stringify(obj2);
-    db_guard(json1)
-    .then(responseText => {
-      if (responseText) {
-        this.reset_proteome_record();
-        let db_record = JSON.parse(responseText);
-        if (typeof(db_record.owner       ) !== 'undefined') { this.proteome_record.metadata.owner         = db_record.owner; }
-        if (typeof(db_record.records     ) !== 'undefined') { this.proteome_record.num_records            = parseInt(db_record.records     ); }
-        if (typeof(db_record.year        ) !== 'undefined') { this.proteome_record.metadata.year          = parseInt(db_record.year        ); }
-        if (typeof(db_record.day         ) !== 'undefined') { this.proteome_record.metadata.day           = parseInt(db_record.day         ); }
-        if (typeof(db_record.hour        ) !== 'undefined') { this.proteome_record.metadata.hour          = parseInt(db_record.hour        ); }
-        if (typeof(db_record.minute      ) !== 'undefined') { this.proteome_record.metadata.minute        = parseInt(db_record.minute      ); }
-        if (typeof(db_record.second      ) !== 'undefined') { this.proteome_record.metadata.second        = parseInt(db_record.second      ); }
-        if (typeof(db_record.delta_second) !== 'undefined') { this.proteome_record.metadata.delta_second  = parseInt(db_record.delta_second); }
-        if (db_record.options) { this.proteome_record.options = JSON.parse(db_record.options); }
-      } // end if
-    })
-    .then(() => db_guard(json2))
-    .then(responseText => {
-      if (responseText) {
-        let db_record = JSON.parse(responseText);
-        if (db_record['COUNT(*)']) {
-          this.proteome_record.num_uploaded = parseInt(db_record['COUNT(*)']);
-          if (this.proteome_record.num_records) {
-            this.proteome_record.percent_uploaded = Math.floor((this.proteome_record.num_uploaded / this.proteome_record.num_records) * 100);
-            if (this.proteome_record.percent_uploaded >= 100) { check_bounty("proteome_import", "proteome_db", this.organism_name, this.organism_name.replace(" ", "_")); }
-          } // end if
-        } // end if
-      } // end if
-    })
     .then(() => { this.update(); resolve(); });
   }.bind(this)); // end Promise
 } // end prototype
@@ -990,37 +449,21 @@ Bioaction.prototype.resolve_organism_name = function(name) {
 // BIOACTION PROTOTYPE ////////////////////////////////////////////////////////
 Bioaction.prototype.update = function() {
   //////////////////////////////////////////////////////////////////////
-  // CLEAR ANY UNUSED TIMERS ///////////////////////////////////////////
-  if (!document.getElementById(this.html_element.cds_import                ) && (typeof(this.actions.cds_import.timer                ) !== 'undefined')) { clearInterval(this.actions.cds_import.timer                ); this.actions.cds_import.timer                 = undefined; }
-  if (!document.getElementById(this.html_element.cds_index                 ) && (typeof(this.actions.cds_index.timer                 ) !== 'undefined')) { clearInterval(this.actions.cds_import.timer                ); this.actions.cds_import.timer                 = undefined; }
-  if (!document.getElementById(this.html_element.cross_species_proteome_map) && (typeof(this.actions.cross_species_proteome_map.timer) !== 'undefined')) { clearInterval(this.actions.cross_species_proteome_map.timer); this.actions.cross_species_proteome_map.timer = undefined; }
-  if (!document.getElementById(this.html_element.gene_map                  ) && (typeof(this.actions.gene_map.timer                  ) !== 'undefined')) { clearInterval(this.actions.gene_map.timer                  ); this.actions.gene_map.timer                   = undefined; }
-  if (!document.getElementById(this.html_element.genome_index              ) && (typeof(this.actions.genome_index.timer              ) !== 'undefined')) { clearInterval(this.actions.genome_index.timer              ); this.actions.genome_index.timer               = undefined; }
-  if (!document.getElementById(this.html_element.genome_import             ) && (typeof(this.actions.genome_import.timer             ) !== 'undefined')) { clearInterval(this.actions.genome_import.timer             ); this.actions.genome_import.timer              = undefined; }
-  if (!document.getElementById(this.html_element.lifespan_estimator        ) && (typeof(this.actions.lifespan_estimator.timer        ) !== 'undefined')) { clearInterval(this.actions.lifespan_estimator.timer        ); this.actions.lifespan_estimator.timer         = undefined; }
-  if (!document.getElementById(this.html_element.proteome_import           ) && (typeof(this.actions.proteome_import.timer           ) !== 'undefined')) { clearInterval(this.actions.proteome_import.timer           ); this.actions.proteome_import.timer            = undefined; }
-  if (!document.getElementById(this.html_element.proteome_index            ) && (typeof(this.actions.proteome_index.timer            ) !== 'undefined')) { clearInterval(this.actions.proteome_index.timer            ); this.actions.proteome_index.timer             = undefined; }
-  //////////////////////////////////////////////////////////////////////
-  // EVALUATE THE SIMPLE ACTION LOCKS //////////////////////////////////
-  if (this.html_element.cds_import         && (this.actions.cds_import.status         !== 'complete')) { this.evaluate_lock(this.actions.cds_import,         this.cds_record               ); }
-  if (this.html_element.cds_index          && (this.actions.cds_index.status          !== 'complete')) { this.evaluate_lock(this.actions.cds_index,          this.cds_index_record         ); }
-  if (this.html_element.gene_map           && (this.actions.gene_map.status           !== 'complete')) { this.evaluate_lock(this.actions.gene_map,           this.gene_map_record          ); }
-  if (this.html_element.genome_import      && (this.actions.genome_import.status      !== 'complete')) { this.evaluate_lock(this.actions.genome_import,      this.genome_record            ); }
-  if (this.html_element.genome_index       && (this.actions.genome_index.status       !== 'complete')) { this.evaluate_lock(this.actions.genome_index,       this.genome_index_record      ); }
-  if (this.html_element.lifespan_estimator && (this.actions.lifespan_estimator.status !== 'complete')) { this.evaluate_lock(this.actions.lifespan_estimator, this.lifespan_estimator_record); }
-  if (this.html_element.proteome_import    && (this.actions.proteome_import.status    !== 'complete')) { this.evaluate_lock(this.actions.proteome_import,    this.proteome_record          ); }
-  if (this.html_element.proteome_index     && (this.actions.proteome_index.status     !== 'complete')) { this.evaluate_lock(this.actions.proteome_index,     this.proteome_index_record    ); }
-  //////////////////////////////////////////////////////////////////////
-  // EVALUATE THE COMPLEX ACTION LOCKS /////////////////////////////////
-  let newObj = { };
-  newObj.metadata = { };
-  newObj.num_records           = this.cross_species_proteome_map_record.species1.num_records + this.cross_species_proteome_map_record.species2.num_records;
-  newObj.num_uploaded          = this.cross_species_proteome_map_record.species1.num_uploaded + this.cross_species_proteome_map_record.species2.num_uploaded;
-  newObj.percent_uploaded      = this.cross_species_proteome_map_record.species1.percent_uploaded + this.cross_species_proteome_map_record.species2.percent_uploaded;
-  newObj.metadata.year         = this.cross_species_proteome_map_record.species2.metadata.year ? this.cross_species_proteome_map_record.species2.metadata.year : this.cross_species_proteome_map_record.species1.metadata.year;
-  newObj.metadata.day          = this.cross_species_proteome_map_record.species2.metadata.day ? this.cross_species_proteome_map_record.species2.metadata.day : this.cross_species_proteome_map_record.species1.metadata.day;
-  newObj.metadata.delta_second = this.cross_species_proteome_map_record.species2.metadata.delta_second ? this.cross_species_proteome_map_record.species2.metadata.delta_second : this.cross_species_proteome_map_record.species1.metadata.delta_second;
-  if (this.html_element.cross_species_proteome_map && (this.actions.cross_species_proteome_map.status !== 'complete')) { this.evaluate_lock(this.actions.cross_species_proteome_map, newObj); }
+  // EVALUATE LOCKS //////////////////////////////////////////////////////
+  for (let i = 0; i < this.registry.length; i++) {
+    let element_name = this.registry[i].element_name;
+    let state_name   = this.registry[i].state_name;
+    let record_name  = this.registry[i].record_name;
+    if (typeof(this.states[state_name]) !== "undefined") {
+      if (!document.getElementById(this.html_elements[element_name]) && typeof(this.states[state_name].timer) !== "undefined") {
+        clearInterval(this.states[state_name].timer);
+        this.states[state_name].timer = undefined;
+      } // end if
+      if (this.states[state_name].status !== "complete") {
+        this.evaluate_lock(this.states[state_name], this.records[record_name]);
+      } // end if
+    } // end if
+  } // end for loop
 } // end prototype
 ///////////////////////////////////////////////////////////////////////////////
 // OBJECT /////////////////////////////////////////////////////////////////////
@@ -1299,6 +742,13 @@ function FASTA_to_db_lite(obj) {
 // FUNCTION ///////////////////////////////////////////////////////////////////
 function get_contig_map(table, accession) {
   return new Promise(function(resolve, reject) {
+    if (!Array.isArray(accession)) {
+      const new_array = [];
+      new_array.push(accession);
+      accession = new_array;
+    } // end if
+    const unique_accessions = new Set(accession);
+    accession = [...unique_accessions];
     if (window.XMLHttpRequest) { xmlhttp = new XMLHttpRequest(); }
     else { xmlhttp = new ActiveXObject("Microsoft.XMLHTTP"); }
     xmlhttp.onreadystatechange = function() {
@@ -1307,16 +757,19 @@ function get_contig_map(table, accession) {
           if (this.responseText) {
             const map = JSON.parse(this.responseText);
             if (map.length) {
-              let start = 1;
-              let end = 0;
               for (let i = 0; i < map.length; i++) {
-                map[i].index = i;
-                map[i].id = parseInt(map[i].id);
-                map[i].char_length = parseInt(map[i].char_length);
-                end = end + map[i].char_length;
-                map[i].start = start;
-                map[i].end = end;
-                start = end + 1;
+                let end = 0;
+                let start = 1;
+                for (let j = 0; j < map[i].length; j++) {
+                  map[i][j].accession = accession[i];
+                  map[i][j].index = j;
+                  map[i][j].id = parseInt(map[i][j].id);
+                  map[i][j].char_length = parseInt(map[i][j].char_length);
+                  end = end + map[i][j].char_length;
+                  map[i][j].start = start;
+                  map[i][j].end = end;
+                  start = end + 1;
+                } // end for loop
               } // end for loop
             } // end if
             resolve(map);
@@ -1328,7 +781,7 @@ function get_contig_map(table, accession) {
     let send_message = "execute=true";
     send_message += "&direct_command=get_contig_map";
     send_message += "&table=" + table;
-    send_message += "&accession=" + accession;
+    send_message += "&accession=" + JSON.stringify(accession);
     xmlhttp.open("POST", current_base_url + "/bioinformatics/PHP/bioactions", true);
     xmlhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
     xmlhttp.send(send_message);

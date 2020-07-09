@@ -105,11 +105,11 @@ $css .= '
 ///////////////////////////////////////////////////////////////////////////////
 // SKINS //////////////////////////////////////////////////////////////////////
 $css .= '
-.slim_skin__common_name {
+.default_skin__common_name {
   display: inline-block;
-  margin-left: 10px;
+  margin-left: 6px;
 }
-.slim_skin__lock {
+.default_skin__lock {
   background: '.$theme["base"]["dark"].';
   border-radius: 2px;
   height: 4px;
@@ -117,7 +117,7 @@ $css .= '
   position: relative;
   width: 100%;
 }
-.slim_skin__lock_bar {
+.default_skin__lock_bar {
   background: '.$theme["secondary"]["light"].';
   border-radius: 2px;
   display: block;
@@ -125,33 +125,36 @@ $css .= '
   position: relative;
   overflow: hidden;
 }
-.slim_skin__metadata {
+.default_skin__metadata {
 }
-.slim_skin__option {
+.default_skin__option {
   /*display: none;*/
 }
-.slim_skin__option_toggle {
+.default_skin__option_toggle {
   align-items: center;
   color: '.$theme["primary"]["foundation"].';
   display: flex;
   font-size: 18px;
   justify-content: center;
 }
-.slim_skin__option_toggle:hover {
+.default_skin__option_toggle:hover {
   color: '.$theme["primary"]["light"].';
 }
-.slim_skin__organism_name {
+.default_skin__organism_name {
   display: inline-block;
 }
-.slim_skin__progress_ring { }
-.slim_skin__progress_ring__circle {
+.default_skin__progress_ring { }
+.default_skin__progress_ring__circle {
   -webkit-transition: all 2s ease-in-out, stroke-dashoffset 0.35s;
   -moz-transition: all 2s ease-in-out, stroke-dashoffset 0.35s;
   transition: all 2s ease-in-out, stroke-dashoffset 0.35s;
   transform: rotate(-90deg);
   transform-origin: 50% 50%;
 }
-.slim_skin__tile {
+.default_skin__text {
+  display: none;
+}
+.default_skin__tile {
   background-color: '.$theme['base']['light'].';
   border: 1px solid '.$theme['base']['dark'].';
   color: '.$theme['text']['base']['light'].';
@@ -160,27 +163,27 @@ $css .= '
   padding: 20px 20px 20px 20px;
   width: 100%;
 }
-.slim_skin__tile p {
+.default_skin__tile p {
   font-size: 16px;
   line-height: 1.00em;
   margin-bottom: 5px;
 }
-.slim_skin__title {
+.default_skin__title {
   font-weight: bold;
 }
 @media only screen and (max-width: 1200px) { } /* Large Devices, Wide Screens */
 @media only screen and (max-width: 992px) { } /* Medium Devices, Desktops */
 /* Small Devices, Tablets */
 @media only screen and (max-width: 768px) {
-  .slim_skin__tile p { font-size: 14px; }
+  .default_skin__tile p { font-size: 14px; }
 }
 /* Extra Small Devices, Phones */
 @media only screen and (max-width: 480px) {
-  .slim_skin__tile p { font-size: 12px; }
+  .default_skin__tile p { font-size: 12px; }
 }
 /* Custom, iPhone Retina */
 @media only screen and (max-width: 320px ) {
-  .slim_skin__tile p { font-size:  10px; }
+  .default_skin__tile p { font-size:  10px; }
 }
 ';
 ///////////////////////////////////////////////////////////////////////////////

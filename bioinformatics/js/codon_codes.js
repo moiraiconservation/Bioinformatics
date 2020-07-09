@@ -68,27 +68,27 @@ let codon_vert_mito = {
 }; // end object
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 function reverse_complement(dna) {
-    let new_letter = '';
-    let new_dna = '';
+    let new_letter = "";
+    let new_dna = "";
     dna = dna.toUpperCase();
     for (let i = (dna.length - 1); i > -1; i--) {
         let letter = dna.charAt(i);
         switch (letter.toUpperCase()) {
-            case 'A': { new_letter = 'T'; break; }
-            case 'C': { new_letter = 'G'; break; }
-            case 'G': { new_letter = 'C'; break; }
-            case 'T': { new_letter = 'A'; break; }
-            case 'R': { new_letter = 'Y'; break; }
-            case 'Y': { new_letter = 'R'; break; }
-            case 'S': { new_letter = 'W'; break; }
-            case 'W': { new_letter = 'S'; break; }
-            case 'K': { new_letter = 'M'; break; }
-            case 'M': { new_letter = 'K'; break; }
-            case 'B': { new_letter = 'V'; break; }
-            case 'V': { new_letter = 'B'; break; }
-            case 'D': { new_letter = 'H'; break; }
-            case 'H': { new_letter = 'D'; break; }
-            default: { new_letter = 'N'; break; }
+            case "A": { new_letter = "T"; break; }
+            case "C": { new_letter = "G"; break; }
+            case "G": { new_letter = "C"; break; }
+            case "T": { new_letter = "A"; break; }
+            case "R": { new_letter = "Y"; break; }
+            case "Y": { new_letter = "R"; break; }
+            case "S": { new_letter = "W"; break; }
+            case "W": { new_letter = "S"; break; }
+            case "K": { new_letter = "M"; break; }
+            case "M": { new_letter = "K"; break; }
+            case "B": { new_letter = "V"; break; }
+            case "V": { new_letter = "B"; break; }
+            case "D": { new_letter = "H"; break; }
+            case "H": { new_letter = "D"; break; }
+            default: { new_letter = "N"; break; }
         } // end switch
         if (letter === letter.toLowerCase()) { new_letter = new_letter.toLowerCase(); }
         new_dna += new_letter;

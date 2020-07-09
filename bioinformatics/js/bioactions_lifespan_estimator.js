@@ -1,30 +1,32 @@
 ///////////////////////////////////////////////////////////////////////////////
-// BIOACTIONS LIFESPAN ESTIMATOR //////////////////////////////////////////////
+// BIOACTIONS LIFESPAN_ESTIMATOR //////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 // PROTOTYPE //////////////////////////////////////////////////////////////////
 Bioaction.prototype.activate_lifespan_estimator = function() {
   this.get_ncbi_record()
   .then(() => {
-    if (this.ncbi_record.genome_url) {
+    if (this.records.ncbi_record.genome_url) {
       this.get_genome_record()
       .then(() => {
-        if (this.genome_record.percent_uploaded >= 100) {
+        if (this.records.genome_record.percent_uploaded >= 100) {
           this.get_cds_record()
           .then(() => {
-            if (this.cds_record.percent_uploaded >= 100) {
-              this.actions.lifespan_estimator.status = "loading";
+            if (this.records.cds_record.percent_uploaded >= 100) {
+              this.states.lifespan_estimator.status = "loading";
               this.update();
             } // end if
           }); // end then
-        } // end if (this.genome_record.percent_uploaded >= 100)
+        } // end if (this.records.genome_record.percent_uploaded >= 100)
       }); // end then
-    } // end if (this.ncbi_record.genome_url)
+    } // end if (this.records.ncbi_record.genome_url)
   }); // end then
 } // end prototype
 ///////////////////////////////////////////////////////////////////////////////
 // PROTOTYPE //////////////////////////////////////////////////////////////////
 Bioaction.prototype.create_lifespan_estimator = function(options) {
   if (typeof(options) === "undefined") { options = new BioactionOptions; }
+  ////////////////////////////////////////////////////////////////////////
+  // REMOVE ANY PRE-EXISTING ELEMENTS ////////////////////////////////////
   if (options.element_id) {
     let element_check = document.getElementById(options.element_id);
     if (element_check) {
@@ -34,37 +36,48 @@ Bioaction.prototype.create_lifespan_estimator = function(options) {
     else { return; }
   } // end if
   ////////////////////////////////////////////////////////////////////////
-  // REGISTER VARIABLES WITH PARENT OBJECT ///////////////////////////////
-  if (options.callback) { this.actions.lifespan_estimator.callback = options.callback; }
-  if (options.callback_arguments && options.callback_arguments.length) { this.actions.lifespan_estimator.callback_arguments = options.callback_arguments; }
-  if (options.initial_status) { this.actions.lifespan_estimator.status = options.initial_status; }
+  // REGISTER the BIOACTION WITH PARENT OBJECT ///////////////////////////
+  const registration = new BioactionRegistration("lifespan_estimator", "lifespan_estimator_record", "lifespan_estimator");
+  this.add_registration(registration);
+  ////////////////////////////////////////////////////////////////////////
+  // CREATE THE STATE ////////////////////////////////////////////////////
+  state = new BioactionState("lifespan estimator", 1800); // 30 minute delay
+  if (options.callback) { state.callback = options.callback; }
+  if (options.callback_arguments && options.callback_arguments.length) { state.callback_arguments = options.callback_arguments; }
+  if (options.initial_status) { state.status = options.initial_status; }
   if (!options.skin) { options.skin = this.default_skin; }
-  const action = options.skin(this.actions.lifespan_estimator.id, this);
-  this.actions.lifespan_estimator.skin = action;
+  const skin = options.skin(state.id, this);
+  state.skin = skin;
+  state.update_record = this.get_lifespan_estimator_record;
+  this.states.lifespan_estimator = state;
+  state.skin.update(state);
   ////////////////////////////////////////////////////////////////////////
   // INITIALIZE SKIN ELEMENTS ////////////////////////////////////////////
   let title = 'Estimate Lifespan';
   if (options.note) { title += ' <span class="tooltip-font-awesome color-primary-foundation" aria-hidden="true" data-toggle="tooltip" data-placement="auto" title="' + note + '"></span>'; }
-  action.title.innerHTML = title;
-  action.text.innerHTML = "";
-  action.button.innerHTML = 'Estimate <i class="fa fa-angle-right" aria-hidden="true"></i>';
-  action.button.style.display = "none";
-  if (action.organism_name) { action.organism_name.innerHTML = this.organism_name; }
-  if (action.common_name) {
-    if (this.common_name) { action.common_name.innerHTML = "(" + this.common_name + ")"; }
+  skin.title.innerHTML = title;
+  skin.text.innerHTML = "";
+  skin.button.innerHTML = 'Estimate <i class="fa fa-angle-right" aria-hidden="true"></i>';
+  skin.button.style.display = "none";
+  if (skin.organism_name) { skin.organism_name.innerHTML = this.organism_name; }
+  if (skin.common_name) {
+    if (this.common_name) { skin.common_name.innerHTML = "(" + this.common_name + ")"; }
   } // end if
+  ////////////////////////////////////////////////////////////////////////
+  // INITIALIZE THE ELEMENT //////////////////////////////////////////////
   if (options.element_id) {
-    document.getElementById(options.element_id).appendChild(action.area);
-    this.html_element.lifespan_estimator = document.getElementById(options.element_id);
-    this.html_element.lifespan_estimator.style.display = "block";
+    document.getElementById(options.element_id).appendChild(skin.area);
+    this.html_elements.lifespan_estimator = document.getElementById(options.element_id);
+    this.html_elements.lifespan_estimator.style.display = "block";
   } // end if
-  else { document.body.appendChild(action.area); }
+  else { document.body.appendChild(skin.area); }
   $('[data-toggle="tooltip"]').tooltip();
-  action.update(this.actions.lifespan_estimator);
+  skin.update(this.states.lifespan_estimator);
   this.activate_lifespan_estimator();
   //////////////////////////////////////////////////////////////////////
   // EVENT LISTENER ////////////////////////////////////////////////////
-  action.button.addEventListener("click", function() {
+  skin.button.addEventListener("click", function() {
+    skin.button.blur();
     hideSpinner();
     hide_progress_bar(true);
     hide_loading_box(true);
@@ -75,14 +88,15 @@ Bioaction.prototype.create_lifespan_estimator = function(options) {
     this.get_genome_record()
     .then(() => {
       const self = this;
-      const options = new AlignmentOptions(NUC_2_3, self.genome_record);
-      //options.seed.exact_match = false;
+      const options = new AlignmentOptions(NUC_3_4, self.records.genome_record);
+      options.score.gap_open     = 4;
+      options.score.gap_extend   = 2;
       options.expect_threshold_1 = 10.00;
       options.expect_threshold_2 = 0.001;
-      options.seed.filter_low_complexity = true;
-      options.seed.word_size = 11;
-      //options.x_drop.X2_trigger = 1;
-      //options.x_drop.X2 = 100;
+      options.seed.filter_low_complexity = false;
+      options.seed.word_size = 5;
+      options.x_drop.X2_trigger = 15;
+      const distance_to_promoter = 100;
       let mayne_index = 0;
       for (let i = 0; i < mayne_promoter.length; i++) {
         mayne_promoter[i].alignment = { };
@@ -100,7 +114,6 @@ Bioaction.prototype.create_lifespan_estimator = function(options) {
                 hide_loading_box(true);
                 if (e.data.result.length) {
                   console.log("Promoter " + (mayne_index + 1) + " out of " + mayne_promoter.length);
-                  console.log(mayne_promoter[mayne_index]);
                   if ((e.data.result[0].expect < options.expect_threshold_2) && (e.data.result[0].expect >= 0)) {
                     mayne_promoter[mayne_index].alignment = e.data.result[0];
                     console.log("Query Coverage: " + (mayne_promoter[mayne_index].alignment.query_coverage).toFixed(2) + "% ");
@@ -108,6 +121,7 @@ Bioaction.prototype.create_lifespan_estimator = function(options) {
                     console.log("Expect: " + mayne_promoter[mayne_index].alignment.expect);
                     console.log(e.data.result[0].hsp);
                   } // end if
+                  /*
                   else {
                     console.log("Trying something different ... ");
                     const db_source = { database: "genome_db",       table: self.organism_name.replace(/ /g, '_') };
@@ -121,7 +135,8 @@ Bioaction.prototype.create_lifespan_estimator = function(options) {
                     }; // end object
                     alignment.postMessage(job);
                     console.log(dfghj.fghj);
-                  } // end if
+                  } // end else
+                  */
                   console.log(" ");
                 } // end if
                 mayne_index++;
@@ -154,62 +169,54 @@ Bioaction.prototype.create_lifespan_estimator = function(options) {
               } // end case
               case 'select': {
                 loading_box_text("Finding Promoter Region of Genome");
-                const cds_domain = [];
-                const chosen_domain = [];
+                const accession = [];
+                const gene_domain = [];
+                const gene_map = { start: 0, end: 0 };;
                 if (e.data.record.length) {
                   // find the genome accession number and location
                   mayne_promoter[mayne_index].matched_genes = e.data.record;
-                  const location = e.data.record[0].location;
-                  const cds_accession = e.data.record[0].accession;
-                  const cds_accession_parts = cds_accession.split("|");
-                  const genome_accession_parts = cds_accession_parts[1].split("_");
-                  const accession = genome_accession_parts[0] + "_" + genome_accession_parts[1];
-                  const gene_map = parse_location(location);
+                  for (let i = 0; i < e.data.record.length; i++) {
+                    let location = e.data.record[i].location;
+                    let cds_accession = e.data.record[i].accession;
+                    let cds_accession_parts = cds_accession.split("|");
+                    let genome_accession_parts = cds_accession_parts[1].split("_");
+                    accession.push(genome_accession_parts[0] + "_" + genome_accession_parts[1]);
+                    gene_domain.push(parse_location(location));
+                  } // end if
+                  // Find the first start location and the last end location
+                  // for all the isoforms of the gene
+                  let lowest_start = Infinity;
+                  let highest_end  = -Infinity;
+                  for (let i = 0; i < gene_domain.length; i++) {
+                    if (gene_domain[i].start < lowest_start) { lowest_start = gene_domain[i].start; }
+                    if (gene_domain[i].end > highest_end) { highest_end = gene_domain[i].end; }
+                  } // end for loop
+                  gene_map.start = lowest_start;
+                  gene_map.end   = highest_end;
+                  // Let's take a completely agnostic approach to dealing with
+                  // the possible plus/minus locations of the promoter and
+                  // simply expand our predicted gene location in BOTH
+                  // directions by a distance equal to the length of the
+                  // promoter.
+                  gene_map.end += (mayne_promoter[mayne_index].sequence.length + distance_to_promoter);
+                  gene_map.start -= (mayne_promoter[mayne_index].sequence.length + distance_to_promoter);
                   mayne_promoter[mayne_index].location = gene_map;
-                  if (gene_map.complement) { gene_map.end += mayne_promoter[mayne_index].sequence.length; }
-                  else { gene_map.start -= mayne_promoter[mayne_index].sequence.length; }
                   get_contig_map(self.organism_name.replace(" ", "_"), accession)
                   .then(contig_map => {
                     mayne_promoter[mayne_index].contig_map = contig_map;
                     // figure out where the gene is within the contig
-                    for (let i = 0; i < contig_map.length; i++) {
-                      let map_hit = false;
-                      if ((gene_map.start >= contig_map[i].start) && (gene_map.start <= contig_map[i].end)) { map_hit = true; } // contig_map[i] contains gene_map.start
-                      if ((gene_map.end   >= contig_map[i].start) && (gene_map.end   <= contig_map[i].end)) { map_hit = true; } // contig_map[i] contains gene_map.end
-                      if ((gene_map.start <= contig_map[i].start) && (gene_map.end   >= contig_map[i].end)) { map_hit = true; } // gene_map contains contig_map[i]
-                      if (map_hit) { cds_domain.push(contig_map[i]); }
-                    } // end for loop
-                    // Get either the first or the last genome region,
-                    // depending on if the gene is on the + or - strand.
-                    // Also, check for the edge case where the promoter region
-                    // falls between two separate records of the contig and add
-                    // the next record over as well.
-                    if (gene_map.complement) {
-                      chosen_domain.push(cds_domain[cds_domain.length - 1]);
-                      if ((gene_map.end - mayne_promoter[mayne_index].sequence.length) < cds_domain[cds_domain.length - 1].start) {
-                        chosen_domain.push(cds_domain[cds_domain.length - 2]);
-                      } // end if
-                    } // end if
-                    else {
-                      chosen_domain.push(cds_domain[0]);
-                      if ((gene_map.start + mayne_promoter[mayne_index].sequence.length) > cds_domain[0].end) {
-                        chosen_domain.push(cds_domain[1]);
-                      } // end if
-                    } // end else
                     let job = { command: 'select', where: [] };
-                    for (let i = 0; i < chosen_domain.length; i++) {
-                      job.where.push({ key: "id", value: chosen_domain[i].id });
-                      // expand the search range (this actually improves the results)
-                      // TODO: update the code below to work as intended even
-                      //  when more than one id is already in the array.
-                      // [ Note: Current record for Chelonoidis abingdonii is
-                      //  18 promoters identified. ]
-                      if (gene_map.complement) {
-                        job.where.push({ key: "id", value: chosen_domain[i].id + 1 });
-                      } // end if
-                      else {
-                        job.where.push({ key: "id", value: chosen_domain[i].id - 1 });
-                      } // end if
+                    for (let i = 0; i < contig_map.length; i++) {
+                      let chosen_domain = [];
+                      for (let j = 0; j < contig_map[i].length; j++) {
+                        let map_hit = false;
+                        if ((gene_map.start >= contig_map[i][j].start) && (gene_map.start <= contig_map[i][j].end)) { map_hit = true; } // contig_map[i] contains gene_map.start
+                        if ((gene_map.end   >= contig_map[i][j].start) && (gene_map.end   <= contig_map[i][j].end)) { map_hit = true; } // contig_map[i] contains gene_map.end
+                        if ((gene_map.start <= contig_map[i][j].start) && (gene_map.end   >= contig_map[i][j].end)) { map_hit = true; } // gene_map contains contig_map[i]
+                        if (map_hit) { chosen_domain.push(contig_map[i][j]); }
+                      } // end for loop
+                      if (chosen_domain.length > 1) { job.where.push({ key: "id", value: chosen_domain[(chosen_domain.length - 1)].id }); }
+                      job.where.push({ key: "id", value: chosen_domain[0].id });
                     } // end for loop
                     mayne_promoter[mayne_index].job = job;
                     genome_db.postMessage(job);
@@ -250,14 +257,13 @@ Bioaction.prototype.create_lifespan_estimator = function(options) {
                     if (parseFloat(a.id) < parseFloat(b.id)) { return -1; }
                     else { return 1; }
                   }); // end sort
-                  let sequence = "";
+                  let sequence = mayne_promoter[mayne_index].sequence;
                   let subjects = [{ sequence: "" }];
-                  for (let i = 0; i < records.length; i++) { console.log(records[i].defline); subjects[0].sequence += records[i].sequence.toUpperCase(); }
-                  if (mayne_promoter[mayne_index].location.complement) {
-                    console.log("Complement");
-                    sequence = reverse_complement(mayne_promoter[mayne_index].sequence);
-                  } // end if
-                  else { sequence = mayne_promoter[mayne_index].sequence; }
+                  for (let i = 0; i < records.length; i++) { subjects[0].sequence += records[i].sequence.toUpperCase(); }
+                  // As part of our entirely agnostic approach to the possible
+                  // plus/minus locations for the promoter, we're concatenating
+                  // the reverse complement to our initial subject sequence.
+                  subjects[0].sequence += reverse_complement(subjects[0].sequence);
                   options.search_space.num_characters = subjects[0].sequence.length;
                   options.search_space.num_sequences = 1;
                   job = { status: 'command', command: 'blast', query: sequence, subject: subjects, options: options };
@@ -295,6 +301,7 @@ function calculate_lifespan(self) {
       else { HSPs = mayne_promoter[i].alignment.hsp; }
       for (let j = 0; j < HSPs.length; j++) {
         HSPs[j].subject = HSPs[j].subject.toUpperCase();
+        HSPs[j].subject = HSPs[j].subject.replace(/-/g, "");
         cg += (HSPs[j].subject.match(/CG/g) || []).length;
         length += HSPs[j].subject.length;
       } // end for loop
@@ -304,6 +311,7 @@ function calculate_lifespan(self) {
     const weight = mayne_promoter[i].weight;
     const raw_density = weight * density;
     sum += raw_density;
+    console.log("Promoter " + (i + 1) + " out of " + mayne_promoter.length);
     console.log("Gene: " + mayne_promoter[i].gene_name);
     console.log("Weight: " + mayne_promoter[i].weight);
     console.log("# CGs: " + cg);
@@ -342,3 +350,39 @@ function calculate_lifespan(self) {
   }); // end then
 } // end function
 ////////////////////////////////////////////////////////////////////
+// BIOACTION PROTOTYPE ////////////////////////////////////////////////////////
+Bioaction.prototype.get_lifespan_estimator_record = function() {
+  return new Promise(function(resolve, reject) {
+    let obj = { };
+    obj.database   =   'moirai_db';
+    obj.table      =   'mayne';
+    obj.command    =   'select';
+    obj.where      =   [ { key: "organism_name", value: this.organism_name } ];
+    let json = JSON.stringify(obj);
+    db_guard(json)
+    .then(responseText => {
+      if (responseText) {
+        if (this.records.lifespan_estimator_record) { delete this.records.lifespan_estimator_record; }
+        this.records.lifespan_estimator_record = new BioactionRecord;
+        this.records.lifespan_estimator_record.estimate = 0.00;
+        let db_record = JSON.parse(responseText);
+        if (typeof(db_record.estimate    ) !== 'undefined') { this.records.lifespan_estimator_record.estimate               = parseFloat(db_record.estimate); }
+        if (typeof(db_record.owner       ) !== 'undefined') { this.records.lifespan_estimator_record.metadata.owner         = db_record.owner; }
+        if (typeof(db_record.records     ) !== 'undefined') { this.records.lifespan_estimator_record.num_records            = parseInt(db_record.records     ); }
+        if (typeof(db_record.year        ) !== 'undefined') { this.records.lifespan_estimator_record.metadata.year          = parseInt(db_record.year        ); }
+        if (typeof(db_record.day         ) !== 'undefined') { this.records.lifespan_estimator_record.metadata.day           = parseInt(db_record.day         ); }
+        if (typeof(db_record.hour        ) !== 'undefined') { this.records.lifespan_estimator_record.metadata.hour          = parseInt(db_record.hour        ); }
+        if (typeof(db_record.minute      ) !== 'undefined') { this.records.lifespan_estimator_record.metadata.minute        = parseInt(db_record.minute      ); }
+        if (typeof(db_record.second      ) !== 'undefined') { this.records.lifespan_estimator_record.metadata.second        = parseInt(db_record.second      ); }
+        if (typeof(db_record.delta_second) !== 'undefined') { this.records.lifespan_estimator_record.metadata.delta_second  = parseInt(db_record.delta_second); }
+        if (db_record.options) { this.records.lifespan_estimator_record.options = JSON.parse(db_record.options); }
+        if (this.records.lifespan_estimator_record.num_records) {
+          this.records.lifespan_estimator_record.num_uploaded = this.records.lifespan_estimator_record.num_records;
+          this.records.lifespan_estimator_record.percent_uploaded = 100;
+        } // end if
+      } // end if
+    })
+    .then(() => { this.update(); resolve(); });
+  }.bind(this)); // end Promise
+}; // end prototype
+///////////////////////////////////////////////////////////////////////////////

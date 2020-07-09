@@ -215,7 +215,7 @@ Bioaction.prototype.create_organism_input = function(callback) {
     showSpinner();
     input.blur();
     bttn.blur();
-    this.reset_last_focus();
+    this.last_focus = "";
     this.resolve_organism_name(input.value)
     .then(resolved => {
       this.reset();
@@ -273,161 +273,7 @@ Bioaction.prototype.create_tile = function(id) {
 } // end prototype
 ///////////////////////////////////////////////////////////////////////////////
 // PROTOTYPE //////////////////////////////////////////////////////////////////
-Bioaction.prototype.default_skin = function(id, self) {
-  ////////////////////////////////////////////////////////////////////////
-  // This function creates a standard action tile.  An id variable can
-  // be supplied to differentiate this action tile if more than one
-  // action tile is needed per page.
-  // An object with the following elements is returned:
-  //  obj.area        <-- the HTML element of the action
-  //  obj.tile        <-- the HTML element of the action tile
-  //  obj.title       <-- set innerHTML to change the title
-  //  obj.text        <-- set innerHTML to change the expandable text
-  //  obj.metadata    <-- set the innerHTML to change the displayed metadata
-  //  obj.button      <-- the HTML element of the button.  Set innerHTML to change the button text.  Add an event listener to create a behavior
-  //  obj.status      <-- the HTML element of the status text (shown below the button)
-  //  obj.update      <-- a function for updating the HTML elements based on changing states (takes a BioactionState object)
-  ////////////////////////////////////////////////////////////////////////
-  if (typeof(id) === 'undefined') { id = guid(); }
-  if (typeof(self) === "undefined") { self = this; }
-  const area          = document.createElement("div");
-  const tile          = document.createElement("div");
-  const text_area     = document.createElement("div");
-  const action_area   = document.createElement("div");
-  const left_column   = document.createElement("div");
-  const middle_column = document.createElement("div");
-  const right_column  = document.createElement("div");
-  const title_area    = document.createElement("div");
-  const title         = document.createElement("b");
-  const expand        = document.createElement("div");
-  const details       = document.createElement("details");
-  const summary       = document.createElement("summary");
-  const blockquote    = document.createElement("blockquote");
-  const button_area   = document.createElement("div");
-  const button        = document.createElement("button");
-  const status        = document.createElement("div");
-  const row           = document.createElement("div");
-  const h4            = document.createElement("h4");
-  const text          = document.createElement("p");
-  const metadata      = document.createElement("p");
-  const option        = document.createElement("div");
-  const center        = document.createElement("div");
-  const button_center = document.createElement("div");
-  area.id             = "area-"         + self.id + "-" + id;
-  tile.id             = "tile-"         + self.id + "-" + id;
-  title.id            = "title-"        + self.id + "-" + id;
-  expand.id           = "expand-"       + self.id + "-" + id;
-  button_area.id      = "button-area-"  + self.id + "-" + id;
-  status.id           = "status-"       + self.id + "-" + id;
-  button.id           = "button-"       + self.id + "-" + id;
-  text.id             = "text-"         + self.id + "-" + id;
-  text_area.id        = "text-area-"    + self.id + "-" + id;
-  metadata.id         = "metadata-"     + self.id + "-" + id;
-  option.id           = "option-"       + self.id + "-" + id;
-  tile.style.minHeight = "150px";
-  button.style.marginBottom = "10px";
-  metadata.style.color = "gray";
-  tile.classList.add("tile");
-  button.classList.add("bttn");
-  button.classList.add("bttn-primary");
-  row.classList.add("row");
-  left_column.classList.add("col-xl-6");
-  left_column.classList.add("col-lg-6");
-  left_column.classList.add("col-md-6");
-  left_column.classList.add("col-sm-12");
-  left_column.classList.add("col-xs-12");
-  middle_column.classList.add("col-xl-3");
-  middle_column.classList.add("col-lg-3");
-  middle_column.classList.add("col-md-3");
-  middle_column.classList.add("col-sm-12");
-  middle_column.classList.add("col-xs-12");
-  right_column.classList.add("col-xl-3");
-  right_column.classList.add("col-lg-3");
-  right_column.classList.add("col-md-3");
-  right_column.classList.add("col-sm-12");
-  right_column.classList.add("col-xs-12");
-  center.classList.add("center");
-  button_center.classList.add("center");
-  title.innerHTML   = "Title";
-  text.innerHTML    = "text";
-  button.innerHTML  = "button";
-  area.appendChild(tile);
-  tile.appendChild(row);
-  row.appendChild(left_column);
-  row.appendChild(middle_column);
-  row.appendChild(right_column);
-  left_column.appendChild(text_area);
-  text_area.appendChild(title_area);
-  title_area.appendChild(h4);
-  h4.appendChild(title);
-  text_area.appendChild(expand);
-  expand.appendChild(details);
-  details.appendChild(summary);
-  details.appendChild(blockquote);
-  blockquote.appendChild(text);
-  blockquote.appendChild(metadata);
-  middle_column.appendChild(option);
-  right_column.appendChild(button_area);
-  button_area.appendChild(button_center);
-  button_center.appendChild(button);
-  button_area.appendChild(center);
-  center.appendChild(status);
-  const obj = { };
-  obj.id = id;
-  obj.area = area;
-  obj.tile = tile;
-  obj.title = title;
-  obj.text = text;
-  obj.metadata = metadata;
-  obj.option = option;
-  obj.button = button;
-  obj.status = status;
-  ////////////////////////////////////////////////////////////////////////
-  // METHOD //////////////////////////////////////////////////////////////
-  obj.update = function(action) {
-    switch(action.status) {
-      case "button": {
-        button.style.display = "block";
-        option.style.display = "block";
-        status.innerHTML = '<p class="standard-text" style="color: gray;">' + action.percent_complete + '% complete</p>';
-        status.style.display = "";
-        tile.style.color = "";
-        break;
-      } // end case "button"
-      case "inactive": {
-        button.style.display = "none";
-        status.style.display = "none";
-        tile.style.color = theme["base"]["dark"];
-        break;
-      } // end case "inactive"
-      case "locked": {
-        button.style.display = "none";
-        let lock_text  =  '<br><div class="document ellipsis"><i class="fa fa-lock" aria-hidden="true"></i> ';
-        lock_text     +=  'Locked <span class="tooltip-font-awesome color-primary-foundation" aria-hidden="true" data-toggle="tooltip" data-placement="auto" title="' + this.locked_tooltip + '"></span></div>';
-        lock_text     +=  '<p class="standard-text" style="color: gray;">' + action.percent_complete + '% complete</p>';
-        option.style.display = "none";
-        status.innerHTML = lock_text;
-        tile.style.color = "";
-        $('[data-toggle="tooltip"]').tooltip();
-        break;
-      } // end case "locked"
-      case "complete": {
-        button.style.display = "none";
-        metadata.innerHTML = "Completed: " + action.date;
-        status.innerHTML = '<p class="color-primary-foundation standard-text"><b>100% complete</b></p>';
-        status.style.display = "";
-        tile.style.color = "";
-        break;
-      } // end case "complete"
-      default: { break; }
-    } // end switch
-  } // end function
-  ////////////////////////////////////////////////////////////////////////
-  return obj;
-} // end prototype
-///////////////////////////////////////////////////////////////////////////////
-// PROTOTYPE //////////////////////////////////////////////////////////////////
-Bioaction.prototype.slim_skin = (id, self) => {
+Bioaction.prototype.default_skin = (id, self) => {
   if (typeof(id) === 'undefined') { id = guid(); }
   if (typeof(self) === "undefined") { self = this; }
   ////////////////////////////////////////////////////////////////////////
@@ -491,16 +337,17 @@ Bioaction.prototype.slim_skin = (id, self) => {
   column_4.classList.add("col-md-3");
   column_4.classList.add("col-sm-3");
   column_4.classList.add("col-xs-4");
-  common_name.classList.add("slim_skin__common_name");
-  lock.classList.add("slim_skin__lock");
-  lock_bar.classList.add("slim_skin__lock_bar");
-  metadata.classList.add("slim_skin__metadata");
-  option.classList.add("slim_skin__option");
-  option_toggle.classList.add("slim_skin__option_toggle");
-  organism_name.classList.add("slim_skin__organism_name");
+  common_name.classList.add("default_skin__common_name");
+  lock.classList.add("default_skin__lock");
+  lock_bar.classList.add("default_skin__lock_bar");
+  metadata.classList.add("default_skin__metadata");
+  option.classList.add("default_skin__option");
+  option_toggle.classList.add("default_skin__option_toggle");
+  organism_name.classList.add("default_skin__organism_name");
   row.classList.add("row");
-  tile.classList.add("slim_skin__tile");
-  title.classList.add("slim_skin__title");
+  text.classList.add("default_skin__text");
+  tile.classList.add("default_skin__tile");
+  title.classList.add("default_skin__title");
   ////////////////////////////////////////////////////////////////////////
   // CREATE INNER HTML CONTENT ///////////////////////////////////////////
   lock_text.innerHTML = '<div class="center"><p><i class="fa fa-lock" aria-hidden="true"></i> Locked <span class="tooltip-font-awesome color-primary-foundation" aria-hidden="true" data-toggle="tooltip" data-placement="auto" title="This record is either in the process of being updated by another user, or this record was last updated recently and needs a few minutes to reset.  Unlocking will occur automatically when the proper records are available.  You do not need to reload the page."></span></p></div>';
@@ -519,6 +366,7 @@ Bioaction.prototype.slim_skin = (id, self) => {
   column_2.appendChild(title);
   column_2.appendChild(organism_name);
   column_2.appendChild(common_name);
+  column_2.appendChild(text);
   column_2.appendChild(metadata);
   column_3.appendChild(option_toggle);
   column_4.appendChild(button);
@@ -528,7 +376,7 @@ Bioaction.prototype.slim_skin = (id, self) => {
   status.appendChild(progress_ring.svg);
   ////////////////////////////////////////////////////////////////////////
   // CREATE RETURN OBJECT ////////////////////////////////////////////////
-  const obj = { };
+  const obj = new BioactionSkin();
   obj.area = area;
   obj.button = button;
   obj.common_name = common_name;
@@ -542,15 +390,15 @@ Bioaction.prototype.slim_skin = (id, self) => {
   obj.option_toggle = option_toggle;
   obj.organism_name = organism_name;
   obj.status = status;
-  obj.text = text;
   obj.self_id = self.id;
+  obj.text = text;
   obj.tile = tile;
   obj.title = title;
   ////////////////////////////////////////////////////////////////////////
   // METHOD //////////////////////////////////////////////////////////////
-  obj.update = function(action) {
-    set_status_progress_ring(progress_ring, action.percent_complete);
-    switch(action.status) {
+  obj.update = function(state) {
+    set_status_progress_ring(progress_ring, state.percent_complete);
+    switch(state.status) {
       case "button": {
         this.button.style.display = "";
         this.lock.style.display = "none";
@@ -571,7 +419,7 @@ Bioaction.prototype.slim_skin = (id, self) => {
         this.option_toggle.style.display = "none";
         this.status.style.display = "";
         this.tile.style.color = "";
-        this.metadata.innerHTML = "Completed: " + action.date;
+        this.metadata.innerHTML = "Completed: " + state.date;
         break;
       } // end case
       case "inactive": {
@@ -599,7 +447,7 @@ Bioaction.prototype.slim_skin = (id, self) => {
       case "locked": {
         this.button.style.display = "none";
         this.lock.style.display = "";
-        this.lock_bar.style.width = (((action.lock_delay - action.delta_second) / action.lock_delay) * 100) + "%";
+        this.lock_bar.style.width = (((state.lock_delay - state.delta_second) / state.lock_delay) * 100) + "%";
         this.lock_text.style.display = "";
         this.metadata.style.display = "";
         this.option.style.display = "";
@@ -629,8 +477,8 @@ Bioaction.prototype.slim_skin = (id, self) => {
     const track = document.createElementNS("http://www.w3.org/2000/svg", "circle");
     ///////////////////////////////////////////////////////
     // ADD CLASSES ////////////////////////////////////////
-    circle.classList.add("slim_skin__progress_ring__circle");
-    svg.classList.add("slim_skin__progress_ring");
+    circle.classList.add("default_skin__progress_ring__circle");
+    svg.classList.add("default_skin__progress_ring");
     ///////////////////////////////////////////////////////
     // ADD STYLES /////////////////////////////////////////
     circle.style.strokeDasharray = obj.circumference + " " + obj.circumference;

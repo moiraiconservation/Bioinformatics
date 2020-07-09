@@ -78,25 +78,34 @@ if ($user['active']) {
       } // end case
       /////////////////////////////////////////////////////////////////////////
       case "get_contig_map": {
-        $accession = "";
+        $accession = [];
         $records = [];
         $table = "";
-        if (isset($_POST["accession"]) && !empty($_POST["accession"])) { $accession = $_POST["accession"]; }
+        $result = [];
+        if (isset($_POST["accession"]) && !empty($_POST["accession"])) { $accession = json_decode($_POST["accession"], TRUE); }
         if (isset($_POST["table"]    ) && !empty($_POST["table"]    )) { $table     = $_POST["table"]; }
-        if ($accession) { $accession = strip_tags($accession);
-        if ($table    ) { $table     = strip_tags($table    );
-        $accession = filter_var($accession, FILTER_SANITIZE_STRING); }
-        $table     = filter_var($table,     FILTER_SANITIZE_STRING); }
-        $accession = $mysqli->real_escape_string($accession);
-        $table     = $mysqli->real_escape_string($table);
+        if ($table) {
+          $table = strip_tags($table);
+          $table = filter_var($table, FILTER_SANITIZE_STRING);
+          $table = $mysqli->real_escape_string($table);
+        } // end if
+        for ($i = 0; $i < count($accession); $i++) {
+          $accession[$i] = strip_tags($accession[$i]);
+          $accession[$i] = filter_var($accession[$i], FILTER_SANITIZE_STRING);
+          $accession[$i] = $mysqli->real_escape_string($accession[$i]);
+        }
         $db = new mysqli($mysql_host, $mysql_user, $mysql_password, "genome_db");
         if (mysqli_connect_errno()) { die('[]'); }
-        $query = 'SELECT id, char_length FROM '.$table.' WHERE accession = "'.$accession.'" ORDER BY id ASC';
-        $query_result = $db->query($query);
-        while ($query_record = $query_result->fetch_object()) {
-          $records[] = $query_record;
-        } // end while
-        echo json_encode($records);
+        for ($i = 0; $i < count($accession); $i++) {
+          $query = 'SELECT id, char_length FROM '.$table.' WHERE accession = "'.$accession[$i].'" ORDER BY id ASC';
+          $query_result = $db->query($query);
+          $records = [];
+          while ($query_record = $query_result->fetch_object()) {
+            $records[] = $query_record;
+          } // end while
+          $result[] = $records;
+        } // end if
+        echo json_encode($result);
         break;
       } // end case
       /////////////////////////////////////////////////////////////////////////

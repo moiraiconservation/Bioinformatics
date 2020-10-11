@@ -273,13 +273,15 @@ Bioaction.prototype.create_tile = function(id) {
 } // end prototype
 ///////////////////////////////////////////////////////////////////////////////
 // PROTOTYPE //////////////////////////////////////////////////////////////////
-Bioaction.prototype.default_skin = (id, self) => {
+Bioaction.prototype.default_skin = (id, self, experimental) => {
   if (typeof(id) === 'undefined') { id = guid(); }
   if (typeof(self) === "undefined") { self = this; }
+  if (typeof(experimental) === "undefined") { experimental = false; }
   ////////////////////////////////////////////////////////////////////////
   // CREATE ELEMENTS /////////////////////////////////////////////////////
   const area          = document.createElement("div");
   const button        = document.createElement("div");
+  const button_text   = document.createElement("div");
   const column_1      = document.createElement("div");
   const column_2      = document.createElement("div");
   const column_3      = document.createElement("div");
@@ -303,6 +305,7 @@ Bioaction.prototype.default_skin = (id, self) => {
   // SET THE IDs /////////////////////////////////////////////////////////
   area.id           = "area-"           + self.id + "-" + id;
   button.id         = "button-"         + self.id + "-" + id;
+  button_text.id    = "button-text-"    + self.id + "-" + id;
   lock.id           = "lock-"           + self.id + "-" + id;
   lock_bar.id       = "lock-bar-"       + self.id + "-" + id;
   lock_text.id      = "lock-text-"      + self.id + "-" + id;
@@ -316,7 +319,8 @@ Bioaction.prototype.default_skin = (id, self) => {
   ////////////////////////////////////////////////////////////////////////
   // SET CLASSES /////////////////////////////////////////////////////////
   button.classList.add("bttn");
-  button.classList.add("bttn-primary");
+  if (!experimental) { button.classList.add("bttn-primary"); }
+  else { button.classList.add("bttn-caution"); }
   column_1.classList.add("col-xl-1");
   column_1.classList.add("col-lg-1");
   column_1.classList.add("col-md-1");
@@ -350,6 +354,7 @@ Bioaction.prototype.default_skin = (id, self) => {
   title.classList.add("default_skin__title");
   ////////////////////////////////////////////////////////////////////////
   // CREATE INNER HTML CONTENT ///////////////////////////////////////////
+  if (experimental) { button_text.innerHTML = '<div class="center"><p><b>Experimental</b></p></div>'; }
   lock_text.innerHTML = '<div class="center"><p><i class="fa fa-lock" aria-hidden="true"></i> Locked <span class="tooltip-font-awesome color-primary-foundation" aria-hidden="true" data-toggle="tooltip" data-placement="auto" title="This record is either in the process of being updated by another user, or this record was last updated recently and needs a few minutes to reset.  Unlocking will occur automatically when the proper records are available.  You do not need to reload the page."></span></p></div>';
   $('[data-toggle="tooltip"]').tooltip();
   ////////////////////////////////////////////////////////////////////////
@@ -370,6 +375,7 @@ Bioaction.prototype.default_skin = (id, self) => {
   column_2.appendChild(metadata);
   column_3.appendChild(option_toggle);
   column_4.appendChild(button);
+  column_4.appendChild(button_text);
   column_4.appendChild(lock_text);
   column_4.appendChild(lock);
   lock.appendChild(lock_bar);
@@ -379,8 +385,10 @@ Bioaction.prototype.default_skin = (id, self) => {
   const obj = new BioactionSkin();
   obj.area = area;
   obj.button = button;
+  obj.button_text = button_text;
   obj.common_name = common_name;
   obj.dd = dd;
+  obj.experimental = experimental;
   obj.id = id;
   obj.lock = lock;
   obj.lock_bar = lock_bar;
@@ -401,6 +409,7 @@ Bioaction.prototype.default_skin = (id, self) => {
     switch(state.status) {
       case "button": {
         this.button.style.display = "";
+        this.button_text.style.display = "";
         this.lock.style.display = "none";
         this.lock_text.style.display = "none";
         this.metadata.style.display = "";
@@ -412,6 +421,7 @@ Bioaction.prototype.default_skin = (id, self) => {
       } // end case
       case "complete": {
         this.button.style.display = "none";
+        this.button_text.style.display = "none";
         this.lock.style.display = "none";
         this.lock_text.style.display = "none";
         this.metadata.style.display = "";
@@ -424,6 +434,7 @@ Bioaction.prototype.default_skin = (id, self) => {
       } // end case
       case "inactive": {
         this.button.style.display = "none";
+        this.button_text.style.display = "none";
         this.lock.style.display = "none";
         this.lock_text.style.display = "none";
         this.metadata.style.display = "";
@@ -435,6 +446,7 @@ Bioaction.prototype.default_skin = (id, self) => {
       } // end case
       case "loading": {
         this.button.style.display = "none";
+        this.button_text.style.display = "none";
         this.lock.style.display = "none";
         this.lock_text.style.display = "none";
         this.metadata.style.display = "none";
@@ -446,6 +458,7 @@ Bioaction.prototype.default_skin = (id, self) => {
       } // end case "loading"
       case "locked": {
         this.button.style.display = "none";
+        this.button_text.style.display = "none";
         this.lock.style.display = "";
         this.lock_bar.style.width = (((state.lock_delay - state.delta_second) / state.lock_delay) * 100) + "%";
         this.lock_text.style.display = "";

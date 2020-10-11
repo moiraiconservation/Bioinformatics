@@ -5,13 +5,15 @@
 Bioaction.prototype.activate_genome_import = function() {
   this.get_ncbi_record()
   .then(() => {
-    if (this.records.ncbi_record.genome_url) {
-      this.get_genome_record()
-      .then(() => {
-        this.states.genome_import.status = "loading";
-        this.update();
-      }); // end then
-    } // end if (this.records.ncbi_record.genome_url)
+    if (this.records.ncbi_record) {
+      if (this.records.ncbi_record.genome_url) {
+        this.get_genome_record()
+        .then(() => {
+          this.states.genome_import.status = "loading";
+          this.update();
+        }); // end then
+      } // end if (this.records.ncbi_record.genome_url)
+    } // end if (this.records.ncbi_record)
   }); // end then
 } // end prototype
 ///////////////////////////////////////////////////////////////////////////////
@@ -69,6 +71,7 @@ Bioaction.prototype.create_genome_import = function(options) {
   //////////////////////////////////////////////////////////////////////
   // EVENT LISTENER ////////////////////////////////////////////////////
   skin.button.addEventListener("click", function() {
+    log_user("Task", "Started importing genome for " + this.organism_name);
     skin.button.blur();
     this.get_genome_record()
     .then(() => {
@@ -112,6 +115,7 @@ Bioaction.prototype.create_genome_import = function(options) {
       }; // end function
       window.addEventListener('beforeunload', this.states.genome_import.cleanup);
       ////////////////////////////////////////////////////////////////////
+      showSpinner();
       update_metadata(fg)
       .then(import_file)
       .then(decompress_gzip)
@@ -140,7 +144,7 @@ Bioaction.prototype.create_genome_import = function(options) {
     if (typeof(obj.end_byte  ) === "undefined") { obj.end_byte = obj.start_byte + chunk_size; }
     if (obj.end_byte > obj.file_size) { obj.end_byte = obj.file_size; }
     obj.num_records = obj.file_size;
-    if (obj.start_byte < obj.file_size) {
+    if (obj.start_byte <= obj.file_size) {
       read_file(obj)
       .then(parse_FASTA_fragment)
       .then(FASTA_to_db_lite)
@@ -157,6 +161,7 @@ Bioaction.prototype.create_genome_import = function(options) {
         let total_MB = (obj.num_records / 1048576).toFixed(2) + "MB";
         uploaded_MB = uploaded_MB.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1,');
         total_MB = total_MB.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1,');
+        hideSpinner();
         create_progress_bar("Uploading genome to database", true, obj.num_records);
         update_progress_bar(obj.num_uploaded);
         progress_bar_subtitle(uploaded_MB + " out of " + total_MB);
@@ -164,8 +169,11 @@ Bioaction.prototype.create_genome_import = function(options) {
         obj.options.accession  = obj.accession;
         obj.options.bytes_read = obj.start_byte;
         obj.options.defline    = obj.defline;
-        this.update();
-        upload_genome.call(this, obj);
+        update_metadata(obj)
+        .then(() => {
+          this.update();
+          upload_genome.call(this, obj);
+        }); // end then
       }); // end then
     } // end if
     else {
@@ -178,6 +186,7 @@ Bioaction.prototype.create_genome_import = function(options) {
       hideSpinner();
       hide_loading_box(true);
       hide_progress_bar(true);
+      log_user("Task", "Finished importing genome for " + this.organism_name);
     } // end else
   }; // end function
   ////////////////////////////////////////////////////////////////////////
@@ -192,7 +201,7 @@ Bioaction.prototype.get_genome_record = function() {
     obj1.table      =   'table_metadata';
     obj1.command    =   'select';
     obj1.where      =   [ { "key": "id", "value": this.organism_name.replace(/ /g, '_') } ];
-    obj2.database   =   'genome_index_db';
+    obj2.database   =   'genome_db';
     obj2.table      =   this.organism_name.replace(/ /g, '_');
     obj2.command    =   "count";
     let json1 = JSON.stringify(obj1);
@@ -230,7 +239,10 @@ Bioaction.prototype.get_genome_record = function() {
         } // end if
       } // end if
     }) // end then
-    .then(() => { this.update(); resolve(); });
+    .then(() => {
+      this.update();
+      resolve();
+    }); // end then
   }.bind(this)); // end Promise
 }; // end prototype
 ///////////////////////////////////////////////////////////////////////////////

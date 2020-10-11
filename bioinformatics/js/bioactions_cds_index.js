@@ -74,6 +74,7 @@ Bioaction.prototype.create_cds_index = function(options) {
   //////////////////////////////////////////////////////////////////////
   // EVENT LISTENERS ///////////////////////////////////////////////////
   skin.button.addEventListener("click", function() {
+    log_user("Task", "Started indexing genes for " + this.organism_name);
     skin.button.blur();
     this.records.cds_index_record.metadata.delta_second = 1;
     hide_loading_box(true);
@@ -123,7 +124,9 @@ Bioaction.prototype.create_cds_index = function(options) {
                 bioWorker.onmessage = function(e) {
                   switch(e.data.status) {
                     case 'step1': {
-                      progress_bar_subtitle("Record " + e.data.work + " of " + data.length);
+                      let index_text = e.data.work.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1,');
+                      let limit_text = data.length.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1,');
+                      progress_bar_subtitle("Record " + index_text + " of " + limit_text);
                       update_progress_bar(1);
                       break;
                     } // end case
@@ -139,7 +142,9 @@ Bioaction.prototype.create_cds_index = function(options) {
                     } // end case
                     case 'step3': {
                       update_progress_bar(e.data.work.chunk_size);
-                      progress_bar_subtitle("Record " + e.data.work.index + " of " + this.records.cds_index_record.num_records);
+                      let index_text = e.data.work.index.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1,');
+                      let limit_text = this.records.cds_index_record.num_records.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1,');
+                      progress_bar_subtitle("Record " + index_text + " of " + limit_text);
                       this.records.cds_index_record.num_uploaded = this.records.cds_index_record.num_uploaded + e.data.work.chunk_size;
                       this.records.cds_index_record.percent_uploaded = Math.floor((this.records.cds_index_record.num_uploaded / this.records.cds_index_record.num_records) * 100);
                       update_metadata(metaObj);
@@ -150,6 +155,9 @@ Bioaction.prototype.create_cds_index = function(options) {
                       hide_progress_bar();
                       this.update();
                       bioWorker.terminate();
+                      if (this.records.cds_index_record.percent_uploaded >= 100) {
+                        log_user("Task", "Finished indexing genes for " + this.organism_name);
+                      } // end if
                       break;
                     } // end case
                     case 'error': {
@@ -214,7 +222,10 @@ Bioaction.prototype.get_cds_index_record = function() {
         } // end if
       } // end if
     })
-    .then(() => { this.update(); resolve(); });
+    .then(() => {
+      this.update();
+      resolve();
+    }); // end then
   }.bind(this)); // end Promise
 } // end prototype
 ///////////////////////////////////////////////////////////////////////////////

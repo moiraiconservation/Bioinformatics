@@ -41,7 +41,10 @@ Bioaction.prototype.get_gene_map_record = function() {
         } // end if
       } // end if
     }) // end then
-    .then(() => { this.update(); resolve(); });
+    .then(() => {
+      this.update();
+      resolve();
+    }); // end then
   }.bind(this)); // end Promise
 } // end prototype
 ///////////////////////////////////////////////////////////////////////////////

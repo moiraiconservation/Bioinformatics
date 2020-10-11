@@ -2,146 +2,6 @@
 // BIOACTIONS /////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 // OBJECT /////////////////////////////////////////////////////////////////////
-function AlignmentRecord() {
-  ////////////////////////////////////////////////////////////////////////
-  // This object is the data structure that gets stored in our databases//
-  // when storing a raw feature of a sequence.  For example, discovered //
-  // cis-regulatory DNA elements, such as promoters will be stored as   //
-  // table entries as a "stringified" Alignment object.  The idea       //
-  // behind the chosen elements of this object is to provide adequate   //
-  // background information behind how the location of the feature was  //
-  // discovered.  These elements will include Report objects returned   //
-  // from BLAST searches, query sequence sources, and AlignmentOptions  //
-  // used to provide alignment settings.                                //
-  //====================================================================//
-  // NOTE: Some (or all) elements may be left blank before storing this //
-  // object into a database.                                            //
-  ////////////////////////////////////////////////////////////////////////
-  this.method                   = ""; // global, local, semiglobal, blast, etc.
-  this.options                  = undefined;
-  this.query_accession          = "";
-  this.query_db                 = "";
-  this.query_defline            = "";
-  this.query_id                 = "";
-  this.query_id_range           = "";
-  this.query_source_organism    = "";
-  this.report                   = undefined;
-  this.subject_accession        = "";
-  this.subject_db               = "";
-  this.subject_defline          = "";
-  this.subject_id               = "";
-  this.subject_id_range         = "";
-  this.subject_source_organism  = "";
-} // end function
-///////////////////////////////////////////////////////////////////////////////
-// OBJECT /////////////////////////////////////////////////////////////////////
-function AlignmentOptions(matrix, record) {
-  ////////////////////////////////////////////////////////////////////////
-  //  This object represents the "options" data structure needed for    //
-  //  the Alignment.js worker, and provides settings for pairwise       //
-  //  alignments and BLAST searches.  If a scoring matrix is supplied   //
-  //  on creation, the object sets the proper default values for either //
-  //  a nucleotide BLAST or a protein BLAST depending on the type of    //
-  //  matrix supplied.  (See the scoring_matrices.js file for examples  //
-  //  of properly-formatted scoring matrices.)  The proper search space //
-  //  statistice can be set automatically as well if a bioaction        //
-  //  record is supplied as an argument.  (See the BioactionRecord      //
-  //  object below for more detailes.)                                  //
-  ////////////////////////////////////////////////////////////////////////
-  if (typeof(matrix) === "undefined") { matrix = BLOSUM62; }
-  if (typeof(record) === "undefined") { record = new BioactionRecord; }
-  if (typeof(record.options) === "undefined") { record.options = { num_characters: 0 }; }
-  if (typeof(record.num_records) == "undefined") { record.num_records = 0; }
-  if (typeof(record.options.num_characters) == "undefined") { record.options.num_characters = 0; }
-  ////////////////////////////////////////////////////////////////////////
-  // ESTABLISH THE INTERNAL OBJECTS //////////////////////////////////////
-  this.score        = { };
-  this.seed         = { };
-  this.search_space = { };
-  this.x_drop       = { };
-  ////////////////////////////////////////////////////////////////////////
-  // SET CUSTOM OPTIONS //////////////////////////////////////////////////
-  if (matrix.type === "amino acids") {
-    //  Option                        Value       NCBI command-line equivalent
-    //=========================================================================
-    this.batch                        = 0;
-    this.evaluation_method            = "standard";
-    this.expect_threshold_1           = 10.0;     //  -e  (NCBI BLAST)
-    this.expect_threshold_2           = 0.001;    //  -e  (NCBI BLAST)
-    this.multithreading               = true;     //
-    this.record                       = record;   //
-    this.score.gap_extend             = matrix.default_gap_extend;  //  -E  (NCBI BLAST)
-    this.score.gap_open               = matrix.default_gap_open;    //  -G  (NCBI BLAST)
-    this.score.gapped                 = true;     //  -g  (NCBI BLAST)
-    this.score.matrix                 = matrix;   //  -M  (NCBI BLAST)
-    this.score.rescale_matrix         = false;    //
-    this.search_space.num_characters  = record.options.num_characters;
-    this.search_space.num_sequences   = record.num_records;
-    this.seed.exact_match             = false;    //
-    this.seed.max_number              = 10000;    //
-    this.seed.filter_low_complexity   = true;     //  -F  (NCBI BLAST)
-    this.seed.score_threshold         = 11;       //  -f  (NCBI BLAST)
-    this.seed.word_size               = 4;        //  -W  (NCBI BLAST)
-    this.single_hit_algorithm         = false;    //  -P  (NCBI BLAST)
-    this.two_hit_window_size          = 40;       //  -A  (NCBI BLAST)
-    this.x_drop.X1                    = 7;        //  -y  (NCBI BLAST)
-    this.x_drop.X2                    = 15;       //  -X  (NCBI BLAST)
-    this.x_drop.X2_trigger            = 22;       //  -N  (NCBI PSI-BLAST)
-  } // end if
-  if (matrix.type === "nucleotides") {
-    //  Option                        Value       NCBI command-line equivalent
-    //=========================================================================
-    this.batch                        = 0;
-    this.evaluation_method            = "standard"; // "genblasta";
-    this.expect_threshold_1           = 10.0;     //  -e  (NCBI BLAST)
-    this.expect_threshold_2           = 0.001;    //  -e  (NCBI BLAST)
-    this.multithreading               = true;       //
-    this.record                       = record;     //
-    this.score.gap_extend             = matrix.default_gap_extend;  //  -E  (NCBI BLAST)
-    this.score.gap_open               = matrix.default_gap_open;    //  -G  (NCBI BLAST)
-    this.score.gapped                 = true;       //  -g  (NCBI BLAST)
-    this.score.matrix                 = matrix;     //  -M  (NCBI BLAST)
-    this.score.rescale_matrix         = false;      //
-    this.search_space.num_characters  = record.options.num_characters;
-    this.search_space.num_sequences   = record.num_records;
-    this.seed.exact_match             = true;       //
-    this.seed.filter_low_complexity   = true;       //  -F  (NCBI BLAST)
-    this.seed.max_number              = Infinity;   //
-    this.seed.score_threshold         = 11;         //  -f  (NCBI BLAST)
-    this.seed.word_size               = 11;         //  -W  (NCBI BLAST)
-    this.single_hit_algorithm         = true;       //  -P  (NCBI BLAST)
-    this.two_hit_window_size          = 40;         //  -A  (NCBI BLAST)
-    this.x_drop.X1                    = 20;         //  -y  (NCBI BLAST)
-    this.x_drop.X2                    = 30;         //  -X  (NCBI BLAST)
-    this.x_drop.X2_trigger            = 22;         //  -N  (NCBI PSI-BLAST)
-  } // end if
-} // end function
-///////////////////////////////////////////////////////////////////////////////
-// ALIGNMENTOPTIONS PROTOTYPES GETTERS / SETTERS //////////////////////////////
-AlignmentOptions.prototype = {
-  get matrix() {
-    return this.score.matrix;
-  }, // end get
-  get record() {
-    return this.record;
-  },
-  set matrix(matrix) {
-    if (typeof(matrix) === "undefined") { matrix = BLOSUM62; }
-    this.score.matrix     = matrix;
-    this.score.gap_open   = matrix.default_gap_open;
-    this.score.gap_extend = matrix.default_gap_extend;
-  }, // end set
-  set record(record) {
-    if (typeof(record) === "undefined") { record = new BioactionRecord; }
-    if (typeof(record.options) === "undefined") { record.options = { num_characters: 0 }; }
-    if (typeof(record.num_records) == "undefined") { record.num_records = 0; }
-    if (typeof(record.options.num_characters) == "undefined") { record.options.num_characters = 0; }
-    this.search_space.num_characters = record.options.num_characters;
-    this.search_space.num_sequences = record.num_records;
-  } // end set
-} // end prototype
-///////////////////////////////////////////////////////////////////////////////
-// OBJECT /////////////////////////////////////////////////////////////////////
 function BioactionRecord() {
   this.metadata              = { };
   this.metadata.day          = 0;
@@ -161,8 +21,10 @@ function BioactionRecord() {
 function BioactionSkin() {
   this.area           = undefined;
   this.button         = undefined;
+  this.button_text    = undefined;
   this.common_name    = undefined;
   this.dd             = undefined;
+  this.experimental   = false;
   this.id             = undefined;
   this.lock           = undefined;
   this.lock_bar       = undefined;
@@ -214,6 +76,18 @@ function BioactionRegistration(element_name, record_name, state_name) {
   this.record_name  = record_name;
   this.state_name   = state_name;
 } // end object
+///////////////////////////////////////////////////////////////////////////////
+// OBJECT /////////////////////////////////////////////////////////////////////
+function ElementRecord() {
+  this.alignment_record = "";
+  this.defline          = "";
+  this.element_type     = "";
+  this.elementID        = "";
+  this.gene_name        = "";
+  this.geneID           = "";
+  this.organism_name    = "";
+} // end function
+///////////////////////////////////////////////////////////////////////////////
 // BIOACTION OBJECT ///////////////////////////////////////////////////////////
 function Bioaction() {
   //////////////////////////////////////////////////////////////////////
@@ -340,8 +214,9 @@ Bioaction.prototype.evaluate_lock = function(state, record) {
             state.percent_complete = record.percent_uploaded;
             state.skin.update(state);
           } // end if
-          if (typeof(state.timer) === 'undefined') {
-            state.timer = setInterval(() => { state.update_record.apply(this); }, 5000);
+          if (typeof(state.timer) === "undefined") {
+            let interval = Math.floor((Math.random() * 5000) + 1000);
+            state.timer = setTimeout(() => { state.update_record.apply(this).then(() => { state.timer = undefined; }); }, interval);
           } // end if
         } // end if
         // the state is running and it's locked
@@ -351,8 +226,9 @@ Bioaction.prototype.evaluate_lock = function(state, record) {
             state.percent_complete = record.percent_uploaded;
             state.skin.update(state);
           } // end if
-          if (typeof(state.timer) === 'undefined') {
-            state.timer = setInterval(() => { state.update_record.apply(this); }, 5000);
+          if (typeof(state.timer) === "undefined") {
+            let interval = Math.floor((Math.random() * 5000) + 1000);
+            state.timer = setTimeout(() => { state.update_record.apply(this).then(() => { state.timer = undefined; }); }, interval);
           } // end if
         } // end else if
         // the state has completed
@@ -386,6 +262,8 @@ Bioaction.prototype.evaluate_lock = function(state, record) {
       } // end if (state.skin.button && state.skin.status)
     } // end if if ((record.metadata.delta_second !== 0) || (record.metadata.year == 0))
   } // end else (state.status === "inactive")
+  let response = { state: state, record: record };
+  return response;
 } // end prototype
 ///////////////////////////////////////////////////////////////////////////////
 // BIOACTION PROTOTYPE ////////////////////////////////////////////////////////
@@ -402,10 +280,10 @@ Bioaction.prototype.format_organism_name = function(str) {
 Bioaction.prototype.get_ncbi_record = function() {
   return new Promise(function(resolve, reject) {
     let obj    = { };
-    obj.database   =   'moirai_db';
-    obj.table      =   'ncbi_genome';
-    obj.command    =   'select';
-    obj.where      =   [ { "key": "organism_name", "value": this.organism_name } ];
+    obj.database = "moirai_db";
+    obj.table    = "ncbi_genome";
+    obj.command  = "select";
+    obj.where    = [ { "key": "organism_name", "value": this.organism_name } ];
     let json = JSON.stringify(obj);
     db_guard(json)
     .then(responseText => {
@@ -460,22 +338,15 @@ Bioaction.prototype.update = function() {
         this.states[state_name].timer = undefined;
       } // end if
       if (this.states[state_name].status !== "complete") {
-        this.evaluate_lock(this.states[state_name], this.records[record_name]);
+        let response = this.evaluate_lock(this.states[state_name], this.records[record_name]);
+        if (typeof(response) !== "undefined") {
+          this.states[state_name] = response.state;
+          this.records[record_name] = response.record;
+        } // end if
       } // end if
     } // end if
   } // end for loop
 } // end prototype
-///////////////////////////////////////////////////////////////////////////////
-// OBJECT /////////////////////////////////////////////////////////////////////
-function ElementRecord() {  // for use when inserting records into element_db
-  this.alignment_record = "";
-  this.defline          = "";
-  this.element_type     = "";
-  this.elementID        = "";
-  this.gene_name        = "";
-  this.geneID           = "";
-  this.organism_name    = "";
-} // end function
 ///////////////////////////////////////////////////////////////////////////////
 // FUNCTION ///////////////////////////////////////////////////////////////////
 function age_estimate_to_db(obj) {
@@ -600,7 +471,9 @@ function FASTA_to_db(obj, progress_callback, callback, index, firstTime) {
           if (this.status == 200) {
             if (this.responseText) { console.log(this.responseText); }
             update_progress_bar(delta);
-            progress_bar_subtitle("Uploading record " + index + " out of " + obj.data.length);
+            let index_text = index.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1,');
+            let limit_text = obj.data.length.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1,');
+            progress_bar_subtitle("Uploading record " + index_text + " out of " + limit_text);
             if (progress_callback) { progress_callback(delta); }
             resolve();
           } // end if
@@ -686,7 +559,9 @@ function FASTA_to_cds_db(obj, progress_callback, callback, index, firstTime) {
         if (this.readyState == 4) {
           if (this.status == 200) {
             update_progress_bar(delta);
-            progress_bar_subtitle("Uploading record " + index + " out of " + obj.data.length);
+            let index_text = index.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1,');
+            let limit_text = obj.data.length.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1,');
+            progress_bar_subtitle("Uploading record " + index_text + " out of " + limit_text);
             if (progress_callback) { progress_callback(delta); }
             resolve();
           } // end if
@@ -1024,11 +899,10 @@ function update_metadata(obj) {
   //  Updated elements: status                                        //
   //////////////////////////////////////////////////////////////////////
   return new Promise(function(resolve, reject) {
-    if (typeof(obj) === 'undefined') { obj = { status: 'failure' }; }
-    if (!obj.status) { obj.status = 'success'; }
-    if (obj.status === 'failure') { reject(Error(obj.status)); }
-    if (window.XMLHttpRequest) { xmlhttp = new XMLHttpRequest(); }
-    else { xmlhttp = new ActiveXObject("Microsoft.XMLHTTP"); }
+    if (typeof(obj) === 'undefined') { obj = { status: "failure" }; }
+    if (!obj.status) { obj.status = "success"; }
+    if (obj.status === "failure") { reject(Error(obj.status)); }
+    const xmlhttp = new XMLHttpRequest();
     xmlhttp.onreadystatechange = function() {
       if (this.readyState == 4) {
         if (this.status == 200) {
@@ -1045,7 +919,7 @@ function update_metadata(obj) {
     // The purpose of this set is to pass a file control object
     //  by AJAX without taking up unnecessary server bandwidth.
     let newObj = Object.assign({ }, obj); delete newObj.data;
-    newObj.data = '';
+    newObj.data = "";
     let send_message = "execute=true";
     send_message += "&json=" + JSON.stringify(newObj);
     xmlhttp.open("POST", current_base_url + "/bioinformatics/PHP/bioactions", true);

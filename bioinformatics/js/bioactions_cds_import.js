@@ -7,8 +7,11 @@ Bioaction.prototype.activate_cds_import = function() {
   .then(() => {
     if (this.records.ncbi_record) {
       if (this.records.ncbi_record.cds_from_genomic_url) {
-        this.states.cds_import.status = "loading";
-        this.update();
+        this.get_cds_record()
+        .then(() => {
+          this.states.cds_import.status = "loading";
+          this.update();
+        }); // end then
       } // end if (this.records.ncbi_record.cds_from_genomic_url)
     } // end if (this.records.ncbi_record)
   }); // end then
@@ -68,6 +71,7 @@ Bioaction.prototype.create_cds_import = function(options) {
   //////////////////////////////////////////////////////////////////////
   // EVENT LISTENERS ///////////////////////////////////////////////////
   skin.button.addEventListener("click", function() {
+    log_user("Task", "Started importing genes for " + this.organism_name);
     skin.button.blur();
     this.records.cds_record.metadata.delta_second = 1;
     let cds_obj = new FileGuard;
@@ -77,7 +81,7 @@ Bioaction.prototype.create_cds_import = function(options) {
     cds_obj.filename        = cds_obj.id + ".fna.gz";
     cds_obj.num_records     = this.records.cds_record.num_records;
     cds_obj.num_uploaded    = this.records.cds_record.num_uploaded;
-    cds_obj.source          = this.records.ncbi_record.refseq.cds_from_genomic_url;
+    cds_obj.source          = this.records.ncbi_record.cds_from_genomic_url;
     cds_obj.table           = this.organism_name.replace(/ /g, "_");
     cds_obj.target          = cds_obj.filename;
     if (this.records.ncbi_record.proteome_url_refseq) { cds_obj.options.refseq = this.records.ncbi_record.refseq; }
@@ -113,6 +117,7 @@ Bioaction.prototype.create_cds_import = function(options) {
       erase_file(cds_obj);
       cds_obj.filename = cds_obj.id + ".fna";
       erase_file(cds_obj);
+      log_user("Task", "Finished importing genes for " + this.organism_name);
     })
     .catch(e => {
       console.log(e);
@@ -175,7 +180,10 @@ Bioaction.prototype.get_cds_record = function() {
         } // end if
       } // end if
     })
-    .then(() => { this.update(); resolve(); });
+    .then(() => {
+      this.update();
+      resolve();
+    }); // end then
   }.bind(this)); // end Promise
 } // end prototype
 ///////////////////////////////////////////////////////////////////////////////

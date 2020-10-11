@@ -133,6 +133,8 @@ onmessage = function(e) {
         obj.command   = 'select_all';
         obj.database  = client_table.database_name;
         obj.table     = client_table.table_name;
+        obj.limit       = job.limit       ||  '';
+        obj.block_size  = job.block_size  ||  '';
         let json = JSON.stringify(obj);
         db_guard(json)
         .then(responseText => {

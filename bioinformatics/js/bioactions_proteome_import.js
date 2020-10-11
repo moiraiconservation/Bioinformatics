@@ -69,6 +69,7 @@ Bioaction.prototype.create_proteome_import = function(options) {
   //////////////////////////////////////////////////////////////////////
   // EVENT LISTENERS ///////////////////////////////////////////////////
   skin.button.addEventListener("click", function() {
+    log_user("Task", "Started importing proteome for " + this.organism_name);
     skin.button.blur();
     this.records.proteome_record.metadata.delta_second = 1;
     let proteome_obj = new FileGuard;
@@ -114,6 +115,7 @@ Bioaction.prototype.create_proteome_import = function(options) {
       erase_file(proteome_obj);
       proteome_obj.filename = proteome_obj.id + ".fa";
       erase_file(proteome_obj);
+      log_user("Task", "Finished importing proteome for " + this.organism_name);
     })
     .catch(e => {
       console.log(e);
@@ -176,7 +178,10 @@ Bioaction.prototype.get_proteome_record = function() {
         } // end if
       } // end if
     })
-    .then(() => { this.update(); resolve(); });
+    .then(() => {
+      this.update();
+      resolve();
+    }); // end then
   }.bind(this)); // end Promise
 } // end prototype
 ///////////////////////////////////////////////////////////////////////////////

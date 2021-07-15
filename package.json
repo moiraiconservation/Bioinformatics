@@ -1,0 +1,21 @@
+{
+  "name": "project3",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "keywords": [],
+  "author": "Neil Copes, Moirai Conservation and Research Inc., 2021",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "13.1.6"
+  },
+  "dependencies": {
+    "@fortawesome/fontawesome-free": "^5.15.3",
+    "axios": "^0.21.1",
+    "electron-store": "^8.0.0",
+    "qs": "^6.10.1"
+  }
+}

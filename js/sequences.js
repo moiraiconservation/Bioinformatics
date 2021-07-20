@@ -7,9 +7,12 @@
 // seq_record.js //////////////////////////////////////////////////////////////
 
 function SEQ_INFO() {
+	// These are the standard entries, but more variable can be added
+	//	dynamically when the parse function is called from the
+	//	SEQUENCES object.
 	this.accession = '';
-	this.db_xref = '';
-	this.gbkey = '';
+	this.concatenated = [];
+	this.database = '';
 	this.gene = '';
 	this.isoform = '';
 	this.location = '';
@@ -20,14 +23,17 @@ function SEQ_INFO() {
 }
 
 function SEQ_RECORD() {
-
+	// every sequence record object always has a defline (definition line),
+	//	a sequence, and any information gained from parsing the defline.
 	this.defline = '';
 	this.sequence = '';
 	this.info = new SEQ_INFO();
 
+	this.alphabet = () => { return Array.from(new Set(this.sequence)); }
+
 	this.create_filename = () => {
 		let filename = this.defline;
-		filename = filename.replace(/[^\w\s]/gi, ' ');
+		filename = filename.replace(/[/\\?%*:|"<>]/g, ' ');
 		filename = filename.trim();
 		filename = filename.replace(/ /g, '_');
 		filename = filename.replace(/_+/g, '_');
@@ -54,8 +60,6 @@ function SEQ_RECORD() {
 	this.save_fasta = async (path) => {
 		if (typeof (path) === 'undefined') { path = this.create_filename(); }
 		const contents = this.to_fasta();
-		console.log(path);
-		console.log(contents);
 		await wrapper.write_file(path, contents);
 	}
 
@@ -527,9 +531,8 @@ function SEQUENCES() {
 					fasta.push(record);
 				}
 				record = new SEQ_RECORD();
-				let parsed = parse_fasta_defline(line);
-				record.defline = parsed.defline;
-				record.info = parsed.info;
+				record.defline = line;
+				record.info = parse_fasta_defline(line);
 			}
 			else { record.sequence += line; }
 		}
@@ -540,90 +543,188 @@ function SEQUENCES() {
 	}
 
 	function parse_fasta_defline(defline) {
-		const result = { defline: defline, info: new SEQ_INFO() };
-		const sequence_type = result.defline.substring(0, 3);
-		// nucleotide sequence
-		if (sequence_type === 'lcl') {
-			result.info.seq_type = 'nucleotides';
-			defline = result.defline.substring(4);
+		let info = new SEQ_INFO();
+		info = parse_fasta_defline_identifier(defline, info);
+		info = parse_fasta_defline_status(defline, info);
+		info = parse_fasta_defline_protein_name(defline, info);
+		info = parse_fasta_defline_location(defline, info);
+		info = parse_fasta_defline_isoform(defline, info);
+		info = parse_fasta_defline_fields(defline, info);
+		const extra = defline.split('^A');
+		for (let i = 1; i < extra.length; i++) {
+			info.concatenated.push(parse_fasta_defline(extra[i]));
+		}
+		return info;
+	}
+
+	function parse_fasta_defline_protein_name(defline, info) {
+		if (typeof (info) === 'undefined') { info = new SEQ_INFO(); }
+		const words = defline.split(' ');
+		if (words.length > 1) {
+			defline = defline.replace(words[0], '').trim();
 			const parts = defline.split('[');
-			for (let i = 0; i < parts.length; i++) {
-				parts[i] = parts[i].replace(/]/g, '');
-				parts[i] = parts[i].trim();
+			parts[0] = parts[0].trim();
+			let sections = parts[0].split('isoform');
+			let name = sections[0].trim();
+			name = name.replace('hypothetical protein ', '');
+			name = name.replace('LOW QUALITY PROTEIN: ', '');
+			name = name.replace('partial ', '');
+			name = name.replace('probable ', '');
+			name = name.replace(/,\s*$/, ''); // remove last comma
+			name = name.replace(/  +/g, ' '); // remove multiple internal spaces
+			info.protein = name;
+		}
+		return info;
+	}
+
+	function parse_fasta_defline_fields(defline, info) {
+		if (typeof (info) === 'undefined') { info = new SEQ_INFO(); }
+		const parts = defline.split('[');
+		for (let i = 1; i < parts.length; i++) {
+			parts[i] = parts[i].replace(/]/g, '');
+			parts[i] = parts[i].trim();
+		}
+		for (let i = 1; i < parts.length; i++) {
+			if (parts[i].includes('=')) {
+				const kv = parts[i].split('=');
+				info[kv[0]] = kv[1];
 			}
-			result.info.accession = parts[0].split('_cds_')[0];
-			for (let i = 1; i < parts.length; i++) {
-				if (parts[i].includes('=')) {
-					const kv = parts[i].split('=');
-					result.info[kv[0]] = kv[1];
+			else { info.organism = parts[i]; }
+		}
+		// In case [protein="some name, isoform"] was a field, try again to
+		//	remove the isoform from the protein name
+		info.protein = info.protein.split('isoform')[0].trim();
+		return info;
+	}
+
+	function parse_fasta_defline_identifier(defline, info) {
+		if (typeof (info) === 'undefined') { info = new SEQ_INFO(); }
+		const words = defline.split(' ');
+		if (words.length) {
+			if (words[0].includes('|')) {
+				const parts = words[0].split('|');
+				switch (parts[0]) {
+
+					case 'dbj': {
+						info.database = 'DDBJ';
+						if (parts[1]) { info.accession = parts[1]; }
+						if (parts[2]) { info.locus = parts[2]; }
+						break;
+					}
+
+					case 'emb': {
+						info.database = 'EMBL';
+						if (parts[1]) { info.accession = parts[1]; }
+						if (parts[2]) { info.ID = parts[2]; }
+						break;
+					}
+
+					case 'gb': {
+						info.database = 'NCBI GenBank';
+						if (parts[1]) { info.accession = parts[1]; }
+						if (parts[2]) { info.locus = parts[2]; }
+						break;
+					}
+
+					case 'gi': {
+						info.database = 'NCBI GenInfo';
+						if (parts[1]) { info.accession = parts[1]; }
+						break;
+					}
+
+					case 'ref': {
+						info.database = 'NCBI Reference Sequence';
+						if (parts[1]) { info.accession = parts[1]; }
+						if (parts[2]) { info.locus = parts[2]; }
+						break;
+					}
+
+					case 'pir': {
+						info.database = 'NBRF Protein Information Resource';
+						if (parts[2]) { info.accession = parts[2]; }
+						break;
+					}
+
+					case 'prf': {
+						info.database = 'Protein Research Foundation';
+						if (parts[2]) { info.accession = parts[2]; }
+						break;
+					}
+
+					case 'sp': {
+						info.database = 'SWISS-PROT';
+						if (parts[1]) { info.accession = parts[1]; }
+						if (parts[2]) { info.entry = parts[2]; }
+						break;
+					}
+
+					case 'pdb': {
+						info.database = 'Brookhaven Protein Data Bank';
+						if (parts[1]) { info.accession = parts[1]; }
+						if (parts[2]) { info.chain = parts[2]; }
+						break;
+					}
+
+					case 'pat': {
+						info.database = 'Patents';
+						if (parts[1]) { info.country = parts[1]; }
+						if (parts[2]) { info.accession = parts[2]; }
+						break;
+					}
+
+					case 'bbs': {
+						info.database = 'GenInfo Backbone ID';
+						if (parts[1]) { info.accession = parts[1]; }
+						break;
+					}
+
+					case 'lcl': {
+						info.database = 'Local';
+						if (parts[1]) { info.accession = parts[1]; }
+						break;
+					}
+
+					case 'gnl': {
+						info.database = 'General';
+						if (parts[1]) { info.database = parts[1]; }
+						if (parts[2]) { info.accession = parts[2]; }
+						break;
+					}
+
 				}
 			}
-			// parse isoform
-			if (result.info.protein) {
-				const isoform = result.info.protein.match(/\s[X][0-9]+\b/);
-				if (isoform) {
-					result.info.isoform = isoform[0].trim();
-					result.info.protein = result.info.protein.replace(/\sisoform\b/, '');
-					result.info.protein = result.info.protein.replace(result.info.isoform, '');
-					result.info.protein = result.info.protein.trim();
-					result.info.protein = result.info.protein.replace(/,\s*$/, ""); // remove last comma
-					result.info.protein = result.info.protein.replace(/  +/g, ' '); // remove multiple internal spaces
-				}
-			}
-			return result;
+			else { info.accession = words[0]; }
 		}
-		// protein sequence
-		else if (sequence_type === 'NP_' || sequence_type === 'YP_' || sequence_type === 'XP_') {
-			result.info.seq_type = 'amino acids';
-			let words = defline.split(' ');
-			if (words.length) {
-				let parts = words[0].split('|');
-				if (parts.length > 1) { result.info.accession = parts; }
-				else { result.info.accession = words[0]; }
-				result.info.protein = defline.replace(words[0], '');
-			}
-			// parse organism
-			if (words.length > 2 && words[words.length - 2].includes('[') && words[words.length - 1].includes(']')) {
-				result.info.organism = words[words.length - 2].replace('[', '') + ' ' + words[words.length - 1].replace(']', '');
-				result.info.protein = result.info.protein.replace(result.info.organism, '');
-				result.info.protein = result.info.protein.replace('[]', '');
-			}
-			// parse location
-			if (result.info.protein.includes('axonemal')) { result.info.location = 'axoneme'; }
-			if (result.info.protein.includes('cytoplasmic')) { result.info.location = 'cytoplasm'; }
-			if (result.info.protein.includes('lysosomal')) { result.info.location = 'lysosome'; }
-			if (result.info.protein.includes('mitochondrial')) { result.info.location = 'mitochondrion'; }
-			if (result.info.protein.includes('peroxisomal')) { result.info.location = 'peroxisome'; }
-			// parse isoform
-			const isoform = result.info.protein.match(/\s[X][0-9]+\b/);
-			if (isoform) {
-				result.info.isoform = isoform[0].trim();
-				result.info.protein = result.info.protein.replace(/\sisoform\b/, '');
-				result.info.protein = result.info.protein.replace(result.info.isoform, '');
-			}
-			// parse status
-			if (result.info.protein.includes('hypothetical protein')) {
-				result.info.protein = result.info.protein.replace('hypothetical protein ', '');
-				result.info.status = 'hypothetical protein';
-			}
-			if (result.info.protein.includes('LOW QUALITY PROTEIN:')) {
-				result.info.protein = result.info.protein.replace('LOW QUALITY PROTEIN: ', '');
-				result.info.status = 'low quality';
-			}
-			if (result.info.protein.includes('partial')) {
-				result.info.protein = result.info.protein.replace('partial ', '');
-				result.info.status = 'partial';
-			}
-			if (result.info.protein.includes('probable')) {
-				result.info.protein = result.info.protein.replace('probable ', '');
-				result.info.status = 'probable';
-			}
-			result.info.protein = result.info.protein.trim();
-			result.info.protein = result.info.protein.replace(/,\s*$/, ""); // remove last comma
-			result.info.protein = result.info.protein.replace(/  +/g, ' '); // remove multiple internal spaces
-			return result;
+		info.accession = info.accession.split('_cds_')[0];
+		return info;
+	}
+
+	function parse_fasta_defline_isoform(defline, info) {
+		if (typeof (info) === 'undefined') { info = new SEQ_INFO(); }
+		const isoform = defline.match(/\sisoform\s[X][0-9]+\b/);
+		if (isoform && isoform.length) {
+			info.isoform = isoform[0].replace('isoform', '').trim();
 		}
-		return result;
+		return info;
+	}
+
+	function parse_fasta_defline_location(defline, info) {
+		if (typeof (info) === 'undefined') { info = new SEQ_INFO(); }
+		if (defline.includes('axonemal')) { info.location = 'axoneme'; }
+		if (defline.includes('cytoplasmic')) { info.location = 'cytoplasm'; }
+		if (defline.includes('lysosomal')) { info.location = 'lysosome'; }
+		if (defline.includes('mitochondrial')) { info.location = 'mitochondrion'; }
+		if (defline.includes('peroxisomal')) { info.location = 'peroxisome'; }
+		return info;
+	}
+
+	function parse_fasta_defline_status(defline, info) {
+		if (typeof (info) === 'undefined') { info = new SEQ_INFO(); }
+		if (defline.includes('hypothetical protein')) {	info.status = 'hypothetical protein'; }
+		if (defline.includes('LOW QUALITY PROTEIN:')) { info.status = 'low quality'; }
+		if (defline.includes('partial')) { info.status = 'partial'; }
+		if (defline.includes('probable')) { info.status = 'probable'; }
+		return info;
 	}
 
 	this.unload = () => {

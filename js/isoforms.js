@@ -65,7 +65,6 @@ function ISOFORMS() {
 		this.package = [];
 		const sequences = new SEQUENCES();
 		await sequences.load_fasta_file(path);
-		sequences.package[0].save_fasta();
 		const organisms = sequences.get_unique_organism_names();
 		if (organisms.length === 1) { this.organism = organisms[0]; }
 		const names = sequences.get_unique_protein_names();

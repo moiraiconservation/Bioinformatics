@@ -46,7 +46,7 @@ function ORTHOLOGS() {
 			console.log('Loading FASTA file: ' + (i + 1) + ' of ' + paths.length);
 			const isoforms = new ISOFORMS();
 			await isoforms.load_fasta_file(paths[i]);
-			isoforms.compact();
+			//isoforms.compact();
 			this.housekeeping.isoform_package.push(isoforms);
 		}
 	}

@@ -12,7 +12,7 @@ function SEQ_INFO() {
 	//	SEQUENCES object.
 	this.accession = '';
 	this.concatenated = [];
-	this.database = '';
+	this.database = 'Local';
 	this.gene = '';
 	this.isoform = '';
 	this.location = '';
@@ -647,12 +647,12 @@ function SEQUENCES() {
 	}
 
 	this.load = (data) => { this.package = data; }
-	
+
 	this.load_fasta_file = async (path) => {
 		const str = await wrapper.read_file(path);
 		this.package = parse_fasta(str);
 	}
-	
+
 	this.load_string = (str) => { this.package = parse_fasta(str); }
 
 	function guess_sequence_type(sequence) {
@@ -736,6 +736,7 @@ function SEQUENCES() {
 		info = parse_fasta_defline_location(defline, info);
 		info = parse_fasta_defline_isoform(defline, info);
 		info = parse_fasta_defline_fields(defline, info);
+		info = parse_fasta_defline_organism_name(defline, info);
 		const extra = defline.split('^A');
 		for (let i = 1; i < extra.length; i++) {
 			info.concatenated.push(parse_fasta_defline(extra[i]));
@@ -745,22 +746,26 @@ function SEQUENCES() {
 
 	function parse_fasta_defline_fields(defline, info) {
 		if (typeof (info) === 'undefined') { info = new SEQ_INFO(); }
-		const parts = defline.match(/\[(.*?)\]/);
-		for (let i = 1; i < parts.length; i++) {
-			parts[i] = parts[i].replace(/\[/g, '');
-			parts[i] = parts[i].replace(/\]/g, '');
-			parts[i] = parts[i].trim();
-		}
-		for (let i = 1; i < parts.length; i++) {
-			if (parts[i] && parts[i].includes('=')) {
-				const kv = parts[i].split('=');
-				info[kv[0]] = kv[1];
+		const parts = defline.match(/\[(.*?)\=(.*?)\]/g);
+		if (parts && parts.length) {
+			for (let i = 0; i < parts.length; i++) {
+				parts[i] = parts[i].replace(/\[/g, '');
+				parts[i] = parts[i].replace(/\]/g, '');
+				parts[i] = parts[i].trim();
 			}
-			else { if (parts[i] && i === parts.length - 1) { info.organism = parts[i]; } }
+			for (let i = 0; i < parts.length; i++) {
+				if (parts[i] && parts[i].includes('=')) {
+					const kv = parts[i].split('=');
+					info[kv[0]] = kv[1];
+				}
+			}
 		}
 		// In case [protein="some name, isoform"] was a field, try again to
 		//	remove the isoform from the protein name
-		if (info.protein) { info.protein = info.protein.split('isoform')[0].trim(); }
+		const isoform = info.protein.match(/\sisoform\s[X][0-9]+\b/);
+		if (isoform && isoform.length) {
+			info.protein = info.protein.replace(isoform[0], '').trim();
+		}
 		return info;
 	}
 
@@ -867,11 +872,38 @@ function SEQUENCES() {
 
 	function parse_fasta_defline_location(defline, info) {
 		if (typeof (info) === 'undefined') { info = new SEQ_INFO(); }
-		if (defline.includes('axonemal')) { info.location = 'axoneme'; }
-		if (defline.includes('cytoplasmic')) { info.location = 'cytoplasm'; }
-		if (defline.includes('lysosomal')) { info.location = 'lysosome'; }
-		if (defline.includes('mitochondrial')) { info.location = 'mitochondrion'; }
-		if (defline.includes('peroxisomal')) { info.location = 'peroxisome'; }
+		if (defline.toLowerCase().includes('axonemal')) { info.location = 'axoneme'; }
+		if (defline.toLowerCase().includes('axoneme')) { info.location = 'axoneme'; }
+		if (defline.toLowerCase().includes('cytoplasmic')) { info.location = 'cytoplasm'; }
+		if (defline.toLowerCase().includes('cytoplasm')) { info.location = 'cytoplasm'; }
+		if (defline.toLowerCase().includes('lysosomal')) { info.location = 'lysosome'; }
+		if (defline.toLowerCase().includes('lysosome')) { info.location = 'lysosome'; }
+		if (defline.toLowerCase().includes('mitochondrial')) { info.location = 'mitochondrion'; }
+		if (defline.toLowerCase().includes('mitochondrion')) { info.location = 'mitochondrion'; }
+		if (defline.toLowerCase().includes('peroxisome')) { info.location = 'peroxisome'; }
+		return info;
+	}
+
+	function parse_fasta_defline_organism_name(defline, info) {
+		if (typeof (info) === 'undefined') { info = new SEQ_INFO(); }
+		// The name of the organism may already may have been parsed from any
+		//	included defline fields (e.g., [organism=Mus musculus]).  If the
+		//	organism name has not been already parsed, check for an NCBI-
+		//	style organism name.  This name will be present as a final
+		//	bracket-enclosed name, without an equals sign.
+		//	(e.g., [Mus musculus]).
+		if (!info.organism) {
+			// check to see if the last character is a close bracket
+			if (defline.charAt(defline.length -1) === ']') {
+				const parts = defline.split('[');
+				if (parts.length) {
+					const last_part = parts[parts.length - 1];
+					if (!last_part.includes('=')) {
+						info.organism = last_part.replace(']', '').trim();
+					}
+				}
+			}
+		}
 		return info;
 	}
 
@@ -881,12 +913,12 @@ function SEQUENCES() {
 		if (words.length > 1) {
 			// remove the identifier (accession, etc.)
 			defline = defline.replace(words[0], '').trim();
-			// remove the fields section of the defline
-			const field_start = defline.search(/\[(.*?)\=(.*?)\]/);
-			if (field_start > -1) { defline = defline.substring(0, field_start).trim(); }
 			// remove the last bracket field without an equals sign inside
 			const parts = defline.split('[');
 			if (parts.length) { defline = defline.replace('[' + parts[parts.length - 1], '').trim(); }
+			// remove the fields section of the defline
+			const field_start = defline.search(/\[(.*?)\=(.*?)\]/);
+			if (field_start > -1) { defline = defline.substring(0, field_start).trim(); }
 			// remove terms that should be fields
 			let sections = defline.split('isoform');
 			let name = sections[0].trim();
@@ -903,7 +935,7 @@ function SEQUENCES() {
 
 	function parse_fasta_defline_status(defline, info) {
 		if (typeof (info) === 'undefined') { info = new SEQ_INFO(); }
-		if (defline.includes('hypothetical protein')) {	info.status = 'hypothetical protein'; }
+		if (defline.includes('hypothetical protein')) { info.status = 'hypothetical protein'; }
 		if (defline.includes('LOW QUALITY PROTEIN:')) { info.status = 'low quality'; }
 		if (defline.includes('partial')) { info.status = 'partial'; }
 		if (defline.includes('probable')) { info.status = 'probable'; }

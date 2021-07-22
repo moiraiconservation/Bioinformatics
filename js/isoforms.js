@@ -67,10 +67,10 @@ function ISOFORMS() {
 		await sequences.load_fasta_file(path);
 		const organisms = sequences.get_unique_organism_names();
 		if (organisms.length === 1) { this.organism = organisms[0]; }
-		const names = sequences.get_unique_protein_names();
-		if (names.length) {
-			for (let i = 0; i < names.length; i++) {
-				const filtered_sequences = sequences.filter_by_protein_name(names[i]);
+		const seq_names = sequences.get_unique_sequence_names();
+		if (seq_names.length) {
+			for (let i = 0; i < seq_names.length; i++) {
+				const filtered_sequences = sequences.filter_by_sequence_name(seq_names[i]);
 				if (filtered_sequences.is_loaded()) {
 					const iso_record = new ISO_RECORD();
 					iso_record.group = this.package.length + 1;

@@ -83,8 +83,11 @@
 
 					case 'open_protein': {
 						if (arg.data && arg.data.filePaths.length) {
-							await orthologs.load_fasta_files(arg.data.filePaths);
-							console.log(orthologs);
+							//await orthologs.load_fasta_files(arg.data.filePaths);
+							await sequences.load_fasta_file(arg.data.filePaths[0]);
+							console.log(sequences);
+							await sequences.save_each_as_fasta('fasta');
+							console.log('Done!');
 						}
 						break;
 					}

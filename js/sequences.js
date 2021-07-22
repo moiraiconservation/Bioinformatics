@@ -1,6 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // sequences.js
-//	Requires: wrapper.js
+//	Requires globals: pather and wrapper
+//	Requires: pather.js and wrapper.js
 //	Uses main.js for reading files
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -33,8 +34,9 @@ function SEQ_RECORD() {
 	this.alphabet = () => { return Array.from(new Set(this.sequence)); }
 
 	this.create_filename = () => {
-		let filename = this.defline;
-		filename = filename.replace(/[/\\?%*:|"<>]/g, ' ');
+		let filename = this.defline || 'sequence';
+		filename = filename.replace(/[/\\?%*:|"<>]/g, ' '); // removes all illegal file characters
+		filename = filename.replace(/[^\x20-\x7E]/g, ''); // removes all non-printable characters
 		filename = filename.trim();
 		filename = filename.replace(/ /g, '_');
 		filename = filename.replace(/_+/g, '_');
@@ -58,17 +60,18 @@ function SEQ_RECORD() {
 
 	this.to_uppercase = () => { this.sequence = this.sequence.toUpperCase(); }
 
-	this.save_fasta = async (path) => {
+	this.save_as_fasta = async (path) => {
 		// If the filename has not been supplied, one will be created from the
 		//	defline.  If the specified folders do not exist, they will be
 		//	created.
 		if (typeof (path) === 'undefined') { path = ''; }
 		const path_record = await pather.parse(path);
-		if (!path_record.filename) { path_record.add_filename(this.create_filename()); }
-		await path_record.create_directory();
-		path = path_record.full_path();
+		const new_filename = this.create_filename();
+		if (!path_record.filename) { path_record.set_filename(new_filename); }
+		await path_record.force_path();
+		const full_path = path_record.get_full_path();
 		const contents = this.to_fasta();
-		await wrapper.write_file(path, contents);
+		await wrapper.write_file(full_path, contents);
 	}
 
 	this.sdust = (options) => {
@@ -556,6 +559,7 @@ function SEQ_RECORD() {
 function SEQUENCES() {
 
 	this.package = []; // array of SEQ_RECORD
+	this.path_record = {};
 
 	this.add = (sequences) => {
 		if (Array.isArray(sequences)) {
@@ -571,6 +575,22 @@ function SEQUENCES() {
 	}
 
 	this.clear = () => { this.package = []; }
+
+	this.create_filename = () => {
+		let filename = this.get_consensus_organism_name() || 'sequences';
+		filename = filename.replace(/[/\\?%*:|"<>]/g, ' '); // removes all illegal file characters
+		filename = filename.replace(/[^\x20-\x7E]/g, ''); // removes all non-printable characters
+		filename = filename.trim();
+		filename = filename.replace(/ /g, '_');
+		filename = filename.replace(/_+/g, '_');
+		const seq_type = this.get_consensus_sequence_type();
+		switch (seq_type) {
+			case 'amino acids': { filename += '.faa'; break; }
+			case 'nucleotides': { filename += '.fna'; break; }
+			default: { filename += '.fasta'; break; }
+		}
+		return filename;
+	}
 
 	// for the filter functions, the filter term can be a string or an array of strings
 	this.filter_by = (field, filter) => { return filter_info(filter, this.package, field); }
@@ -670,11 +690,40 @@ function SEQUENCES() {
 	this.load = (data) => { this.package = data; }
 
 	this.load_fasta_file = async (path) => {
-		const str = await wrapper.read_file(path);
+		this.path_record = await pather.parse(path);
+		const full_path = this.path_record.get_full_path();
+		const str = await wrapper.read_file(full_path);
 		this.package = parse_fasta(str);
 	}
 
 	this.load_string = (str) => { this.package = parse_fasta(str); }
+
+	this.save_as_fasta = async (path) => {
+		// If the filename has not been supplied, one will be created from the
+		//	defline.  If the specified folders do not exist, they will be
+		//	created.
+		if (typeof (path) === 'undefined') { path = ''; }
+		this.path_record = await pather.parse(path);
+		if (!this.path_record.filename) { this.path_record.set_filename(this.create_filename()); }
+		await this.path_record.force_path();
+		const full_path = this.path_record.get_full_path();
+		let contents = '';
+		for (let i = 0; i < this.package.length; i++) {
+			contents += this.package[i].to_fasta();
+		}
+		await wrapper.write_file(full_path, contents);		
+	}
+
+	this.save_each_as_fasta = async (path) => {
+		if (typeof (path) === 'undefined') { path = ''; }
+		const path_record = await pather.parse(path);
+		path_record.remove_filename();
+		await path_record.force_path();
+		const full_path = path_record.get_full_path();
+		for (let i = 0; i < this.package.length; i++) {
+			await this.package[i].save_as_fasta(full_path);
+		}
+	}
 
 	function guess_sequence_type(sequence) {
 		// Alphabet system based on extended one-letter sequence codes:
@@ -702,11 +751,15 @@ function SEQUENCES() {
 	}
 
 	function get_consensus_info(package, parameter) {
-		return [...package].sort((a, b) => {
-			const a_length = package.filter((v) => { return v.info[parameter] === a.info[parameter]; }).length;
-			const b_length = package.filter((v) => { return v.info[parameter] === b.info[parameter]; }).length;
-			return b_length - a_length;
-		})[0].info[parameter];
+		const v_list = get_unique_info(package, parameter);
+		const p_list = [];
+		for (let i = 0; i < v_list.length; i++) {
+			const quant = package.filter((v) => { return v.info[parameter] === v_list[i]; }).length;
+			p_list.push({ parameter: v_list[i], quant: quant  });
+		}
+		p_list.sort((a, b) => { return b.quant - a.quant; });
+		if (p_list.length && p_list[0].parameter) { return p_list[0].parameter; }
+		return '';
 	}
 
 	function get_unique_info(package, parameter) {

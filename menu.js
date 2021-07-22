@@ -14,21 +14,40 @@ module.exports = {
 				label: 'File',
 				submenu: [
 					{
-						id: 'open_fasta',
-						label: 'Open FASTA File...',
+						id: 'open_blast_rbh',
+						label: 'Open BLAST RBH Files...',
 						enabled: true,
 						click() {
 							dialog.showOpenDialog({
 								filters: [
-									{ name: 'FASTA', extensions: ['fasta', 'faa', 'fna'] },
 									{ name: 'Text', extensions: ['txt'] },
 									{ name: 'All Files', extensions: ['*'] }
 								],
-								properties: ['openFile']
+								properties: ['multiSelections', 'openFile']
 							})
 								.then((response) => {
 									if (!response.canceled) {
-										win.main.webContents.send('fromMain', { command: 'open_fasta', success: true, data: response });
+										win.main.webContents.send('fromMain', { command: 'open_blast_rbh', success: true, data: response });
+									}
+								});
+						}
+					},
+					{
+						id: 'open_protein',
+						label: 'Open Protein Files...',
+						enabled: true,
+						click() {
+							dialog.showOpenDialog({
+								filters: [
+									{ name: 'FASTA', extensions: ['fasta', 'faa'] },
+									{ name: 'Text', extensions: ['txt'] },
+									{ name: 'All Files', extensions: ['*'] }
+								],
+								properties: ['multiSelections', 'openFile']
+							})
+								.then((response) => {
+									if (!response.canceled) {
+										win.main.webContents.send('fromMain', { command: 'open_protein', success: true, data: response });
 									}
 								});
 						}

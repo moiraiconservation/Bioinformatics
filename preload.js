@@ -12,18 +12,27 @@ contextBridge.exposeInMainWorld(
 	'api', {
 		send: (channel, data) => {
 			// whitelist channels
-			const validChannels = ['toMain'];
-			if (validChannels.includes(channel)) { ipcRenderer.send(channel, data); }
+			const validChannels = ['toMain', 'passthrough'];
+			if (validChannels.includes(channel)) {
+				try { ipcRenderer.send(channel, data); }
+				catch(e) { console.log(e); }
+			}
 		},
 		receive: (channel, func) => {
-			const validChannels = ['fromMain'];
+			const validChannels = ['fromMain', 'toRender'];
 			// Deliberately strip event as it includes sender
-			if (validChannels.includes(channel)) { ipcRenderer.on(channel, (event, ...args) => func(...args)); }
+			if (validChannels.includes(channel)) {
+				try { ipcRenderer.on(channel, (event, ...args) => func(...args)); }
+				catch(e) { console.log(e); }
+			}
 		},
 		receive_once: (channel, func) => {
-			const validChannels = ['fromMain'];
+			const validChannels = ['fromMain', 'toRender'];
 			// Deliberately strip event as it includes sender
-			if (validChannels.includes(channel)) { ipcRenderer.once(channel, (event, ...args) => func(...args)); }
+			if (validChannels.includes(channel)) {
+				try { ipcRenderer.once(channel, (event, ...args) => func(...args)); }
+				catch(e) { console.log(e); }
+			}
 		}
 	}
 );

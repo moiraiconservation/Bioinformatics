@@ -1,5 +1,6 @@
 ///////////////////////////////////////////////////////////////////////////////
 // main.js ////////////////////////////////////////////////////////////////////
+
 ///////////////////////////////////////////////////////////////////////////////
 // REQUIRED COMPONENTS ////////////////////////////////////////////////////////
 
@@ -10,7 +11,7 @@ const eStore = require('electron-store');
 const fs = require('fs');
 const ipc = require('electron').ipcMain;
 const path = require('path');
-//const sqlite3 = require('sqlite3');
+//const sqlite3 = require('sqlite3'); // uncomment this if using sqlite3 database
 const qs = require('qs');
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -42,11 +43,12 @@ Menu.setApplicationMenu(menu);
 // APPLICATION CONTROL ////////////////////////////////////////////////////////
 
 app.whenReady().then(show_window);
-app.on('window-all-closed', () => { if (process.platform !== 'darwin') { app.quit() } });
+app.once('before-quit', () => { window.removeAllListeners('close'); });
 app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) { show_window(); } });
+app.on('window-all-closed', () => { if (process.platform !== 'darwin') { app.quit() } });
 
 ///////////////////////////////////////////////////////////////////////////////
-// FUNCTION ///////////////////////////////////////////////////////////////////
+// FUNCTIONS //////////////////////////////////////////////////////////////////
 
 function show_window(filename) {
 	if (typeof (filename) === 'undefined') { filename = 'render.html'; }
@@ -68,13 +70,13 @@ function show_window(filename) {
 		if (app_storage.window_bounds.x && app_storage.window_bounds.y) { win.main.setPosition(app_storage.window_bounds.x, app_storage.window_bounds.y); }
 		win.main.loadFile(file_path);
 		win.main.on('close', () => {
+			ipc.removeAllListeners();
 			const position = win.main.getPosition();
 			store.set('windowBounds.height', app_storage.window_bounds.height);
 			store.set('windowBounds.maximized', app_storage.window_bounds.maximized);
 			store.set('windowBounds.width', app_storage.window_bounds.width);
 			store.set('windowBounds.x', position[0]);
 			store.set('windowBounds.y', position[1]);
-			app.quit();
 		});
 		win.main.on('maximize', () => {
 			app_storage.window_bounds.maximized = true;
@@ -93,12 +95,17 @@ function show_window(filename) {
 			win.main.setSize(app_storage.window_bounds.width, app_storage.window_bounds.height)
 		});
 	}
-	win.main.once('ready-to-show', () => { win.main.show() });
+	win.main.once('ready-to-show', () => { win.main.show(); });
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // IPC COMMUNICATION //////////////////////////////////////////////////////////
-// Manifest:
+
+// passthrough function for sending messages to the render process
+try { ipc.on('passthrough', (event, arg) => { win.main.webContents.send('toRender', { passthrough: arg }); }); }
+catch (e) { console.log(e); }
+
+// toMain Manifest:
 //	append_file
 //	axios_get
 //	axios_post
@@ -107,6 +114,8 @@ function show_window(filename) {
 //	create_directory
 //	create_read_stream
 //	create_write_stream
+//	get_app_data_directory
+//	get_app_directory
 //	get_app_storage
 //	read_from_delimited_stream
 //	set_app_storage
@@ -203,8 +212,23 @@ ipc.on('toMain', (event, arg) => {
 				break;
 			}
 
+			case 'get_app_data_directory': {
+				win.main.webContents.send('fromMain', { command: arg.command, success: true, data: app.getPath('userData') });
+				break;
+			}
+
+			case 'get_app_directory': {
+				win.main.webContents.send('fromMain', { command: arg.command, success: true, data: __dirname });
+				break;
+			}
+
 			case 'get_app_storage': {
 				win.main.webContents.send('fromMain', { command: arg.command, success: true, data: app_storage });
+				break;
+			}
+
+			case 'get_operating_system': {
+				win.main.webContents.send('fromMain', { command: arg.command, success: true, data: process.platform });
 				break;
 			}
 
@@ -351,4 +375,3 @@ ipc.on('toMain', (event, arg) => {
 		}
 	}
 });
-///////////////////////////////////////////////////////////////////////////////

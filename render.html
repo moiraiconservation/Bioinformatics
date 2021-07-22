@@ -5,13 +5,15 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>Hedron Project 3</title>
 	<meta content="script-src 'self' 'unsafe-inline';" http-equiv="Content-Security-Policy" />
-	<script src="elements.js" type="text/javascript"></script>
-	<script src="wrappers.js" type="text/javascript"></script>
+	<script src="element.js" type="text/javascript"></script>
+	<script src="wrapper.js" type="text/javascript"></script>
 	<script src="js/alignment.js" type="text/javascript"></script>
 	<script src="js/clustal.js" type="text/javascript"></script>
 	<script src="js/codons.js" type="text/javascript"></script>
 	<script src="js/csv.js" type="text/javascript"></script>
 	<script src="js/isoforms.js" type="text/javascript"></script>
+	<script src="js/orthologs.js" type="text/javascript"></script>
+	<script src="js/pather.js" type="text/javascript"></script>
 	<script src="js/sequences.js" type="text/javascript"></script>
 	<script src="js/tree.js" type="text/javascript"></script>
 	<script src="js/tsv.js" type="text/javascript"></script>
@@ -39,37 +41,58 @@
 	</div> <!-- end container-fluid -->
 	<script>
 		///////////////////////////////////////////////////////////////////////////
-		// OBJECT PACKAGES ////////////////////////////////////////////////////////
+		// REQUIRED OBJECT PACKAGES ///////////////////////////////////////////////
+
+		const element = new ELEMENT();
+		const pather = new PATHER();
+		const wrapper = new WRAPPER();
+
+		///////////////////////////////////////////////////////////////////////////
+		// OPTIONAL OBJECT PACKAGES ///////////////////////////////////////////////
+
 		const alignment = new ALIGNMENT();
 		const clustal = new CLUSTAL();
 		const codons = new CODONS();
-		const element = new ELEMENT();
 		const isoforms = new ISOFORMS();
+		const orthologs = new ORTHOLOGS();
 		const sequences = new SEQUENCES();
 		const stats = new STATS();
 		const tree = new TREE();
 		const tsv = new TSV();
-		const wrapper = new WRAPPER();
+
 		///////////////////////////////////////////////////////////////////////////
 		// VARIABLES //////////////////////////////////////////////////////////////
+
 		var app_storage;
 		wrapper.get_app_storage().then((result) => { app_storage = result; });
+
 		///////////////////////////////////////////////////////////////////////////
 		// IPC COMMUNICATION //////////////////////////////////////////////////////
+
 		window.api.receive('fromMain', async (arg) => {
 			if (arg.command) {
 				switch (arg.command) {
-					case 'open_fasta': {
+
+					case 'open_blast_rbh': {
 						if (arg.data && arg.data.filePaths.length) {
-							await isoforms.load_fasta_file(arg.data.filePaths[0]);
-							console.log(isoforms);
+							await orthologs.load_blast_files(arg.data.filePaths);
+							console.log(orthologs);
 						}
 						break;
 					}
+
+					case 'open_protein': {
+						if (arg.data && arg.data.filePaths.length) {
+							await orthologs.load_fasta_files(arg.data.filePaths);
+							console.log(orthologs);
+						}
+						break;
+					}
+
 				}
 			}
 		});
-		//////////////////////////////////////////////////////////////////////
+
 	</script>
 </body>
 </html>

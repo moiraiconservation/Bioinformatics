@@ -59,7 +59,14 @@ function SEQ_RECORD() {
 	this.to_uppercase = () => { this.sequence = this.sequence.toUpperCase(); }
 
 	this.save_fasta = async (path) => {
-		if (typeof (path) === 'undefined') { path = this.create_filename(); }
+		// If the filename has not been supplied, one will be created from the
+		//	defline.  If the specified folders do not exist, they will be
+		//	created.
+		if (typeof (path) === 'undefined') { path = ''; }
+		const path_record = await pather.parse(path);
+		if (!path_record.filename) { path_record.add_filename(this.create_filename()); }
+		await path_record.create_directory();
+		path = path_record.full_path();
 		const contents = this.to_fasta();
 		await wrapper.write_file(path, contents);
 	}
@@ -550,8 +557,22 @@ function SEQUENCES() {
 
 	this.package = []; // array of SEQ_RECORD
 
+	this.add = (sequences) => {
+		if (Array.isArray(sequences)) {
+			for (let i = 0; i < sequences.length; i++) {
+				if (sequences[i] instanceof SEQ_RECORD) { this.package.push(sequences[i]); }
+				if (sequences[i] instanceof SEQUENCES) { this.package = this.package.concat(sequences[i].package); }
+			}
+		}
+		else {
+			if (sequences instanceof SEQ_RECORD) { this.package.push(sequences); }
+			if (sequences instanceof SEQUENCES) { this.package = this.package.concat(sequences.package); }
+		}
+	}
+
 	this.clear = () => { this.package = []; }
 
+	// for the filter functions, the filter term can be a string or an array of strings
 	this.filter_by = (field, filter) => { return filter_info(filter, this.package, field); }
 
 	this.filter_by_accession = (filter) => { return filter_info(filter, this.package, 'accession'); }
@@ -666,10 +687,17 @@ function SEQUENCES() {
 
 	function filter_info(filter, package, parameter) {
 		const new_sequences = new SEQUENCES();
-		new_sequences.package = package.filter((x) => {
-			if (x.info[parameter]) { return x.info[parameter] === filter; }
-			else { return false; }
-		});
+		if (Array.isArray(filter)) {
+			for (let i = 0; i < filter.length; i++) {
+				new_sequences.add(filter_info(filter[i], package, parameter));
+			}
+		}
+		else {
+			new_sequences.package = package.filter((x) => {
+				if (x.info[parameter]) { return x.info[parameter] === filter; }
+				else { return false; }
+			});
+		}
 		return new_sequences;
 	}
 

@@ -2,10 +2,7 @@
 // sequences.js
 //	Requires globals: pather and wrapper
 //	Requires: pather.js and wrapper.js
-//	Uses main.js for reading files
-
-///////////////////////////////////////////////////////////////////////////////
-// seq_record.js //////////////////////////////////////////////////////////////
+//	Uses main.js for reading and writing files
 
 function SEQ_INFO() {
 	// These are the standard entries, but more variable can be added
@@ -33,7 +30,7 @@ function SEQ_RECORD() {
 
 	this.alphabet = () => { return Array.from(new Set(this.sequence)); }
 
-	this.create_filename = () => {
+	this.create_file_name = () => {
 		let filename = this.defline || 'sequence';
 		filename = filename.replace(/[/\\?%*:|"<>]/g, ' '); // removes all illegal file characters
 		filename = filename.replace(/[^\x20-\x7E]/g, ''); // removes all non-printable characters
@@ -66,10 +63,10 @@ function SEQ_RECORD() {
 		//	created.
 		if (typeof (path) === 'undefined') { path = ''; }
 		const path_record = await pather.parse(path);
-		const new_filename = this.create_filename();
-		if (!path_record.filename) { path_record.set_filename(new_filename); }
+		const new_filename = this.create_file_name();
+		if (!path_record.filename) { await path_record.set_file_name(new_filename); }
 		await path_record.force_path();
-		const full_path = path_record.get_full_path();
+		const full_path = await path_record.get_full_path();
 		const contents = this.to_fasta();
 		await wrapper.write_file(full_path, contents);
 	}
@@ -393,8 +390,8 @@ function SEQ_RECORD() {
 
 	}
 
-	this.set = (field, value) => {
-		this.info[field] = value;
+	this.set = (parameter, value) => {
+		this.info[parameter] = value;
 		this.defline = build_defline(this.info);
 	}
 
@@ -558,32 +555,30 @@ function SEQ_RECORD() {
 
 function SEQUENCES() {
 
-	this.package = []; // array of SEQ_RECORD
-	this.path_record = {};
+	this.cargo = []; // array of SEQ_RECORD
 
-	this.add = (sequences) => {
-		if (Array.isArray(sequences)) {
-			for (let i = 0; i < sequences.length; i++) {
-				if (sequences[i] instanceof SEQ_RECORD) { this.package.push(sequences[i]); }
-				if (sequences[i] instanceof SEQUENCES) { this.package = this.package.concat(sequences[i].package); }
+	this.add = (record) => {
+		if (Array.isArray(record)) {
+			for (let i = 0; i < record.length; i++) {
+				this.add(record[i]);
 			}
 		}
 		else {
-			if (sequences instanceof SEQ_RECORD) { this.package.push(sequences); }
-			if (sequences instanceof SEQUENCES) { this.package = this.package.concat(sequences.package); }
+			if (record instanceof SEQ_RECORD) { this.cargo.push(record); }
+			if (record instanceof SEQUENCES) { this.cargo = this.cargo.concat(record.cargo); }
 		}
 	}
 
-	this.clear = () => { this.package = []; }
+	this.clear = () => { this.cargo = []; }
 
-	this.create_filename = () => {
+	this.create_file_name = () => {
 		let filename = this.get_consensus_organism_name() || 'sequences';
 		filename = filename.replace(/[/\\?%*:|"<>]/g, ' '); // removes all illegal file characters
 		filename = filename.replace(/[^\x20-\x7E]/g, ''); // removes all non-printable characters
 		filename = filename.trim();
 		filename = filename.replace(/ /g, '_');
 		filename = filename.replace(/_+/g, '_');
-		const seq_type = this.get_consensus_sequence_type();
+		const seq_type = this.get_sequence_type();
 		switch (seq_type) {
 			case 'amino acids': { filename += '.faa'; break; }
 			case 'nucleotides': { filename += '.fna'; break; }
@@ -593,51 +588,79 @@ function SEQUENCES() {
 	}
 
 	// for the filter functions, the filter term can be a string or an array of strings
-	this.filter_by = (field, filter) => { return filter_info(filter, this.package, field); }
+	this.filter_by = (parameter, filter) => {
+		const new_sequences = new SEQUENCES();
+		if (Array.isArray(filter)) {
+			for (let i = 0; i < filter.length; i++) {
+				new_sequences.add(this.filter_by(parameter, filter[i]));
+			}
+		}
+		else {
+			new_sequences.cargo = this.cargo.filter((x) => {
+				if (x.info[parameter]) { return x.info[parameter] === filter; }
+				else { return false; }
+			});
+		}
+		return new_sequences;
+	}
 
-	this.filter_by_accession = (filter) => { return filter_info(filter, this.package, 'accession'); }
+	this.filter_by_accession = (filter) => { return this.filter_by('accession', filter); }
 
-	this.filter_by_database = (filter) => { return filter_info(filter, this.package, 'database'); }
+	this.filter_by_database = (filter) => { return this.filter_by('database', filter); }
 
-	this.filter_by_location = (filter) => { return filter_info(filter, this.package, 'location'); }
+	this.filter_by_location = (filter) => { return this.filter_by('location', filter); }
 
-	this.filter_by_gene_name = (filter) => { return filter_info(filter, this.package, 'gene'); }
+	this.filter_by_gene_name = (filter) => { return this.filter_by('gene', filter); }
 
-	this.filter_by_organism_name = (filter) => { return filter_info(filter, this.package, 'organism'); }
+	this.filter_by_organism_name = (filter) => { return this.filter_by('organism', filter); }
 
-	this.filter_by_protein_name = (filter) => { return filter_info(filter, this.package, 'protein'); }
+	this.filter_by_protein_id = (filter) => { return this.filter_by('protein_id', filter); }
 
-	this.filter_by_sequence_name = (filter) => { return filter_info(filter, this.package, 'seq_name'); }
+	this.filter_by_protein_name = (filter) => { return this.filter_by('protein', filter); }
 
-	this.filter_by_sequence_type = (filter) => { return filter_info(filter, this.package, 'seq_type'); }
+	this.filter_by_sequence_name = (filter) => { return this.filter_by('seq_name', filter); }
 
-	this.filter_by_status = (filter) => { return filter_info(filter, this.package, 'status'); }
+	this.filter_by_sequence_type = (filter) => { return this.filter_by('seq_type', filter); }
 
-	this.get_consensus = (field) => { return get_consensus_info(this.package, field); }
+	this.filter_by_status = (filter) => { return this.filter_by('status', filter); }
 
-	this.get_consensus_accession = () => { return get_consensus_info(this.package, 'accession'); }
+	this.get_consensus = (parameter) => {
+		const v_list = this.get_unique(parameter);
+		const p_list = [];
+		for (let i = 0; i < v_list.length; i++) {
+			const quant = this.cargo.filter((v) => { return v.info[parameter] === v_list[i]; }).length;
+			p_list.push({ parameter: v_list[i], quant: quant });
+		}
+		p_list.sort((a, b) => { return b.quant - a.quant; });
+		if (p_list.length && p_list[0].parameter) { return p_list[0].parameter; }
+		return '';
+	}
 
-	this.get_consensus_database = () => { return get_consensus_info(this.package, 'database'); }
+	this.get_consensus_accession = () => { return this.get_consensus('accession'); }
 
-	this.get_consensus_location = () => { return get_consensus_info(this.package, 'location'); }
+	this.get_consensus_database = () => { return this.get_consensus('database'); }
 
-	this.get_consensus_gene_name = () => { return get_consensus_info(this.package, 'gene'); }
+	this.get_consensus_location = () => { return this.get_consensus('location'); }
 
-	this.get_consensus_organism_name = () => { return get_consensus_info(this.package, 'organism'); }
+	this.get_consensus_gene_name = () => { return this.get_consensus('gene'); }
 
-	this.get_consensus_protein_name = () => { return get_consensus_info(this.package, 'protein'); }
+	this.get_consensus_organism_name = () => { return this.get_consensus('organism'); }
 
-	this.get_consensus_sequence_name = () => { return get_consensus_info(this.package, 'seq_name'); }
+	this.get_consensus_protein_id = () => { return this.get_consensus('protein_id'); }
 
-	this.get_consensus_sequence_type = () => { return get_consensus_info(this.package, 'seq_type'); }
+	this.get_consensus_protein_name = () => { return this.get_consensus('protein'); }
 
-	this.get_consensus_status = () => { return get_consensus_info(this.package, 'status'); }
+	this.get_consensus_sequence_name = () => { return this.get_consensus('seq_name'); }
+
+	this.get_consensus_sequence_type = () => { return this.get_consensus('seq_type'); }
+
+	this.get_consensus_status = () => { return this.get_consensus('status'); }
 
 	this.get_sequence_type = () => {
 		const types = [];
-		for (let i = 0; i < this.package.length; i++) {
-			if (this.package[i].info.seq_type) {
-				types.push(this.package[i].info.seq_type);
+		for (let i = 0; i < this.cargo.length; i++) {
+			if (this.cargo[i].info.seq_type) {
+				types.push(this.cargo[i].info.seq_type);
 			}
 		}
 		const seq_types = Array.from(new Set(types));
@@ -646,70 +669,101 @@ function SEQUENCES() {
 		return 'unknown';
 	}
 
-	this.get_unique_accessions = () => { return get_unique_info(this.package, 'accession'); }
+	this.get_unique = (parameter) => {
+		const arr = [];
+		for (let i = 0; i < this.cargo.length; i++) {
+			if (this.cargo[i].info[parameter]) {
+				arr.push(this.cargo[i].info[parameter]);
+			}
+		}
+		return Array.from(new Set(arr));
+	}
 
-	this.get_unique_databases = () => { return get_unique_info(this.package, 'database'); }
+	this.get_unique_accessions = () => { return this.get_unique('accession'); }
 
-	this.get_unique_locations = () => { return get_unique_info(this.package, 'location'); }
+	this.get_unique_databases = () => { return this.get_unique('database'); }
 
-	this.get_unique_gene_names = () => { return get_unique_info(this.package, 'gene'); }
+	this.get_unique_locations = () => { return this.get_unique('location'); }
 
-	this.get_unique_organism_names = () => { return get_unique_info(this.package, 'organism'); }
+	this.get_unique_gene_names = () => { return this.get_unique('gene'); }
 
-	this.get_unique_protein_names = () => { return get_unique_info(this.package, 'protein'); }
+	this.get_unique_organism_names = () => { return this.get_unique('organism'); }
 
-	this.get_unique_sequence_names = () => { return get_unique_info(this.package, 'seq_name'); }
+	this.get_unique_protein_id = () => { return this.get_unique('protein_id'); }
 
-	this.get_unique_sequence_types = () => { return get_unique_info(this.package, 'seq_type'); }
+	this.get_unique_protein_names = () => { return this.get_unique('protein'); }
 
-	this.get_unique_status = () => { return get_unique_info(this.package, 'status'); }
+	this.get_unique_sequence_names = () => { return this.get_unique('seq_name'); }
 
-	this.includes_accession = (accession) => { return includes_info(this.package, 'accession', accession); }
+	this.get_unique_sequence_types = () => { return this.get_unique('seq_type'); }
 
-	this.includes_database = (database) => { return includes_info(this.package, 'database', database); }
+	this.get_unique_status = () => { return this.get_unique('status'); }
 
-	this.includes_location = (location) => { return includes_info(this.package, 'location', location); }
+	this.includes = (parameter, filter) => {
+		if (Array.isArray(filter)) {
+			for (let i = 0; i < filter.length; i++) {
+				if (this.includes(parameter, filter[i])) { return true; }
+			}
+			return false;
+		}
+		else {
+			const found = this.cargo.findIndex((x) => {
+				if (x.info[parameter]) { return x.info[parameter] === filter; }
+				else { return false; }
+			});
+			if (found >= 0) { return true; }
+			return false;
+		}
+	}
 
-	this.includes_gene_name = (gene_name) => { return includes_info(this.package, 'gene', gene_name); }
+	this.includes_accession = (filter) => { return this.includes('accession', filter); }
 
-	this.includes_organism_name = (organism_name) => { return includes_info(this.package, 'organism', organism_name); }
+	this.includes_database = (filter) => { return this.includes('database', filter); }
 
-	this.includes_protein_name = (protein_name) => { return includes_info(this.package, 'protein', protein_name); }
+	this.includes_location = (filter) => { return this.includes('location', filter); }
 
-	this.includes_sequence_name = (sequence_name) => { return includes_info(this.package, 'seq_name', sequence_name); }
+	this.includes_gene_name = (filter) => { return this.includes('gene', filter); }
 
-	this.includes_sequence_type = (sequence_type) => { return includes_info(this.package, 'seq_type', sequence_type); }
+	this.includes_organism_name = (filter) => { return this.includes('organism', filter); }
 
-	this.includes_status = (status) => { return includes_info(this.package, 'status', status); }
+	this.includes_protein_id = (filter) => { return this.includes('protein_id', filter); }
+
+	this.includes_protein_name = (filter) => { return this.includes('protein', filter); }
+
+	this.includes_sequence_name = (filter) => { return this.includes('seq_name', filter); }
+
+	this.includes_sequence_type = (filter) => { return this.includes('seq_type', filter); }
+
+	this.includes_status = (filter) => { return this.includes('status', filter); }
 
 	this.is_loaded = () => {
-		if (this.package.length) { return true; }
+		if (this.cargo.length) { return true; }
 		return false;
 	}
 
-	this.load = (data) => { this.package = data; }
+	this.load = (data) => { this.cargo = data; }
 
 	this.load_fasta_file = async (path) => {
-		this.path_record = await pather.parse(path);
-		const full_path = this.path_record.get_full_path();
+		const path_record = await pather.parse(path);
+		const full_path = await path_record.get_full_path();
 		const str = await wrapper.read_file(full_path);
-		this.package = parse_fasta(str);
+		this.cargo = parse_fasta(str);
 	}
 
-	this.load_string = (str) => { this.package = parse_fasta(str); }
+	this.load_string = (str) => { this.cargo = parse_fasta(str); }
 
 	this.save_as_fasta = async (path) => {
 		// If the filename has not been supplied, one will be created from the
 		//	defline.  If the specified folders do not exist, they will be
 		//	created.
 		if (typeof (path) === 'undefined') { path = ''; }
-		this.path_record = await pather.parse(path);
-		if (!this.path_record.filename) { this.path_record.set_filename(this.create_filename()); }
-		await this.path_record.force_path();
-		const full_path = this.path_record.get_full_path();
+		const path_record = await pather.parse(path);
+		if (!path_record.filename) { await path_record.set_file_name(this.create_file_name()); }
+		await path_record.force_path();
+		const full_path = await path_record.get_full_path();
 		let contents = '';
-		for (let i = 0; i < this.package.length; i++) {
-			contents += this.package[i].to_fasta();
+		for (let i = 0; i < this.cargo.length; i++) {
+			contents += this.cargo[i].to_fasta();
 		}
 		await wrapper.write_file(full_path, contents);		
 	}
@@ -717,12 +771,67 @@ function SEQUENCES() {
 	this.save_each_as_fasta = async (path) => {
 		if (typeof (path) === 'undefined') { path = ''; }
 		const path_record = await pather.parse(path);
-		path_record.remove_filename();
+		await path_record.remove_file_name();
 		await path_record.force_path();
-		const full_path = path_record.get_full_path();
-		for (let i = 0; i < this.package.length; i++) {
-			await this.package[i].save_as_fasta(full_path);
+		const full_path = await path_record.get_full_path();
+		for (let i = 0; i < this.cargo.length; i++) {
+			await this.cargo[i].save_as_fasta(full_path);
 		}
+	}
+
+	this.set = (parameter, value) => {
+		for(let i = 0; i <this.cargo.length; i++) {
+			this.cargo[i].set(parameter, value);
+		}
+	}
+
+	this.set_accession = (value) => { this.set('accession', value); }
+
+	this.set_database = (value) => { this.set('database', value); }
+	
+	this.set_location = (value) => { this.set('location', value); }
+
+	this.set_gene_name = (value) => { this.set('gene', value); }
+
+	this.set_organism_name = (value) => { this.set('organism', value); }
+
+	this.set_protein_id = (value) => { this.set('protein_id', value); }
+
+	this.set_protein_name = (value) => { this.set('protein', value); }
+
+	this.set_sequence_name = (value) => { this.set('seq_name', value); }
+
+	this.set_sequence_type = (value) => { this.set('seq_type', value); }
+
+	this.set_status = (value) => { this.set('status', value); }
+
+	this.set_database_to_consensus = () => { this.set_to_consensus('database'); }
+
+	this.set_organism_name_to_consensus = () => { this.set_to_consensus('organism'); }
+
+	this.set_sequence_type_to_consensus = () => { this.set_to_consensus('seq_type'); }
+
+	this.set_to_consensus = (parameter) => {
+		const value = this.get_consensus(parameter);
+		this.set(parameter, value);
+	}
+
+	this.unload = () => {
+		const new_cargo = this.cargo;
+		this.clear();
+		return new_cargo;
+	}
+
+	function clean_sequence_name(seq_name) {
+		if (typeof (seq_name) !== 'string') { seq_name = ''; }
+		seq_name = seq_name.replace('hypothetical protein ', '');
+		seq_name = seq_name.replace('LOW QUALITY PROTEIN: ', '');
+		seq_name = seq_name.replace('partial ', '');
+		seq_name = seq_name.replace('probable ', '');
+		seq_name = seq_name.replace(/,\s*$/, ''); // remove last comma
+		seq_name = seq_name.replace(/  +/g, ' '); // remove multiple internal spaces
+		seq_name.trim();
+		return seq_name;
 	}
 
 	function guess_sequence_type(sequence) {
@@ -732,50 +841,6 @@ function SEQUENCES() {
 		const alphabet = Array.from(new Set(sequence));
 		if (alphabet.length <= 7) { return 'nucleotides'; }
 		return 'amino acids';
-	}
-
-	function filter_info(filter, package, parameter) {
-		const new_sequences = new SEQUENCES();
-		if (Array.isArray(filter)) {
-			for (let i = 0; i < filter.length; i++) {
-				new_sequences.add(filter_info(filter[i], package, parameter));
-			}
-		}
-		else {
-			new_sequences.package = package.filter((x) => {
-				if (x.info[parameter]) { return x.info[parameter] === filter; }
-				else { return false; }
-			});
-		}
-		return new_sequences;
-	}
-
-	function get_consensus_info(package, parameter) {
-		const v_list = get_unique_info(package, parameter);
-		const p_list = [];
-		for (let i = 0; i < v_list.length; i++) {
-			const quant = package.filter((v) => { return v.info[parameter] === v_list[i]; }).length;
-			p_list.push({ parameter: v_list[i], quant: quant  });
-		}
-		p_list.sort((a, b) => { return b.quant - a.quant; });
-		if (p_list.length && p_list[0].parameter) { return p_list[0].parameter; }
-		return '';
-	}
-
-	function get_unique_info(package, parameter) {
-		const arr = [];
-		for (let i = 0; i < package.length; i++) {
-			if (package[i].info[parameter]) {
-				arr.push(package[i].info[parameter]);
-			}
-		}
-		return Array.from(new Set(arr));
-	}
-
-	function includes_info(package, parameter, filter) {
-		const found = package.findIndex((x) => { return x.info[parameter] === filter; });
-		if (found >= 0) { return true; }
-		return false;
 	}
 
 	function parse_fasta(str) {
@@ -846,7 +911,9 @@ function SEQUENCES() {
 		const isoform = info.protein.match(/\sisoform\s[X][0-9]+\b/);
 		if (isoform && isoform.length) {
 			info.protein = info.protein.replace(isoform[0], '').trim();
+			info.protein = clean_sequence_name(info.protein);
 		}
+		if (!info.seq_name && info.protein) { info.seq_name = info.protein; }
 		return info;
 	}
 
@@ -1003,13 +1070,8 @@ function SEQUENCES() {
 			// remove terms that should be fields
 			let sections = defline.split('isoform');
 			let name = sections[0].trim();
-			name = name.replace('hypothetical protein ', '');
-			name = name.replace('LOW QUALITY PROTEIN: ', '');
-			name = name.replace('partial ', '');
-			name = name.replace('probable ', '');
-			name = name.replace(/,\s*$/, ''); // remove last comma
-			name = name.replace(/  +/g, ' '); // remove multiple internal spaces
-			info.seq_name = name;
+			name = clean_sequence_name(name);
+			if (name) { info.seq_name = name; }
 		}
 		return info;
 	}
@@ -1021,12 +1083,6 @@ function SEQUENCES() {
 		if (defline.includes('partial')) { info.status = 'partial'; }
 		if (defline.includes('probable')) { info.status = 'probable'; }
 		return info;
-	}
-
-	this.unload = () => {
-		const new_package = this.package;
-		this.clear();
-		return new_package;
 	}
 
 }

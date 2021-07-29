@@ -83,11 +83,11 @@ function ISOFORMS() {
 		// This function removes sequence information and is irreversible.
 		const new_cargo = [];
 		for (let i = 0; i < this.cargo.length; i++) {
+			const old_record = this.cargo[i];
 			const new_record = new ISO_RECORD_COMPACT();
-			const iso_record = this.cargo[i];
-			new_record.group = iso_record.group;
-			new_record.gene = iso_record.cds_sequences.get_consensus_gene_name();
-			new_record.seq_name = iso_record.protein_sequences.get_consensus_sequence_name();
+			new_record.group = old_record.group;
+			new_record.gene = old_record.cds_sequences.get_consensus_gene_name();
+			new_record.seq_name = old_record.protein_sequences.get_consensus_sequence_name();
 			for (let j = 0; j < iso_record.sequences.cargo.length; j++) {
 				new_record.accessions.push(iso_record.sequences.cargo[j].info.accession);
 			}
@@ -204,7 +204,7 @@ function ISOFORMS() {
 
 	this.get_consensus_status = () => { return this.get_consensus('status'); }
 
-	this.get_group_numbers = (parameter, filter) => {
+	this.get_group_numbers_by = (parameter, filter) => {
 		const group_numbers = [];
 		const results = this.filter_by(parameter, filter);
 		for (let i = 0; i < results.cargo.length; i++) {
@@ -215,23 +215,50 @@ function ISOFORMS() {
 		return group_numbers;
 	}
 
-	this.get_group_numbers_by_accession = (filter) => { return this.get_group_numbers('accession', filter); }
+	this.get_group_numbers_by_accession = (filter) => { return this.get_group_numbers_by('accession', filter); }
 
-	this.get_group_numbers_by_database = (filter) => { return this.get_group_numbers('database', filter); }
+	this.get_group_numbers_by_database = (filter) => { return this.get_group_numbers_by('database', filter); }
 
-	this.get_group_numbers_by_location = (filter) => { return this.get_group_numbers('location', filter); }
+	this.get_group_numbers_by_location = (filter) => { return this.get_group_numbers_by('location', filter); }
 
-	this.get_group_numbers_by_gene_name = (filter) => { return this.get_group_numbers('gene', filter); }
+	this.get_group_numbers_by_gene_name = (filter) => { return this.get_group_numbers_by('gene', filter); }
 
-	this.get_group_numbers_by_protein_id = (filter) => { return this.get_group_numbers('protein_id', filter); }
+	this.get_group_numbers_by_protein_id = (filter) => { return this.get_group_numbers_by('protein_id', filter); }
 
-	this.get_group_numbers_by_protein_name = (filter) => { return this.get_group_numbers('protein', filter); }
+	this.get_group_numbers_by_protein_name = (filter) => { return this.get_group_numbers_by('protein', filter); }
 
-	this.get_group_numbers_by_sequence_name = (filter) => { return this.get_group_numbers('seq_name', filter); }
+	this.get_group_numbers_by_sequence_name = (filter) => { return this.get_group_numbers_by('seq_name', filter); }
 
-	this.get_group_numbers_by_sequence_type = (filter) => { return this.get_group_numbers('seq_type', filter); }
+	this.get_group_numbers_by_sequence_type = (filter) => { return this.get_group_numbers_by('seq_type', filter); }
 
-	this.get_group_numbers_by_status = (filter) => { return this.get_group_numbers('status', filter); }
+	this.get_group_numbers_by_status = (filter) => { return this.get_group_numbers_by('status', filter); }
+
+	this.get_index_by = (parameter, filter) => {
+		for (let i = 0; i < this.cargo.length; i++) {
+			if (typeof (this.cargo[i]) !== 'undefined') {
+				if (this.cargo[i][parameter] === filter) { return i; }
+			}
+		}
+		return -1;
+	}
+
+	this.get_index_by_accession = (filter) => { return this.get_index_by('accession', filter); }
+
+	this.get_index_by_database = (filter) => { return this.get_index_by('database', filter); }
+
+	this.get_index_by_location = (filter) => { return this.get_index_by('location', filter); }
+
+	this.get_index_by_gene_name = (filter) => { return this.get_index_by('gene', filter); }
+
+	this.get_index_by_protein_id = (filter) => { return this.get_index_by('protein_id', filter); }
+
+	this.get_index_by_protein_name = (filter) => { return this.get_index_by('protein', filter); }
+
+	this.get_index_by_sequence_name = (filter) => { return this.get_index_by('seq_name', filter); }
+
+	this.get_index_by_sequence_type = (filter) => { return this.get_index_by('seq_type', filter); }
+
+	this.get_index_by_status = (filter) => { return this.get_index_by('status', filter); }
 
 	this.get_sequences = () => {
 		const sequences = new SEQUENCES();
@@ -340,11 +367,9 @@ function ISOFORMS() {
 			for (let i = 0; i < pre_record.cargo.length; i++) {
 				const record = ISO_RECORD_COMPACT();
 				if (pre_record.cargo[i].accessions) { record.accessions = pre_record.cargo[i].accessions; }
-				if (pre_record.cargo[i].gene_accessions) { record.gene_accessions = pre_record.cargo[i].gene_accessions; }
 				if (pre_record.cargo[i].group) { record.group = pre_record.cargo[i].group; }
 				if (pre_record.cargo[i].gene) { record.gene = pre_record.cargo[i].gene; }
 				if (pre_record.cargo[i].protein) { record.protein = pre_record.cargo[i].protein; }
-				if (pre_record.cargo[i].protein_accessions) { record.protein_accessions = pre_record.cargo[i].protein_accessions; }
 				this.cargo.push(record);
 			}
 		}
@@ -398,9 +423,11 @@ function ISOFORMS() {
 		console.log('Merging ' + unique.length + ' groups.');
 		for (let i = 0; i < unique.length; i++) {
 			console.log('looping');
-			const group = this.get_group_numbers_by_gene_name(unique[i])[0];
-			const accessions = this.cargo[group - 1].cds_sequences.get_unique_accessions();
-			this.cargo[group - 1].protein_sequences = sequences.filter_by_accession(accessions);
+			const index = this.get_index_by_gene_name(unique[i]);
+			if (index > -1) {
+				const accessions = this.cargo[index].cds_sequences.get_unique_accessions();
+				this.cargo[index].protein_sequences = sequences.filter_by_accession(accessions);
+			}
 		}
 	}
 
@@ -496,11 +523,10 @@ function ISOFORMS() {
 		for (let i = 0; i < cargo.length; i++) {
 			if (i) { contents += ',' }
 			const obj = {
-				gene_accessions: cargo[i].gene_accessions,
+				accessions: cargo[i].accessions,
 				group: cargo[i].group,
 				gene: cargo[i].gene,
 				protein: cargo[i].protein,
-				protein_accession: cargo[i].protein_accessions
 			}
 			contents += JSON.stringify(obj);
 		}

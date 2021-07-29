@@ -70,6 +70,11 @@ function ORTHOLOGS() {
 					console.log('Found match.');
 					isoforms.merge_protein_sequences(sequences);
 					console.log(isoforms);
+					console.log('Saving isoform groups.');
+					await isoforms.save_as('iso_full');
+					isoforms.compact();
+					console.log('Saving compact isoform files.');
+					await isoforms.save_as('iso_compact');
 				}
 			}
 		}

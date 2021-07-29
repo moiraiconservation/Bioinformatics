@@ -75,8 +75,10 @@ function ORTHOLOGS() {
 					isoforms.compact();
 					console.log('Saving compact isoform files.');
 					await isoforms.save_as('iso_compact');
+					this.files.proteins.splice(j, 1);
 				}
 			}
+			this.files.cds.splice(i, 1);
 		}
 		console.log('DONE!');
 	}

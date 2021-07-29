@@ -137,7 +137,7 @@ function ISOFORMS() {
 
 	this.filter_by_accession = (filter) => { return this.filter_by('accession', filter); }
 
-	this.filter_by_group = (filter) => { return this.filter_by('group', filter); }
+	this.filter_by_group_number = (filter) => { return this.filter_by('group', filter); }
 
 	this.filter_by_database = (filter) => { return this.filter_by('database', filter); }
 
@@ -236,7 +236,14 @@ function ISOFORMS() {
 	this.get_index_by = (parameter, filter) => {
 		for (let i = 0; i < this.cargo.length; i++) {
 			if (typeof (this.cargo[i]) !== 'undefined') {
-				if (this.cargo[i][parameter] === filter) { return i; }
+				const whitelist = ['group'];
+				if (whitelist.includes(parameter)) {
+					if (this.cargo[i][parameter] === filter) { return i; }
+				}
+				else {
+					if (this.cargo[i].cds_sequences.includes(parameter, filter)) { return i; }
+					if (this.cargo[i].protein_sequences.includes(parameter, filter)) { return i; }
+				}
 			}
 		}
 		return -1;
@@ -245,6 +252,8 @@ function ISOFORMS() {
 	this.get_index_by_accession = (filter) => { return this.get_index_by('accession', filter); }
 
 	this.get_index_by_database = (filter) => { return this.get_index_by('database', filter); }
+
+	this.get_index_by_group_number = (filter) => { return this.get_index_by('group', filter); }
 
 	this.get_index_by_location = (filter) => { return this.get_index_by('location', filter); }
 
@@ -299,6 +308,8 @@ function ISOFORMS() {
 
 	this.get_unique_databases = () => { return this.get_unique('database'); }
 
+	this.get_unique_group_numbers = () => { return this.get_unique('group'); }
+
 	this.get_unique_locations = () => { return this.get_unique('location'); }
 
 	this.get_unique_gene_names = () => { return this.get_unique('gene'); }
@@ -332,6 +343,8 @@ function ISOFORMS() {
 	this.includes_accession = (filter) => { return this.includes('accession', filter); }
 
 	this.includes_database = (filter) => { return this.includes('database', filter); }
+
+	this.includes_group_number = (filter) => { return this.includes('group', filter); }
 
 	this.includes_location = (filter) => { return this.includes('location', filter); }
 
@@ -541,10 +554,11 @@ function ISOFORMS() {
 		const folder = get_file_safe_organism_name(organism);
 		await path_record.add_folder(folder);
 		await path_record.force_path();
+		console.log('Saving ' + cargo.length + ' files.');
 		for (let i = 0; i < cargo.length; i++) {
+			console.log('looping');
 			const full_path = await path_record.get_full_path();
-			await cargo[i].cds_sequences.save_as_fasta(full_path);
-			await cargo[i].protein_sequences.save_as_fasta(full_path);
+			await cargo[i].save_as_fasta(full_path);
 		}
 	}
 

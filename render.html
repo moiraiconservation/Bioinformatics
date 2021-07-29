@@ -89,8 +89,10 @@
 
 					case 'open_cds': {
 						if (arg.data && arg.data.filePaths.length) {
-							await orthologs.load_fasta_files(arg.data.filePaths);
-							console.log(orthologs);
+							await orthologs.add_cds_files(arg.data.filePaths);
+							if (orthologs.files.cds.length && orthologs.files.proteins.length) {
+								await orthologs.create_isoforms();
+							}
 						}
 						break;
 					}
@@ -105,8 +107,10 @@
 
 					case 'open_protein': {
 						if (arg.data && arg.data.filePaths.length) {
-							await orthologs.load_fasta_files(arg.data.filePaths);
-							console.log(orthologs);
+							await orthologs.add_protein_files(arg.data.filePaths);
+							if (orthologs.files.cds.length && orthologs.files.proteins.length) {
+								await orthologs.create_isoforms();
+							}
 						}
 						break;
 					}

@@ -3,65 +3,16 @@
 //	Requires: pather.js, sequences.js, and wrapper.js
 //	Uses main.js for reading and writing files
 
-// Isoform objects are meant to be containers for holding sequence information
-//	for protein splice variants (isoforms).  As with other Hedron objects,
-//	this information is kept as "record" objects in an array named "cargo."
-//	Each isoform object can hold this information using one of several
-//	different types of record objects, including: a "full" record object
-//	(ISO_RECORD), which stores the isoforms as sequences;  a "mixed" record
-//	object, which stores both nucleic acid and protein sequences
-//	(ISO_RECORD_MIXED); a "compact" record object (ISO_RECORD_COMPACT), which
-//	stores an array of sequence accession numbers; or a "compact mixed" record
-//	object (ISO_RECORD_COMPACT_MIXED), which stores accession numbers for both
-//	the protein sequences and their corresponding CDS DNA sequences.
-
 function ISO_RECORD() {
+	this.cds_sequences = new SEQUENCES();
 	this.group = 0;
-	this.record_type = 'full';
-	this.seq_type = '';
-	this.sequences = {}; // SEQUENCES object
-
-	this.save_as_fasta = async (path) => {
-		if (typeof (path) === 'undefined') { path = ''; }
-		const path_record = await pather.parse(path);
-		const filename = create_file_name(path_record.basename, this.group, this.sequences);
-		await path_record.set_file_name(filename);
-		await path_record.force_path();
-		const full_path = await path_record.get_full_path();
-		await this.sequences.save_as_fasta(full_path);
-	}
-
-	this.set = (parameter, value) => {
-		const whitelist = ['group', 'record_type', 'seq_type'];
-		if (whitelist.includes(parameter)) { this[parameter] = value; }
-		else {
-			this.sequences.set(parameter, value);
-		}
-	}
-
-	function create_file_name(basename, group, sequences) {
-		let extension = '.fasta';
-		const seq_type = sequences.get_sequence_type();
-		if (seq_type === 'amino acids') { extension = '.faa'; }
-		if (seq_type === 'nucleotides') { extension = '.fna'; }
-		if (basename) { return basename + extension; }
-		return 'group_' + group.toString() + extension;
-	}
-
-}
-
-function ISO_RECORD_MIXED() {
-	this.gene_sequences = {}  // SEQUENCES object
-	this.group = 0;
-	this.record_type = 'mixed';
-	this.seq_type = '';
-	this.protein_sequences = {}; // SEQUENCES object
+	this.protein_sequences = new SEQUENCES();
 
 	this.save_as_fasta = async (path) => {
 		if (typeof (path) === 'undefined') { path = ''; }
 		const g_path_record = await pather.parse(path);
 		const p_path_record = await pather.parse(path);
-		const g_filename = create_file_name(g_path_record.basename, this.group, this.gene_sequences);
+		const g_filename = create_file_name(g_path_record.basename, this.group, this.cds_sequences);
 		const p_filename = create_file_name(p_path_record.basename, this.group, this.protein_sequences);
 		await g_path_record.set_file_name(g_filename);
 		await p_path_record.set_file_name(p_filename);
@@ -69,15 +20,15 @@ function ISO_RECORD_MIXED() {
 		await p_path_record.force_path();
 		const g_full_path = await g_path_record.get_full_path();
 		const p_full_path = await p_path_record.get_full_path();
-		await this.gene_sequences.save_as_fasta(g_full_path);
+		await this.cds_sequences.save_as_fasta(g_full_path);
 		await this.protein_sequences.save_as_fasta(p_full_path);
 	}
 
 	this.set = (parameter, value) => {
-		const whitelist = ['group', 'record_type', 'seq_type'];
+		const whitelist = ['group'];
 		if (whitelist.includes(parameter)) { this[parameter] = value; }
 		else {
-			this.gene_sequences.set(parameter, value);
+			this.cds_sequences.set(parameter, value);
 			this.protein_sequences.set(parameter, value);
 		}
 	}
@@ -97,28 +48,10 @@ function ISO_RECORD_COMPACT() {
 	this.accessions = [];
 	this.group = 0;
 	this.gene = '';
-	this.protein = '';
-	this.record_type = 'compact';
-	this.seq_type = '';
+	this.seq_name = '';
 
 	this.set = (parameter, value) => {
-		const whitelist = ['group', 'gene', 'protein', 'record_type', 'seq_type'];
-		if (whitelist.includes(parameter)) { this[parameter] = value; }
-	}
-	
-}
-
-function ISO_RECORD_COMPACT_MIXED() {
-	this.gene_accessions = [];
-	this.group = 0;
-	this.gene = '';
-	this.protein = '';
-	this.protein_accessions = [];
-	this.record_type = 'compact mixed';
-	this.seq_type = '';
-
-	this.set = (parameter, value) => {
-		const whitelist = ['group', 'gene', 'protein', 'record_type', 'seq_type'];
+		const whitelist = ['accessions', 'group', 'gene', 'seq_name'];
 		if (whitelist.includes(parameter)) { this[parameter] = value; }
 	}
 
@@ -130,7 +63,6 @@ function ISOFORMS() {
 
 	this.cargo = []; // array of ISO_RECORDS
 	this.organism = '';
-	this.seq_type = 'unknown';
 
 	this.add = (record) => {
 		if (Array.isArray(record)) {
@@ -140,9 +72,7 @@ function ISOFORMS() {
 		}
 		else {
 			if (record instanceof ISO_RECORD) { this.cargo.push(record); }
-			if (record instanceof ISO_RECORD_MIXED) { this.cargo.push(record); }
 			if (record instanceof ISO_RECORD_COMPACT) { this.cargo.push(record); }
-			if (record instanceof ISO_RECORD_COMPACT_MIXED) { this.cargo.push(record); }
 			if (record instanceof record) { this.cargo = this.cargo.concat(record.cargo); }
 		}
 	}
@@ -156,9 +86,8 @@ function ISOFORMS() {
 			const new_record = new ISO_RECORD_COMPACT();
 			const iso_record = this.cargo[i];
 			new_record.group = iso_record.group;
-			new_record.gene = iso_record.sequences.get_consensus_gene_name();
-			new_record.protein = iso_record.sequences.get_consensus_protein_name();
-			new_record.seq_type = iso_record.sequences.get_sequence_type();
+			new_record.gene = iso_record.cds_sequences.get_consensus_gene_name();
+			new_record.seq_name = iso_record.protein_sequences.get_consensus_sequence_name();
 			for (let j = 0; j < iso_record.sequences.cargo.length; j++) {
 				new_record.accessions.push(iso_record.sequences.cargo[j].info.accession);
 			}
@@ -179,32 +108,24 @@ function ISOFORMS() {
 		}
 		else {
 			new_isoforms.cargo = this.cargo.filter((x) => {
-				if (x instanceof ISO_RECORD || x instanceof ISO_RECORD_MIXED) {
-					const whitelist = ['group', 'record_type', 'seq_type'];
+				if (x instanceof ISO_RECORD) {
+					const whitelist = ['group'];
 					if (whitelist.includes(parameter)) {
 						if (x[parameter]) { return x[parameter] === filter; }
 						else { return false; }
 					}
 					else {
-						if (x instanceof ISO_RECORD) {
-							return x.sequences.includes(parameter, filter);
-						}
-						else if (x instanceof ISO_RECORD_MIXED) {
-							return x.gene_sequences.includes(parameter, filter) || x.protein_sequences.includes(parameter, filter);
-						}
-						else { return false; }
+						return x.cds_sequences.includes(parameter, filter) || x.protein_sequences.includes(parameter, filter);
 					}
 				}
-				else if (x instanceof ISO_RECORD_COMPACT || x instanceof ISO_RECORD_COMPACT_MIXED) {
-					const whitelist = ['group', 'gene', 'protein', 'record_type', 'seq_type'];
+				else if (x instanceof ISO_RECORD_COMPACT) {
+					const whitelist = ['group', 'gene', 'protein'];
 					if (whitelist.includes(parameter)) {
 						if (x[parameter]) { return x[parameter] === filter; }
 						else { return false; }
 					}
 					else if (parameter === 'accession') {
-						if (x instanceof ISO_RECORD_COMPACT) { return x.accessions.includes(filter); }
-						else if (x instanceof ISO_RECORD_COMPACT_MIXED) { return x.gene_accessions.includes(filter) || x.protein_accessions.includes(filter); }
-						else { return false; }
+						return x.gene_accessions.includes(filter) || x.protein_accessions.includes(filter);
 					}
 				}
 				else { return false; }
@@ -228,23 +149,12 @@ function ISOFORMS() {
 
 	this.filter_by_protein_name = (filter) => { return this.filter_by('protein', filter); }
 
-	this.filter_by_record_type = (filter) => { return this.filter_by('record_type', filter); }
-
 	this.filter_by_sequence_name = (filter) => { return this.filter_by('seq_name', filter); }
 
 	this.filter_by_sequence_type = (filter) => { return this.filter_by('seq_type', filter); }
 
 	this.filter_by_status = (filter) => { return this.filter_by('status', filter); }
 
-	// The "partner" functions are built around steps needed for ultimately
-	//	merging an isoform object of protein sequences with an isoform object
-	//	of corresponding DNA sequences.  The "partner" is the corresponding
-	//	isoform object to merge with, and often will need to be selected
-	//	from an array of isoform objects from various species.  For the
-	//	"find partner" function, if the proper isoform object is found from
-	//	an array, that isoform object will be returned.  If a single
-	//	isoform object is supplied to the function instead of an array, then
-	//	either true or false will be returned.
 	this.find_partner = (partner) => {
 		if (Array.isArray(partner)) {
 			for (let i = 0; i < partner.length; i++) {
@@ -253,7 +163,7 @@ function ISOFORMS() {
 			return false;
 		}
 		else {
-			const accessions = this.get_unique_accession();
+			const accessions = this.get_unique_accessions();
 			if (accessions.length) {
 				if (partner.includes_accession(accessions)) { return true; }
 			}
@@ -317,46 +227,18 @@ function ISOFORMS() {
 
 	this.get_group_numbers_by_protein_name = (filter) => { return this.get_group_numbers('protein', filter); }
 
-	this.get_group_numbers_by_record_type = (filter) => { return this.get_group_numbers('record_type', filter); }
-
 	this.get_group_numbers_by_sequence_name = (filter) => { return this.get_group_numbers('seq_name', filter); }
 
 	this.get_group_numbers_by_sequence_type = (filter) => { return this.get_group_numbers('seq_type', filter); }
 
 	this.get_group_numbers_by_status = (filter) => { return this.get_group_numbers('status', filter); }
 
-	this.get_record_type = () => {
-		const types = [];
-		for (let i = 0; i < this.cargo.length; i++) {
-			if (this.cargo[i].record_type) {
-				types.push(this.cargo[i].record_type);
-			}
-		}
-		const record_types = Array.from(new Set(types));
-		if (record_types.length === 1) { return record_types[0]; }
-		if (record_types.length > 1) { return 'mixed'; }
-		return 'unknown';
-	}
-
-	this.get_sequence_type = () => {
-		const types = [];
-		for (let i = 0; i < this.cargo.length; i++) {
-			if (this.cargo[i].seq_type) {
-				types.push(this.cargo[i].seq_type);
-			}
-		}
-		const seq_types = Array.from(new Set(types));
-		if (seq_types.length === 1) { return seq_types[0]; }
-		if (seq_types.length > 1) { return 'mixed'; }
-		return 'unknown';
-	}
-
 	this.get_sequences = () => {
 		const sequences = new SEQUENCES();
 		for (let i = 0; i < this.cargo.length; i++) {
 			const x = this.cargo[i];
 			if (x.sequences) { sequences.add(x.sequences); }
-			if (x.gene_sequences) { sequences.add(x.gene_sequences); }
+			if (x.cds_sequences) { sequences.add(x.cds_sequences); }
 			if (x.protein_sequences) { sequences.add(x.protein_sequences); }
 		}
 		return sequences;
@@ -366,26 +248,20 @@ function ISOFORMS() {
 		let arr = [];
 		for (let i = 0; i < this.cargo.length; i++) {
 			const x = this.cargo[i];
-			if (x instanceof ISO_RECORD || x instanceof ISO_RECORD_MIXED) {
-				const whitelist = ['group', 'record_type', 'seq_type'];
+			if (x instanceof ISO_RECORD) {
+				const whitelist = ['group'];
 				if (whitelist.includes(parameter)) { arr.push(x[parameter]); }
 				else {
-					if (x instanceof ISO_RECORD) { arr = arr.concat(x.sequences.get_unique(parameter)); }
-					if (x instanceof ISO_RECORD_MIXED) {
-						arr = arr.concat(x.gene_sequences.get_unique(parameter));
-						arr = arr.concat(x.protein_sequences.get_unique(parameter));
-					}
+					arr = arr.concat(x.cds_sequences.get_unique(parameter));
+					arr = arr.concat(x.protein_sequences.get_unique(parameter));
 				}
 			}
-			else if (x instanceof ISO_RECORD_COMPACT || x instanceof ISO_RECORD_COMPACT_MIXED) {
-				const whitelist = ['group', 'gene', 'protein', 'record_type', 'seq_type'];
+			else if (x instanceof ISO_RECORD_COMPACT) {
+				const whitelist = ['group', 'gene', 'protein'];
 				if (whitelist.includes(parameter)) { arr.push(x[parameter]); }
 				else if (parameter === 'accession') {
-					if (x instanceof ISO_RECORD_COMPACT) { arr = arr.concat(Array.from(new Set(x.accessions))); }
-					if (x instanceof ISO_RECORD_COMPACT_MIXED) {
-						arr = arr.concat(Array.from(new Set(x.gene_accessions)));
-						arr = arr.concat(Array.from(new Set(x.protein_accessions)));
-					}
+					arr = arr.concat(Array.from(new Set(x.gene_accessions)));
+					arr = arr.concat(Array.from(new Set(x.protein_accessions)));
 				}
 			}
 		}
@@ -460,30 +336,21 @@ function ISOFORMS() {
 		const contents = await wrapper.read_file(full_path);
 		const pre_record = JSON.parse(contents);
 		if (pre_record.organism) { this.organism = pre_record.organism; }
-		if (pre_record.seq_type) { this.seq_type = pre_record.seq_type; }
 		if (pre_record.cargo && pre_record.cargo.length) {
 			for (let i = 0; i < pre_record.cargo.length; i++) {
-				let record = {};
-				if (pre_record.cargo[i].seq_type && pre_record.cargo[i].record_type === 'compact') {
-					record = new ISO_RECORD_COMPACT();
-				}
-				if (pre_record.cargo[i].seq_type && pre_record.cargo[i].record_type === 'compact mixed') {
-					record = new ISO_RECORD_COMPACT_MIXED();
-				}
+				const record = ISO_RECORD_COMPACT();
 				if (pre_record.cargo[i].accessions) { record.accessions = pre_record.cargo[i].accessions; }
 				if (pre_record.cargo[i].gene_accessions) { record.gene_accessions = pre_record.cargo[i].gene_accessions; }
 				if (pre_record.cargo[i].group) { record.group = pre_record.cargo[i].group; }
 				if (pre_record.cargo[i].gene) { record.gene = pre_record.cargo[i].gene; }
 				if (pre_record.cargo[i].protein) { record.protein = pre_record.cargo[i].protein; }
 				if (pre_record.cargo[i].protein_accessions) { record.protein_accessions = pre_record.cargo[i].protein_accessions; }
-				if (pre_record.cargo[i].record_type) { record.record_type = pre_record.cargo[i].record_type; }
-				if (pre_record.cargo[i].seq_type) { record.seq_type = pre_record.cargo[i].seq_type; }
 				this.cargo.push(record);
 			}
 		}
 	}
 
-	this.load_fasta_file = async (path) => {
+	this.load_cds_fasta_file = async (path) => {
 		if (typeof (path) !== 'string') { path = ''; }
 		const path_record = await pather.parse(path);
 		const full_path = await path_record.get_full_path();
@@ -492,60 +359,60 @@ function ISOFORMS() {
 		const sequences = new SEQUENCES();
 		await sequences.load_fasta_file(full_path);
 		sequences.set_database_to_consensus();
-		sequences.set_organism_name_to_consensus();
 		sequences.set_sequence_type_to_consensus();
-		const organisms = sequences.get_unique_organism_names();
-		const seq_type = sequences.get_unique_sequence_types();
-		if (organisms.length) { this.organism = organisms[0]; }
-		if (seq_type.length) { this.seq_type = seq_type[0]; }
-		let unique = [];
-		if (this.seq_type === 'amino acids') { unique = sequences.get_unique_sequence_names(); }
-		if (this.seq_type === 'nucleotides') { unique = sequences.get_unique_gene_names(); }
+		let unique = sequences.get_unique_gene_names();
+		console.log(unique.length + ' groups found.');
 		if (unique.length) {
 			for (let i = 0; i < unique.length; i++) {
-				let filtered_sequences = new SEQUENCES();
-				if (this.seq_type === 'amino acids') { filtered_sequences = sequences.filter_by_sequence_name(unique[i]); }
-				if (this.seq_type === 'nucleotides') { filtered_sequences = sequences.filter_by_gene_name(unique[i]); }
+				console.log('looping');
+				filtered_sequences = sequences.filter_by_gene_name(unique[i]);
 				if (filtered_sequences.is_loaded()) {
 					const iso_record = new ISO_RECORD();
 					iso_record.group = this.cargo.length + 1;
-					iso_record.seq_type = filtered_sequences.get_sequence_type();
-					iso_record.sequences = filtered_sequences;
+					iso_record.cds_sequences = filtered_sequences;
 					this.cargo.push(iso_record);
 				}
 			}
 		}
 		else {
+			console.log('Using ' + sequences.cargo.length + ' groups.');
 			for (let i = 0; i < sequences.cargo.length; i++) {
+				console.log('looping');
 				const iso_record = new ISO_RECORD();
 				const new_sequences = new SEQUENCES();
 				new_sequences.cargo.push(sequences.cargo[i]);
 				iso_record.group = this.cargo.length + 1;
-				iso_record.seq_type = new_sequences.get_sequence_type();
-				iso_record.sequences = new_sequences;
+				iso_record.cds_sequences = new_sequences;
 				this.cargo.push(iso_record);
 			}
 		}
 	}
 
-	this.mix = (partner) => {
-		if (Array.isArray(partner)) {
-			partner = this.find_partner(partner);
-		}
-		if (partner) {
-
+	this.merge_protein_sequences = (sequences) => {
+		if (!sequences instanceof SEQUENCES) { console.log('Incorrect object type.'); return; }
+		sequences.set_database_to_consensus();
+		sequences.set_organism_name_to_consensus();
+		sequences.set_sequence_type_to_consensus();
+		this.organism = sequences.get_consensus_organism_name();
+		const unique = this.get_unique_gene_names();
+		console.log('Merging ' + unique.length + ' groups.');
+		for (let i = 0; i < unique.length; i++) {
+			console.log('looping');
+			const group = this.get_group_numbers_by_gene_name(unique[i])[0];
+			const accessions = this.cargo[group - 1].cds_sequences.get_unique_accessions();
+			this.cargo[group - 1].protein_sequences = sequences.filter_by_accession(accessions);
 		}
 	}
 
 	this.save_as = async (path) => {
 		if (typeof (path) === 'undefined') { path = ''; }
-		const record_type = this.get_record_type();
-		switch (record_type) {
-			case 'full': { await save_as_full(path, this.organism, this.cargo); break }
-			case 'full mixed': { await save_as_full_mixed(path, this.organism, this.cargo); break }
-			case 'compact': { await save_as_compact(path, this.organism, this.cargo, this.seq_type); break }
-			case 'compact mixed': { await save_as_compact_mixed(path, this.organism, this.cargo, this.seq_type); break }
-			default: { break; }
+		if (this.cargo.length) {
+			if (this.cargo[0] instanceof ISO_RECORD) {
+				await save_as_full(path, this.organism, this.cargo);
+			}
+			else if (this.cargo[0] instanceof ISO_RECORD_COMPACT) {
+				await save_as_compact(path, this.organism, this.cargo);
+			}
 		}
 	}
 
@@ -590,12 +457,6 @@ function ISOFORMS() {
 		if (partner) { this.organism = partner.organism; }
 	}
 
-	this.set_sequence_type_to_consensus = () => {
-		const value = this.get_consensus('seq_type');
-		this.set('seq_type', value);
-		this.seq_type = value;
-	}
-
 	this.set_to_consensus = (parameter) => {
 		const value = this.get_consensus(parameter);
 		this.set(parameter, value);
@@ -609,9 +470,7 @@ function ISOFORMS() {
 
 	this.update = () => {
 		const organisms = this.get_unique_organism_names();
-		const seq_type = this.get_unique_sequence_types();
 		if (organisms.length) { this.organism = organisms[0]; }
-		if (seq_type.length) { this.seq_type = seq_type[0]; }
 	}
 
 	function get_file_safe_organism_name(organism) {
@@ -625,43 +484,15 @@ function ISOFORMS() {
 		return folder;
 	}
 
-	async function save_as_compact(path, organism, cargo, seq_type) {
+	async function save_as_compact(path, organism, cargo) {
 		if (typeof (path) !== 'string') { path = ''; }
 		const path_record = await pather.parse(path);
 		if (path_record.filename) { await path_record.remove_file_name(); }
 		const filename = get_file_safe_organism_name(organism);
-		let extension = '.txt';
-		if (seq_type === 'amino acids') { extension = '.iso_proteins'; }
-		if (seq_type === 'nucleotides') { extension = '.iso_genes'; }
-		await path_record.set_file_name(filename + extension);
+		await path_record.set_file_name(filename + '.isoforms');
 		await path_record.force_path();
 		const full_path = await path_record.get_full_path();
-		let contents = '{ "organism": "' + organism + '", "seq_type": "' + seq_type + '", "cargo": ['
-		for (let i = 0; i < cargo.length; i++) {
-			if (i) { contents += ',' }
-			const obj = {
-				accessions: cargo[i].accessions,
-				group: cargo[i].group,
-				gene: cargo[i].gene,
-				protein: cargo[i].protein,
-				record_type: 'compact',
-				seq_type: cargo[i].seq_type
-			}
-			contents += JSON.stringify(obj);
-		}
-		contents += ']}';
-		await wrapper.write_file(full_path, contents);
-	}
-
-	async function save_as_compact_mixed(path, organism, cargo, seq_type) {
-		if (typeof (path) !== 'string') { path = ''; }
-		const path_record = await pather.parse(path);
-		if (path_record.filename) { await path_record.remove_file_name(); }
-		const filename = get_file_safe_organism_name(organism);
-		await path_record.set_file_name(filename + '.iso_mixed');
-		await path_record.force_path();
-		const full_path = await path_record.get_full_path();
-		let contents = '{ "organism": "' + organism + '", "seq_type": "' + seq_type + '", "cargo": ['
+		let contents = '{ "organism": "' + organism + '", "cargo": ['
 		for (let i = 0; i < cargo.length; i++) {
 			if (i) { contents += ',' }
 			const obj = {
@@ -669,9 +500,7 @@ function ISOFORMS() {
 				group: cargo[i].group,
 				gene: cargo[i].gene,
 				protein: cargo[i].protein,
-				protein_accession: cargo[i].protein_accessions,
-				record_type: 'compact',
-				seq_type: cargo[i].seq_type
+				protein_accession: cargo[i].protein_accessions
 			}
 			contents += JSON.stringify(obj);
 		}
@@ -688,20 +517,8 @@ function ISOFORMS() {
 		await path_record.force_path();
 		for (let i = 0; i < cargo.length; i++) {
 			const full_path = await path_record.get_full_path();
-			await cargo[i].save_as_fasta(full_path);
-		}
-	}
-
-	async function save_as_full_mixed(path, organism, cargo) {
-		if (typeof (path) !== 'string') { path = ''; }
-		const path_record = await pather.parse(path);
-		if (path_record.filename) { await path_record.remove_file_name(); }
-		const folder = get_file_safe_organism_name(organism);
-		await path_record.add_folder(folder);
-		await path_record.force_path();
-		for (let i = 0; i < cargo.length; i++) {
-			const full_path = await path_record.get_full_path();
-			await cargo[i].save_as_fasta(full_path);
+			await cargo[i].cds_sequences.save_as_fasta(full_path);
+			await cargo[i].protein_sequences.save_as_fasta(full_path);
 		}
 	}
 

@@ -16,12 +16,16 @@ function RBH() {
 }
 
 function ORTHO_RECORD() {
-	this.protein = '';
+	this.seq_name = '';
 	this.isoforms = [];
 }
 
 function ORTHOLOGS() {
 	this.cargo = [];
+	this.files = {
+		cds: [],
+		proteins: []
+	}
 	this.organisms = [];
 	this.housekeeping = {
 		blast_cargo: [],
@@ -29,6 +33,48 @@ function ORTHOLOGS() {
 		isoform_cargo: [],
 		rbh_cargo: []
 	};
+
+	this.add_cds_files = (files) => {
+		if (Array.isArray(files)) {
+			this.files.cds = this.files.cds.concat(files);
+		}
+		else {
+			if (typeof (files) === 'string') {
+				this.files.cds.push(files);
+			}
+		}
+	}
+
+	this.add_protein_files = (files) => {
+		if (Array.isArray(files)) {
+			this.files.proteins = this.files.proteins.concat(files);
+		}
+		else {
+			if (typeof (files) === 'string') {
+				this.files.proteins.push(files);
+			}
+		}
+	}
+
+	this.create_isoforms = async () => {
+		if (!this.files.cds.length || !this.files.proteins.length) { return; }
+		for (let i = this.files.cds.length - 1; i >= 0; i--) {
+			const isoforms = new ISOFORMS();
+			console.log('Loading CDS file.');
+			await isoforms.load_cds_fasta_file(this.files.cds[i]);
+			for (let j = this.files.proteins.length - 1; j >= 0; j--) {
+				const sequences = new SEQUENCES();
+				console.log('Loading protein file.');
+				await sequences.load_fasta_file(this.files.proteins[j]);
+				if (isoforms.find_partner(sequences)) {
+					console.log('Found match.');
+					isoforms.merge_protein_sequences(sequences);
+					console.log(isoforms);
+				}
+			}
+		}
+		console.log('DONE!');
+	}
 
 	this.load_blast_files = async (paths) => {
 		for (let i = 0; i < paths.length; i++) {
@@ -38,25 +84,6 @@ function ORTHOLOGS() {
 			tsv.delete_columns_except(0, 1);
 			blast_rbh.table = tsv.unload();
 			this.housekeeping.blast_cargo.push(blast_rbh);
-		}
-	}
-
-	this.load_fasta_files = async (paths) => {
-		for (let i = 0; i < paths.length; i++) {
-			console.log('Loading FASTA file: ' + (i + 1) + ' of ' + paths.length);
-			const isoforms = new ISOFORMS();
-			await isoforms.load_fasta_file(paths[i]);
-			if (!isoforms.organism) {
-				isoforms.set_organism_name_from_partner(this.housekeeping.isoform_cargo);
-			}
-			//console.log('Saving full isoform group files: ' + (i + 1) + ' of ' + paths.length);
-			//await isoforms.save_as('iso_full');
-			//isoforms.compact();
-			//console.log('Saving compact isoform group files: ' + (i + 1) + ' of ' + paths.length);
-			//await isoforms.save_as('iso_compact');
-			this.housekeeping.isoform_cargo.push(isoforms);
-			console.log(isoforms);
-			console.log(' ');
 		}
 	}
 

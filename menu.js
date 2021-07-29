@@ -33,6 +33,46 @@ module.exports = {
 						}
 					},
 					{
+						id: 'open_cds',
+						label: 'Open CDS Files...',
+						enabled: true,
+						click() {
+							dialog.showOpenDialog({
+								filters: [
+									{ name: 'FASTA', extensions: ['fna', 'fasta'] },
+									{ name: 'Text', extensions: ['txt'] },
+									{ name: 'All Files', extensions: ['*'] }
+								],
+								properties: ['multiSelections', 'openFile']
+							})
+								.then((response) => {
+									if (!response.canceled) {
+										win.main.webContents.send('fromMain', { command: 'open_cds', success: true, data: response });
+									}
+								});
+						}
+					},
+					{
+						id: 'open_compact_isoforms',
+						label: 'Open Isoform Files...',
+						enabled: true,
+						click() {
+							dialog.showOpenDialog({
+								filters: [
+									{ name: 'Isoforms', extensions: ['iso_gene', 'iso_protein', 'iso_mixed'] },
+									{ name: 'Text', extensions: ['txt'] },
+									{ name: 'All Files', extensions: ['*'] }
+								],
+								properties: ['multiSelections', 'openFile']
+							})
+								.then((response) => {
+									if (!response.canceled) {
+										win.main.webContents.send('fromMain', { command: 'open_compact_isoforms', success: true, data: response });
+									}
+								});
+						}
+					},
+					{
 						id: 'open_protein',
 						label: 'Open Protein Files...',
 						enabled: true,

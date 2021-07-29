@@ -45,6 +45,11 @@ function SEQ_RECORD() {
 		return filename;
 	}
 
+	this.mask_low_complexity = (options) => {
+		if (this.seq_type === 'amino acids') { this.seg(options); }
+		else { this.sdust(options); }
+	}
+
 	this.to_fasta = () => {
 		let fasta = '>' + this.defline + '\n';
 		let sequence = this.sequence;
@@ -440,6 +445,8 @@ function SEQ_RECORD() {
 		this.defline = build_defline(this.info);
 	}
 
+	this.unmask = () => { this.to_uppercase(); }
+
 	function build_defline(info) {
 		if (typeof (info) === 'undefined') { return ''; }
 		const fields = [];
@@ -594,9 +601,56 @@ function SEQUENCES() {
 		return filename;
 	}
 
-	// for the filter functions, the filter term can be a string or an array of strings
+	// For the filter functions, the filter term can be a string or an array
+	//	of strings.  If no filter is supplied, then an array of all unique
+	//	values is used as the filtering carierion.
+
+	this.delete_by = (parameter, filter) => {
+		if (typeof (filter) === 'undefined') { filter = this.get_unique(parameter); }
+		if (Array.isArray(filter)) {
+			for (let i = 0; i < filter.length; i++) {
+				this.delete_by(parameter, filter[i]);
+			}
+		}
+		else {
+			for (let i = this.cargo.length - 1; i >= 0; i--) {
+				if (this.cargo[i].info[parameter] && this.cargo[i].info[parameter] === filter) {
+					this.cargo.splice(i, 1);
+				}
+			}
+		}
+	}
+
+	this.delete_by_accession = (filter) => { this.delete_by('accession', filter); }
+
+	this.delete_by_database = (filter) => { this.delete_by('database', filter); }
+
+	this.delete_by_exception = (filter) => { this.delete_by('exception', filter); }
+
+	this.delete_by_location = (filter) => { this.delete_by('location', filter); }
+
+	this.delete_by_gene_name = (filter) => { this.delete_by('gene', filter); }
+
+	this.delete_by_organism_name = (filter) => { this.delete_by('organism', filter); }
+
+	this.delete_by_protein_id = (filter) => { this.delete_by('protein_id', filter); }
+
+	this.delete_by_protein_name = (filter) => { this.delete_by('protein', filter); }
+
+	this.delete_by_pseudogene = (filter) => {
+		this.delete_by('pseudo', filter);
+		this.delete_by('pseudogene', filter);
+	}
+
+	this.delete_by_sequence_name = (filter) => { this.delete_by('seq_name', filter); }
+
+	this.delete_by_sequence_type = (filter) => { this.delete_by('seq_type', filter); }
+
+	this.delete_by_status = (filter) => { this.delete_by('status', filter); }
+
 	this.filter_by = (parameter, filter) => {
 		const new_sequences = new SEQUENCES();
+		if (typeof (filter) === 'undefined') { filter = this.get_unique(parameter); }
 		if (Array.isArray(filter)) {
 			for (let i = 0; i < filter.length; i++) {
 				new_sequences.add(this.filter_by(parameter, filter[i]));
@@ -615,6 +669,8 @@ function SEQUENCES() {
 
 	this.filter_by_database = (filter) => { return this.filter_by('database', filter); }
 
+	this.filter_by_exception = (filter) => { return this.filter_by('exception', filter); }
+
 	this.filter_by_location = (filter) => { return this.filter_by('location', filter); }
 
 	this.filter_by_gene_name = (filter) => { return this.filter_by('gene', filter); }
@@ -624,6 +680,12 @@ function SEQUENCES() {
 	this.filter_by_protein_id = (filter) => { return this.filter_by('protein_id', filter); }
 
 	this.filter_by_protein_name = (filter) => { return this.filter_by('protein', filter); }
+
+	this.filter_by_pseudogene = (filter) => {
+		const filtered = this.filter_by('pseudo', filter);
+		filtered.add(this.filter_by('pseudogene', filter));
+		return filtered;
+	}
 
 	this.filter_by_sequence_name = (filter) => { return this.filter_by('seq_name', filter); }
 
@@ -646,6 +708,8 @@ function SEQUENCES() {
 	this.get_consensus_accession = () => { return this.get_consensus('accession'); }
 
 	this.get_consensus_database = () => { return this.get_consensus('database'); }
+
+	this.get_consensus_exception = () => { return this.get_consensus('exception'); }
 
 	this.get_consensus_location = () => { return this.get_consensus('location'); }
 
@@ -690,6 +754,8 @@ function SEQUENCES() {
 
 	this.get_unique_databases = () => { return this.get_unique('database'); }
 
+	this.get_unique_exceptions = () => { return this.get_unique('exception'); }
+
 	this.get_unique_locations = () => { return this.get_unique('location'); }
 
 	this.get_unique_gene_names = () => { return this.get_unique('gene'); }
@@ -700,6 +766,12 @@ function SEQUENCES() {
 
 	this.get_unique_protein_names = () => { return this.get_unique('protein'); }
 
+	this.get_unique_pseudogenes = () => {
+		let arr = this.get_unique('pseudogene');
+		arr = arr.concat(this.get_unique('pseudo'));
+		return arr;
+	}
+
 	this.get_unique_sequence_names = () => { return this.get_unique('seq_name'); }
 
 	this.get_unique_sequence_types = () => { return this.get_unique('seq_type'); }
@@ -707,6 +779,7 @@ function SEQUENCES() {
 	this.get_unique_status = () => { return this.get_unique('status'); }
 
 	this.includes = (parameter, filter) => {
+		if (typeof (filter) === 'undefined') { filter = this.get_unique(parameter); }
 		if (Array.isArray(filter)) {
 			for (let i = 0; i < filter.length; i++) {
 				if (this.includes(parameter, filter[i])) { return true; }
@@ -727,6 +800,8 @@ function SEQUENCES() {
 
 	this.includes_database = (filter) => { return this.includes('database', filter); }
 
+	this.includes_exception = (filter) => { return this.includes('exception', filter); }
+
 	this.includes_location = (filter) => { return this.includes('location', filter); }
 
 	this.includes_gene_name = (filter) => { return this.includes('gene', filter); }
@@ -736,6 +811,13 @@ function SEQUENCES() {
 	this.includes_protein_id = (filter) => { return this.includes('protein_id', filter); }
 
 	this.includes_protein_name = (filter) => { return this.includes('protein', filter); }
+
+	this.includes_pseudogene = (filter) => {
+		const a = this.includes('pseudo', filter);
+		const b = this.includes('pseudogene', filter);
+		if (a || b) { return true; }
+		return false;
+	}
 
 	this.includes_sequence_name = (filter) => { return this.includes('seq_name', filter); }
 
@@ -758,6 +840,12 @@ function SEQUENCES() {
 	}
 
 	this.load_string = (str) => { this.cargo = parse_fasta(str); }
+
+	this.mask_low_complexity = (options) => {
+		for (let i = 0; i < this.cargo.length; i++) {
+			this.cargo[i].mask_low_complexity(options);
+		}
+	}
 
 	this.save_as_fasta = async (path) => {
 		// If the filename has not been supplied, one will be created from the
@@ -829,6 +917,12 @@ function SEQUENCES() {
 		return new_cargo;
 	}
 
+	this.unmask = () => {
+		for (let i = 0; i < this.cargo.length; i++) {
+			this.cargo[i].unmask();
+		}
+	}
+
 	function clean_sequence_name(seq_name) {
 		if (typeof (seq_name) !== 'string') { seq_name = ''; }
 		seq_name = seq_name.replace('hypothetical protein ', '');
@@ -888,7 +982,7 @@ function SEQUENCES() {
 		info = parse_fasta_defline_sequence_name(defline, info);
 		info = parse_fasta_defline_location(defline, info);
 		info = parse_fasta_defline_isoform(defline, info);
-		info = parse_fasta_defline_fields(defline, info);
+		info = parse_fasta_defline_modifiers(defline, info);
 		info = parse_fasta_defline_organism_name(defline, info);
 		const extra = defline.split('^A');
 		for (let i = 1; i < extra.length; i++) {
@@ -897,7 +991,7 @@ function SEQUENCES() {
 		return info;
 	}
 
-	function parse_fasta_defline_fields(defline, info) {
+	function parse_fasta_defline_modifiers(defline, info) {
 		if (typeof (info) === 'undefined') { info = new SEQ_INFO(); }
 		const parts = defline.match(/\[(.*?)\=(.*?)\]/g);
 		if (parts && parts.length) {
@@ -918,8 +1012,8 @@ function SEQUENCES() {
 		const isoform = info.protein.match(/\sisoform\s[X][0-9]+\b/);
 		if (isoform && isoform.length) {
 			info.protein = info.protein.replace(isoform[0], '').trim();
-			info.protein = clean_sequence_name(info.protein);
 		}
+		info.protein = clean_sequence_name(info.protein);
 		if (!info.seq_name && info.protein) { info.seq_name = info.protein; }
 		return info;
 	}
@@ -1019,7 +1113,19 @@ function SEQUENCES() {
 		//	contain and underscore.
 		if (info.accession && info.accession.includes('_')) {
 			const acc_parts = info.accession.split('_');
-			if (acc_parts.length > 2) {
+			if (acc_parts.length >= 5) {
+				if (acc_parts[0].length && acc_parts[0].length <= 2) {
+					acc_parts[0] += '_' + acc_parts[1];
+					acc_parts.splice(1, 1);
+				}
+			}
+			if (acc_parts.length >= 4) {
+				if (acc_parts[2].length && acc_parts[2].length <= 2) {
+					acc_parts[2] += '_' + acc_parts[3];
+					acc_parts.splice(3, 1);
+				}
+			}
+			if (acc_parts.length >= 3) {
 				if (acc_parts[0]) { info.genomic_accession = acc_parts[0]; }
 				if (acc_parts[1]) { info.feature_type = acc_parts[1]; }
 				if (acc_parts[2]) { info.accession = acc_parts[2]; }

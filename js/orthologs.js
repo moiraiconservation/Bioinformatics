@@ -51,7 +51,7 @@ function ORTHOLOGS() {
 			}
 			//console.log('Saving full isoform group files: ' + (i + 1) + ' of ' + paths.length);
 			//await isoforms.save_as('iso_full');
-			isoforms.compact();
+			//isoforms.compact();
 			//console.log('Saving compact isoform group files: ' + (i + 1) + ' of ' + paths.length);
 			//await isoforms.save_as('iso_compact');
 			this.housekeeping.isoform_cargo.push(isoforms);

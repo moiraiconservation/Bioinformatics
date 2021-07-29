@@ -253,17 +253,9 @@ function ISOFORMS() {
 			return false;
 		}
 		else {
-			if (this.seq_type === 'amino acids' && partner.seq_type === 'nucleotides') {
-				const accessions = this.get_unique_accession();
-				if (accessions.length) {
-					if (partner.includes_protein_id(accessions)) { return true; }
-				}
-			}
-			if (this.seq_type === 'nucleotides' && partner.seq_type === 'amino acids') {
-				const accessions = this.get_unique_protein_id();
-				if (accessions.length) {
-					if (partner.includes_accession(accessions)) { return true; }
-				}
+			const accessions = this.get_unique_accession();
+			if (accessions.length) {
+				if (partner.includes_accession(accessions)) { return true; }
 			}
 		}
 		return false;
@@ -508,14 +500,12 @@ function ISOFORMS() {
 		if (seq_type.length) { this.seq_type = seq_type[0]; }
 		let unique = [];
 		if (this.seq_type === 'amino acids') { unique = sequences.get_unique_sequence_names(); }
-		//if (this.seq_type === 'nucleotides') { unique = sequences.get_unique_gene_names(); }
-		if (this.seq_type === 'nucleotides') { unique = sequences.get_unique_sequence_names(); }
+		if (this.seq_type === 'nucleotides') { unique = sequences.get_unique_gene_names(); }
 		if (unique.length) {
 			for (let i = 0; i < unique.length; i++) {
 				let filtered_sequences = new SEQUENCES();
 				if (this.seq_type === 'amino acids') { filtered_sequences = sequences.filter_by_sequence_name(unique[i]); }
-				//if (this.seq_type === 'nucleotides') { filtered_sequences = sequences.filter_by_gene_name(unique[i]); }
-				if (this.seq_type === 'nucleotides') { filtered_sequences = sequences.filter_by_sequence_name(unique[i]); }
+				if (this.seq_type === 'nucleotides') { filtered_sequences = sequences.filter_by_gene_name(unique[i]); }
 				if (filtered_sequences.is_loaded()) {
 					const iso_record = new ISO_RECORD();
 					iso_record.group = this.cargo.length + 1;

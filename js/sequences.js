@@ -476,76 +476,83 @@ function SEQ_RECORD() {
 
 	function build_defline_identifier(info) {
 		if (typeof (info) === 'undefined') { return ''; }
+		// build the accession using the NCBI underscore system.
+		//	The format is as follows:
+		//	<genomic accession.version>_<feature_type>_<product accession.version>_<counter>
+		let accession = info.accession;
+		if (info.genomic_accession && info.feature_type && info.accession && info.counter) {
+			accession = info.genomic_accession + '_' + info.feature_type + '_' + info.accession + '_' + info.counter;
+		}
 		let id = '';
 		if (info.database) {
 			switch (info.database) {
 				case 'DDBJ': {
-					id += 'dbj|' + info.accession + '|';
+					id += 'dbj|' + accession + '|';
 					if (info.locus) { id += info.locus }
 					break;
 				}
 				case 'EMBL': {
-					id += 'emb|' + info.accession + '|';
+					id += 'emb|' + accession + '|';
 					if (info.ID) { id += info.ID; }
 					break;
 				}
 				case 'NCBI GenBank': {
-					id += 'gb|' + info.accession + '|';
+					id += 'gb|' + accession + '|';
 					if (info.locus) { id += info.locus }
 					break;
 				}
 				case 'NCBI GenInfo': {
-					id += 'gi|' + info.accession;
+					id += 'gi|' + accession;
 					break;
 				}
 				case 'NCBI Reference Sequence': {
-					id += 'ref|' + info.accession + '|';
+					id += 'ref|' + accession + '|';
 					if (info.locus) { id += info.locus }
 					break;
 				}
 				case 'NBRF Protein Information Resource': {
-					id += 'pir||' + info.accession;
+					id += 'pir||' + accession;
 					break;
 				}
 				case 'Protein Research Foundation': {
-					id += 'prf||' + info.accession;
+					id += 'prf||' + accession;
 					break;
 				}
 				case 'SWISS-PROT': {
-					id += 'sp|' + info.accession + '|';
+					id += 'sp|' + accession + '|';
 					if (info.entry) { id += info.entry; }
 					break;
 				}
 				case 'Brookhaven Protein Data Bank': {
-					id += 'pdb|' + info.accession + '|';
+					id += 'pdb|' + accession + '|';
 					if (info.chain) { id += info.chain; }
 					break;
 				}
 				case 'Patents': {
 					id += 'pat|';
 					if (info.country) { id += info.country; }
-					id += '|' + info.accession;
+					id += '|' + accession;
 					break;
 				}
 				case 'GenInfo Backbone ID': {
-					id += 'bbs|' + info.accession;
+					id += 'bbs|' + accession;
 					break;
 				}
 				case 'Local': {
-					id += 'lcl|' + info.accession;
+					id += 'lcl|' + accession;
 					break;
 				}
 				case 'General': {
-					id += 'gnl||' + info.accession;
+					id += 'gnl||' + accession;
 					break;
 				}
 				default: {
-					id += 'gnl|' + info.database + '|' + info.accession;
+					id += 'gnl|' + info.database + '|' + accession;
 					break;
 				}
 			}
 		}
-		else { id += 'lcl|' + info.accession; }
+		else { id += 'lcl|' + accession; }
 		return id;
 	}
 
@@ -1005,7 +1012,20 @@ function SEQUENCES() {
 			}
 			else { info.accession = words[0]; }
 		}
-		info.accession = info.accession.split('_cds_')[0];
+		// Further parse the accession using the NCBI underscore system.
+		//	The format is as follows:
+		//	<genomic accession.version>_<feature_type>_<product accession.version>_<counter>
+		//	The genomic accession and the product accession may also each
+		//	contain and underscore.
+		if (info.accession && info.accession.includes('_')) {
+			const acc_parts = info.accession.split('_');
+			if (acc_parts.length > 2) {
+				if (acc_parts[0]) { info.genomic_accession = acc_parts[0]; }
+				if (acc_parts[1]) { info.feature_type = acc_parts[1]; }
+				if (acc_parts[2]) { info.accession = acc_parts[2]; }
+				if (acc_parts[3]) { info.counter = acc_parts[3]; }
+			}
+		}
 		return info;
 	}
 

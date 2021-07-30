@@ -81,7 +81,9 @@
 
 					case 'open_blast_rbh': {
 						if (arg.data && arg.data.filePaths.length) {
-							await orthologs.add_blast_files(arg.data.filePaths);
+							orthologs.add_blast_files(arg.data.filePaths);
+							await orthologs.create_blast_records();
+							orthologs.create_rbh_records();
 							console.log(orthologs);
 						}
 						break;
@@ -89,9 +91,12 @@
 
 					case 'open_cds': {
 						if (arg.data && arg.data.filePaths.length) {
-							await orthologs.add_cds_files(arg.data.filePaths);
+							orthologs.add_cds_files(arg.data.filePaths);
 							if (orthologs.files.cds.length && orthologs.files.proteins.length) {
 								await orthologs.create_isoforms();
+								await orthologs.create_blast_records();
+								orthologs.create_rbh_records();
+								console.log(orthologs);
 							}
 						}
 						break;
@@ -99,17 +104,23 @@
 
 					case 'open_compact_isoforms': {
 						if (arg.data && arg.data.filePaths.length) {
-							await isoforms.load_compact_file(arg.data.filePaths[0]);
-							console.log(isoforms);
+							orthologs.add_isoform_files(arg.data.filePaths);
+							await orthologs.create_isoforms();
+							await orthologs.create_blast_records();
+							orthologs.create_rbh_records();
+							console.log(orthologs);
 						}
 						break;
 					}
 
 					case 'open_protein': {
 						if (arg.data && arg.data.filePaths.length) {
-							await orthologs.add_protein_files(arg.data.filePaths);
+							orthologs.add_protein_files(arg.data.filePaths);
 							if (orthologs.files.cds.length && orthologs.files.proteins.length) {
 								await orthologs.create_isoforms();
+								await orthologs.create_blast_records();
+								orthologs.create_rbh_records();
+								console.log(orthologs);
 							}
 						}
 						break;

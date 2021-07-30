@@ -77,7 +77,7 @@ function ISOFORMS() {
 		else {
 			if (record instanceof ISO_RECORD) { this.cargo.push(record); }
 			if (record instanceof ISO_RECORD_COMPACT) { this.cargo.push(record); }
-			if (record instanceof record) { this.cargo = this.cargo.concat(record.cargo); }
+			if (record instanceof ISOFORMS) { this.cargo = this.cargo.concat(record.cargo); }
 		}
 	}
 
@@ -126,9 +126,7 @@ function ISOFORMS() {
 						if (x[parameter]) { return x[parameter] === filter; }
 						else { return false; }
 					}
-					else if (parameter === 'accession') {
-						return x.gene_accessions.includes(filter) || x.protein_accessions.includes(filter);
-					}
+					else if (parameter === 'accession') { return x.accessions.includes(filter); }
 				}
 				else { return false; }
 			});

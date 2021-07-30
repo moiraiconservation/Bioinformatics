@@ -382,7 +382,6 @@ function ISOFORMS() {
 		this.cargo = [];
 		const contents = await wrapper.read_file(full_path);
 		const pre_record = JSON.parse(contents);
-		console.log(pre_record);
 		if (pre_record.organism) { this.organism = pre_record.organism; }
 		if (pre_record.cargo && pre_record.cargo.length) {
 			for (let i = 0; i < pre_record.cargo.length; i++) {

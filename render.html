@@ -81,7 +81,7 @@
 
 					case 'open_blast_rbh': {
 						if (arg.data && arg.data.filePaths.length) {
-							await orthologs.load_blast_files(arg.data.filePaths);
+							await orthologs.add_blast_files(arg.data.filePaths);
 							console.log(orthologs);
 						}
 						break;

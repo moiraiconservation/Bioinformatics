@@ -23,16 +23,28 @@ function ORTHO_RECORD() {
 function ORTHOLOGS() {
 	this.cargo = [];
 	this.files = {
+		blast: [],
 		cds: [],
 		proteins: []
 	}
 	this.organisms = [];
-	this.housekeeping = {
-		blast_cargo: [],
-		graphs_cargo: [],
-		isoform_cargo: [],
-		rbh_cargo: []
+	this.extra_cargo = {
+		blast: [],
+		graphs: [],
+		isoforms: [],
+		rbh: []
 	};
+
+	this.add_blast_files = (files) => {
+		if (Array.isArray(files)) {
+			this.files.blast = this.files.blast.concat(files);
+		}
+		else {
+			if (typeof (files) === 'string') {
+				this.files.blast.push(files);
+			}
+		}
+	}
 
 	this.add_cds_files = (files) => {
 		if (Array.isArray(files)) {
@@ -57,6 +69,14 @@ function ORTHOLOGS() {
 	}
 
 	this.create_isoforms = async () => {
+		// This method is a bit odd.  It's not very efficient to repeatedly
+		//	load sequence files, but the point here is to limit the amount of
+		//	information held in application memory.  Hard drive memory is
+		//	generally larger than application memory, so the strategy here is
+		//	to store as much information as possible on the hard drive.  This
+		//	approach might slow the application some, but it makes it less
+		//	likely that a collection of long sequences will crash the
+		//	application.
 		if (!this.files.cds.length || !this.files.proteins.length) { return; }
 		for (let i = this.files.cds.length - 1; i >= 0; i--) {
 			const isoforms = new ISOFORMS();
@@ -75,6 +95,7 @@ function ORTHOLOGS() {
 					isoforms.compact();
 					console.log('Saving compact isoform files.');
 					await isoforms.save_as('iso_compact');
+					this.extra_cargo.isoforms.push(isoforms);
 					this.files.proteins.splice(j, 1);
 				}
 			}
@@ -90,7 +111,7 @@ function ORTHOLOGS() {
 			await tsv.load_tsv_file(paths[i]);
 			tsv.delete_columns_except(0, 1);
 			blast_rbh.table = tsv.unload();
-			this.housekeeping.blast_cargo.push(blast_rbh);
+			this.extra_cargo.blast.push(blast_rbh);
 		}
 	}
 
@@ -98,7 +119,7 @@ function ORTHOLOGS() {
 	this.create_initial_graphs = () => {
 		const species1 = this.organisms[0];
 		const species2 = this.organisms[1];
-		const table = this.rbh_cargo.find((x) => { return x.organism_col_0 === species1 && x.organism_col_1 === species2; }).table;
+		const table = this.rbh.find((x) => { return x.organism_col_0 === species1 && x.organism_col_1 === species2; }).table;
 		for (let t = 0; t < table.length; t++) {
 			console.log('Initializing graphs: ' + (t + 1) + ' of ' + table.length);
 			const matrix = new Array(this.organisms.length);
@@ -110,38 +131,38 @@ function ORTHOLOGS() {
 			}
 			matrix[0][1].i = table[t][0];
 			matrix[0][1].j = table[t][1];
-			this.housekeeping.graphs_cargo.push(matrix);
+			this.extra_cargo.graphs.push(matrix);
 		}
 	}
 
-	this.__create_rbh_cargo = () => {
-		for (let i = 0; i < this.housekeeping.blast_cargo.length; i++) {
-			const table = this.housekeeping.blast_cargo[i].table;
-			const species1 = this.housekeeping.blast_cargo[i].organism_col_0;
-			const species2 = this.housekeeping.blast_cargo[i].organism_col_1;
-			const isoforms1 = this.housekeeping.isoform_cargo.find((x) => { return x.organism === species1; })
-			const isoforms2 = this.housekeeping.isoform_cargo.find((x) => { return x.organism === species2; })
+	this.__create_rbh = () => {
+		for (let i = 0; i < this.extra_cargo.blast.length; i++) {
+			const table = this.extra_cargo.blast[i].table;
+			const species1 = this.extra_cargo.blast[i].organism_col_0;
+			const species2 = this.extra_cargo.blast[i].organism_col_1;
+			const isoforms1 = this.extra_cargo.isoforms.find((x) => { return x.organism === species1; })
+			const isoforms2 = this.extra_cargo.isoforms.find((x) => { return x.organism === species2; })
 			const new_rbh = new RBH();
 			new_rbh.organism_col_0 = species1;
 			new_rbh.organism_col_1 = species2;
 			for (let j = 0; j < table.length; j++) {
-				console.log('RBH Table ' + (i + 1) + ' of ' + this.housekeeping.blast_cargo.length + ' : ' + ' Entry ' + (j + 1) + ' of ' + table.length);
+				console.log('RBH Table ' + (i + 1) + ' of ' + this.extra_cargo.blast.length + ' : ' + ' Entry ' + (j + 1) + ' of ' + table.length);
 				const group1 = isoforms1.get_group_numbers_by_accession(table[j][0]);
 				const group2 = isoforms2.get_group_numbers_by_accession(table[j][1]);
 				if (group1.length && group2.length) { new_rbh.table.push([ group1[0], group2[0] ]) }
 			}
 			new_rbh.table = Array.from(new Set(new_rbh.table.map(JSON.stringify)), JSON.parse);
-			this.housekeeping.rbh_cargo.push(new_rbh);
+			this.extra_cargo.rbh.push(new_rbh);
 		}
-		this.housekeeping.blast_cargo = [];
+		this.extra_cargo.blast = [];
 	}
 
-	this.__filter_rbh_cargo_by_hits = () => {
-		for (let i = 0; i < this.housekeeping.rbh_cargo.length; i++) {
-			const species1 = this.housekeeping.rbh_cargo[i].organism_col_0;
-			const species2 = this.housekeeping.rbh_cargo[i].organism_col_1;
-			const table1 = this.housekeeping.rbh_cargo[i].table;
-			const table2 = this.housekeeping.rbh_cargo.find((x) => { return (x.organism_col_0 === species2) && (x.organism_col_1 === species1); }).table;
+	this.__filter_rbh_by_hits = () => {
+		for (let i = 0; i < this.extra_cargo.rbh.length; i++) {
+			const species1 = this.extra_cargo.rbh[i].organism_col_0;
+			const species2 = this.extra_cargo.rbh[i].organism_col_1;
+			const table1 = this.extra_cargo.rbh[i].table;
+			const table2 = this.extra_cargo.rbh.find((x) => { return (x.organism_col_0 === species2) && (x.organism_col_1 === species1); }).table;
 			if (table1 && table2) {
 				for (let j = table1.length - 1; j >= 0; j--) {
 					console.log('Filtering RBHs ' + j + ' of ' + table1.length);
@@ -154,15 +175,15 @@ function ORTHOLOGS() {
 					}
 				}
 			}
-			this.housekeeping.rbh_cargo[i].table = table1;
+			this.extra_cargo.rbh[i].table = table1;
 		}
 	}
 
 	this.__finish_graphs = () => {
 		let g = 0;
-		while (g < this.graphs_cargo.length) {
-			console.log('Finishing Graphs: ' + (g + 1) + ' of ' + this.graphs_cargo.length);
-			const matrix = this.graphs_cargo[g];
+		while (g < this.graphs.length) {
+			console.log('Finishing Graphs: ' + (g + 1) + ' of ' + this.graphs.length);
+			const matrix = this.graphs[g];
 			// find first empty matrix cell
 			let start_i = Infinity;
 			let start_j = Infinity;
@@ -183,7 +204,7 @@ function ORTHOLOGS() {
 					for (let j = start_j; j < matrix[i].length; j++) {
 						const species1 = this.organisms[i];
 						const species2 = this.organisms[j];
-						const table = this.rbh_cargo.find((x) => { return x.organism_col_0 === species1 && x.organism_col_1 === species2; }).table;
+						const table = this.rbh.find((x) => { return x.organism_col_0 === species1 && x.organism_col_1 === species2; }).table;
 						// keep the orthologs consistent with those already recorded in
 						//	the current matrix
 						let match_i = -1;
@@ -204,11 +225,11 @@ function ORTHOLOGS() {
 								const new_matrix = JSON.parse(JSON.stringify(matrix));
 								new_matrix[i][j].i = match[k].i;
 								new_matrix[i][j].j = match[k].j;
-								this.housekeeping.graphs_cargo.push(new_matrix);
+								this.extra_cargo.graphs.push(new_matrix);
 							}
 							matrix[i][j].i = match[0].i;
 							matrix[i][j].j = match[0].j;
-							this.graphs_cargo[g] = matrix;
+							this.graphs[g] = matrix;
 						}
 						else { break loop2; }
 					}
@@ -216,25 +237,25 @@ function ORTHOLOGS() {
 			}
 			g++;
 		}
-		this.housekeeping.rbh_cargo = [];
+		this.extra_cargo.rbh = [];
 	}
 
 	this.__match_organisms = () => {
-		if (this.housekeeping.blast_cargo.length && this.housekeeping.isoform_cargo.length) {
-			for (let i = 0; i < this.housekeeping.blast_cargo.length; i++) {
-				const col_0 = this.housekeeping.blast_cargo[i].table[0][0];
-				const col_1 = this.housekeeping.blast_cargo[i].table[0][1];
-				for (let j = 0; j < this.housekeeping.isoform_cargo.length; j++) {
-					if (this.housekeeping.isoform_cargo[j].includes_accession(col_0)) {
-						this.housekeeping.blast_cargo[i].organism_col_0 = this.housekeeping.isoform_cargo[j].organism;
-						if (!this.organisms.includes(this.housekeeping.blast_cargo[i].organism_col_0)) {
-							this.organisms.push(this.housekeeping.blast_cargo[i].organism_col_0);
+		if (this.extra_cargo.blast.length && this.extra_cargo.isoforms.length) {
+			for (let i = 0; i < this.extra_cargo.blast.length; i++) {
+				const col_0 = this.extra_cargo.blast[i].table[0][0];
+				const col_1 = this.extra_cargo.blast[i].table[0][1];
+				for (let j = 0; j < this.extra_cargo.isoforms.length; j++) {
+					if (this.extra_cargo.isoforms[j].includes_accession(col_0)) {
+						this.extra_cargo.blast[i].organism_col_0 = this.extra_cargo.isoforms[j].organism;
+						if (!this.organisms.includes(this.extra_cargo.blast[i].organism_col_0)) {
+							this.organisms.push(this.extra_cargo.blast[i].organism_col_0);
 						}
 					}
-					if (this.housekeeping.isoform_cargo[j].includes_accession(col_1)) {
-						this.housekeeping.blast_cargo[i].organism_col_1 = this.housekeeping.isoform_cargo[j].organism;
-						if (!this.organisms.includes(this.housekeeping.blast_cargo[i].organism_col_1)) {
-							this.organisms.push(this.housekeeping.blast_cargo[i].organism_col_1);
+					if (this.extra_cargo.isoforms[j].includes_accession(col_1)) {
+						this.extra_cargo.blast[i].organism_col_1 = this.extra_cargo.isoforms[j].organism;
+						if (!this.organisms.includes(this.extra_cargo.blast[i].organism_col_1)) {
+							this.organisms.push(this.extra_cargo.blast[i].organism_col_1);
 						}
 					}
 				}
@@ -244,8 +265,8 @@ function ORTHOLOGS() {
 				if (a > b) { return 1; }
 				return 0;
 			});
-			this.__create_rbh_cargo();
-			this.__filter_rbh_cargo_by_hits();
+			this.__create_rbh();
+			this.__filter_rbh_by_hits();
 			this.__create_initial_graphs();
 			this.__finish_graphs();
 		}

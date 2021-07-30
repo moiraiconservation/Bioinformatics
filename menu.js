@@ -59,7 +59,7 @@ module.exports = {
 						click() {
 							dialog.showOpenDialog({
 								filters: [
-									{ name: 'Isoforms', extensions: ['iso_gene', 'iso_protein', 'iso_mixed'] },
+									{ name: 'Isoforms', extensions: ['isoforms'] },
 									{ name: 'Text', extensions: ['txt'] },
 									{ name: 'All Files', extensions: ['*'] }
 								],

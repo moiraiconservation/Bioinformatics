@@ -20,8 +20,12 @@ function ISO_RECORD() {
 		await p_path_record.force_path();
 		const g_full_path = await g_path_record.get_full_path();
 		const p_full_path = await p_path_record.get_full_path();
-		await this.cds_sequences.save_as_fasta(g_full_path);
-		await this.protein_sequences.save_as_fasta(p_full_path);
+		if (this.cds_sequences && this.cds_sequences.cargo.length) {
+			await this.cds_sequences.save_as_fasta(g_full_path);
+		}
+		if (this.protein_sequences && this.protein_sequences.cargo.length) {
+			await this.protein_sequences.save_as_fasta(p_full_path);
+		}
 	}
 
 	this.set = (parameter, value) => {
@@ -88,8 +92,8 @@ function ISOFORMS() {
 			new_record.group = old_record.group;
 			new_record.gene = old_record.cds_sequences.get_consensus_gene_name();
 			new_record.seq_name = old_record.protein_sequences.get_consensus_sequence_name();
-			for (let j = 0; j < iso_record.sequences.cargo.length; j++) {
-				new_record.accessions.push(iso_record.sequences.cargo[j].info.accession);
+			for (let j = 0; j < old_record.protein_sequences.cargo.length; j++) {
+				new_record.accessions.push(old_record.protein_sequences.cargo[j].info.accession);
 			}
 			new_cargo.push(new_record);
 		}
@@ -103,8 +107,6 @@ function ISOFORMS() {
 			for (let i = 0; i < filter.length; i++) {
 				new_isoforms.add(this.filter_by(parameter, filter[i]));
 			}
-			new_isoforms.update();
-			return new_isoforms;
 		}
 		else {
 			new_isoforms.cargo = this.cargo.filter((x) => {
@@ -131,7 +133,8 @@ function ISOFORMS() {
 				else { return false; }
 			});
 		}
-		new_isoforms.update();
+		const organisms = new_isoforms.get_unique_organism_names();
+		if (organisms.length) { new_isoforms.organism = organisms[0]; }
 		return new_isoforms;
 	}
 
@@ -234,13 +237,17 @@ function ISOFORMS() {
 	this.get_group_numbers_by_status = (filter) => { return this.get_group_numbers_by('status', filter); }
 
 	this.get_index_by = (parameter, filter) => {
-		for (let i = 0; i < this.cargo.length; i++) {
-			if (typeof (this.cargo[i]) !== 'undefined') {
-				const whitelist = ['group'];
-				if (whitelist.includes(parameter)) {
+		const whitelist = ['group'];
+		if (whitelist.includes(parameter)) {
+			for (let i = 0; i < this.cargo.length; i++) {
+				if (typeof (this.cargo[i]) !== 'undefined') {
 					if (this.cargo[i][parameter] === filter) { return i; }
 				}
-				else {
+			}
+		}
+		else {
+			for (let i = 0; i < this.cargo.length; i++) {
+				if (typeof (this.cargo[i]) !== 'undefined') {
 					if (this.cargo[i].cds_sequences.includes(parameter, filter)) { return i; }
 					if (this.cargo[i].protein_sequences.includes(parameter, filter)) { return i; }
 				}
@@ -375,14 +382,15 @@ function ISOFORMS() {
 		this.cargo = [];
 		const contents = await wrapper.read_file(full_path);
 		const pre_record = JSON.parse(contents);
+		console.log(pre_record);
 		if (pre_record.organism) { this.organism = pre_record.organism; }
 		if (pre_record.cargo && pre_record.cargo.length) {
 			for (let i = 0; i < pre_record.cargo.length; i++) {
-				const record = ISO_RECORD_COMPACT();
+				const record = new ISO_RECORD_COMPACT();
 				if (pre_record.cargo[i].accessions) { record.accessions = pre_record.cargo[i].accessions; }
 				if (pre_record.cargo[i].group) { record.group = pre_record.cargo[i].group; }
 				if (pre_record.cargo[i].gene) { record.gene = pre_record.cargo[i].gene; }
-				if (pre_record.cargo[i].protein) { record.protein = pre_record.cargo[i].protein; }
+				if (pre_record.cargo[i].seq_name) { record.seq_name = pre_record.cargo[i].seq_name; }
 				this.cargo.push(record);
 			}
 		}
@@ -440,6 +448,12 @@ function ISOFORMS() {
 			if (index > -1) {
 				const accessions = this.cargo[index].cds_sequences.get_unique_accessions();
 				this.cargo[index].protein_sequences = sequences.filter_by_accession(accessions);
+				for (let j = this.cargo[index].cds_sequences.cargo.length - 1; j >= 0; j--) {
+					const accession = this.cargo[index].cds_sequences.cargo[j].info.accession;
+					if (!this.cargo[index].protein_sequences.includes_accession(accession)) {
+						this.cargo[index].cds_sequences.cargo.splice(j, 1);
+					}
+				}
 			}
 		}
 	}
@@ -508,11 +522,6 @@ function ISOFORMS() {
 		return new_cargo;
 	}
 
-	this.update = () => {
-		const organisms = this.get_unique_organism_names();
-		if (organisms.length) { this.organism = organisms[0]; }
-	}
-
 	function get_file_safe_organism_name(organism) {
 		if (typeof (organism) !== 'string') { organism = ''; }
 		let folder = organism || 'unknown_' + Math.random().toString(36).substring(7);
@@ -539,7 +548,7 @@ function ISOFORMS() {
 				accessions: cargo[i].accessions,
 				group: cargo[i].group,
 				gene: cargo[i].gene,
-				protein: cargo[i].protein,
+				seq_name: cargo[i].seq_name
 			}
 			contents += JSON.stringify(obj);
 		}

@@ -852,25 +852,29 @@ function SEQUENCES() {
 		//	defline.  If the specified folders do not exist, they will be
 		//	created.
 		if (typeof (path) === 'undefined') { path = ''; }
-		const path_record = await pather.parse(path);
-		if (!path_record.filename) { await path_record.set_file_name(this.create_file_name()); }
-		await path_record.force_path();
-		const full_path = await path_record.get_full_path();
-		let contents = '';
-		for (let i = 0; i < this.cargo.length; i++) {
-			contents += this.cargo[i].to_fasta();
+		if (this.cargo.length) {
+			const path_record = await pather.parse(path);
+			if (!path_record.filename) { await path_record.set_file_name(this.create_file_name()); }
+			await path_record.force_path();
+			const full_path = await path_record.get_full_path();
+			let contents = '';
+			for (let i = 0; i < this.cargo.length; i++) {
+				contents += this.cargo[i].to_fasta();
+			}
+			await wrapper.write_file(full_path, contents);		
 		}
-		await wrapper.write_file(full_path, contents);		
 	}
 
 	this.save_each_as_fasta = async (path) => {
 		if (typeof (path) === 'undefined') { path = ''; }
-		const path_record = await pather.parse(path);
-		await path_record.remove_file_name();
-		await path_record.force_path();
-		const full_path = await path_record.get_full_path();
-		for (let i = 0; i < this.cargo.length; i++) {
-			await this.cargo[i].save_as_fasta(full_path);
+		if (this.cargo.length) {
+			const path_record = await pather.parse(path);
+			await path_record.remove_file_name();
+			await path_record.force_path();
+			const full_path = await path_record.get_full_path();
+			for (let i = 0; i < this.cargo.length; i++) {
+				await this.cargo[i].save_as_fasta(full_path);
+			}
 		}
 	}
 

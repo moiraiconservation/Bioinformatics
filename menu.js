@@ -14,8 +14,8 @@ module.exports = {
 				label: 'File',
 				submenu: [
 					{
-						id: 'open_blast_rbh',
-						label: 'Open BLAST RBH Files...',
+						id: 'open_blast',
+						label: 'Open BLAST Output Files...',
 						enabled: true,
 						click() {
 							dialog.showOpenDialog({
@@ -27,7 +27,7 @@ module.exports = {
 							})
 								.then((response) => {
 									if (!response.canceled) {
-										win.main.webContents.send('fromMain', { command: 'open_blast_rbh', success: true, data: response });
+										win.main.webContents.send('fromMain', { command: 'open_blast', success: true, data: response });
 									}
 								});
 						}
@@ -88,6 +88,26 @@ module.exports = {
 								.then((response) => {
 									if (!response.canceled) {
 										win.main.webContents.send('fromMain', { command: 'open_protein', success: true, data: response });
+									}
+								});
+						}
+					},
+					{
+						id: 'open_rbh',
+						label: 'Open RBH Files...',
+						enabled: true,
+						click() {
+							dialog.showOpenDialog({
+								filters: [
+									{ name: 'RBH', extensions: ['rbh'] },
+									{ name: 'Text', extensions: ['txt'] },
+									{ name: 'All Files', extensions: ['*'] }
+								],
+								properties: ['multiSelections', 'openFile']
+							})
+								.then((response) => {
+									if (!response.canceled) {
+										win.main.webContents.send('fromMain', { command: 'open_rbh', success: true, data: response });
 									}
 								});
 						}

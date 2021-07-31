@@ -79,11 +79,11 @@
 			if (arg.command) {
 				switch (arg.command) {
 
-					case 'open_blast_rbh': {
+					case 'open_blast': {
 						if (arg.data && arg.data.filePaths.length) {
 							orthologs.add_blast_files(arg.data.filePaths);
 							await orthologs.create_blast_records();
-							orthologs.create_rbh_records();
+							await orthologs.create_rbh_records();
 							console.log(orthologs);
 						}
 						break;
@@ -95,7 +95,7 @@
 							if (orthologs.files.cds.length && orthologs.files.proteins.length) {
 								await orthologs.create_isoforms();
 								await orthologs.create_blast_records();
-								orthologs.create_rbh_records();
+								await orthologs.create_rbh_records();
 								console.log(orthologs);
 							}
 						}
@@ -107,7 +107,7 @@
 							orthologs.add_isoform_files(arg.data.filePaths);
 							await orthologs.create_isoforms();
 							await orthologs.create_blast_records();
-							orthologs.create_rbh_records();
+							await orthologs.create_rbh_records();
 							console.log(orthologs);
 						}
 						break;
@@ -119,9 +119,18 @@
 							if (orthologs.files.cds.length && orthologs.files.proteins.length) {
 								await orthologs.create_isoforms();
 								await orthologs.create_blast_records();
-								orthologs.create_rbh_records();
+								await orthologs.create_rbh_records();
 								console.log(orthologs);
 							}
+						}
+						break;
+					}
+
+					case 'open_rbh': {
+						if (arg.data && arg.data.filePaths.length) {
+							orthologs.add_rbh_files(arg.data.filePaths);
+							await orthologs.create_rbh_records();
+							console.log(orthologs);
 						}
 						break;
 					}

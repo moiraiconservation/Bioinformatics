@@ -41,10 +41,26 @@ function ORTHO_BLAST() {
 
 }
 
+///////////////////////////////////////////////////////////////////////////////
+
 function ORTHO_RBH() {
 	this.organism_col_0 = '';
 	this.organism_col_1 = '';
 	this.cargo = [];
+
+	this.load_rbh_file = async (path) => {
+		if (typeof (path) !== 'string') { path = ''; }
+		const path_record = await pather.parse(path);
+		const full_path = await path_record.get_full_path();
+		this.organism_col_0 = '';
+		this.organism_col_1 = '';
+		this.cargo = [];
+		const contents = await wrapper.read_file(full_path);
+		const pre_record = JSON.parse(contents);
+		if (pre_record.organism_col_0) { this.organism_col_0 = pre_record.organism_col_0; }
+		if (pre_record.organism_col_1) { this.organism_col_1 = pre_record.organism_col_1; }
+		if (pre_record.cargo) { this.cargo = pre_record.cargo; }
+	}
 
 	this.save_as = async (path) => {
 		if (typeof (path) !== 'string') { path = ''; }
@@ -65,8 +81,8 @@ function ORTHO_RBH() {
 	}
 
 	function get_file_safe_organism_name(org1, org2) {
-		const filename1 = '';
-		const filename2 = '';
+		let filename1 = '';
+		let filename2 = '';
 		const parts1 = org1.split(' ');
 		const parts2 = org2.split(' ');
 		if (parts1[0]) { filename1 = parts1[0].charAt(0); }
@@ -78,10 +94,14 @@ function ORTHO_RBH() {
 
 }
 
+///////////////////////////////////////////////////////////////////////////////
+
 function ORTHO_RECORD() {
 	this.seq_name = '';
 	this.isoforms = [];
 }
+
+///////////////////////////////////////////////////////////////////////////////
 
 function ORTHOLOGS() {
 	this.cargo = [];
@@ -89,7 +109,8 @@ function ORTHOLOGS() {
 		blast: [],
 		cds: [],
 		isoforms: [],
-		proteins: []
+		proteins: [],
+		rbh: []
 	}
 	this.organisms = [];
 	this.extra_cargo = {
@@ -99,49 +120,28 @@ function ORTHOLOGS() {
 		rbh: []
 	};
 
-	this.add_blast_files = (files) => {
+	this.add_files = (parameter, files) => {
+		const whitelist = ['blast', 'cds', 'isoforms', 'proteins', 'rbh'];
+		if (!whitelist.includes(parameter)) { return; }
 		if (Array.isArray(files)) {
-			this.files.blast = this.files.blast.concat(files);
+			this.files[parameter] = this.files[parameter].concat(files);
 		}
 		else {
 			if (typeof (files) === 'string') {
-				this.files.blast.push(files);
+				this.files[parameter].push(files);
 			}
 		}
 	}
 
-	this.add_cds_files = (files) => {
-		if (Array.isArray(files)) {
-			this.files.cds = this.files.cds.concat(files);
-		}
-		else {
-			if (typeof (files) === 'string') {
-				this.files.cds.push(files);
-			}
-		}
-	}
+	this.add_blast_files = (files) => { this.add_files('blast', files); }
 
-	this.add_isoform_files = (files) => {
-		if (Array.isArray(files)) {
-			this.files.isoforms = this.files.isoforms.concat(files);
-		}
-		else {
-			if (typeof (files) === 'string') {
-				this.files.isoforms.push(files);
-			}
-		}
-	}
+	this.add_cds_files = (files) => { this.add_files('cds', files); }
 
-	this.add_protein_files = (files) => {
-		if (Array.isArray(files)) {
-			this.files.proteins = this.files.proteins.concat(files);
-		}
-		else {
-			if (typeof (files) === 'string') {
-				this.files.proteins.push(files);
-			}
-		}
-	}
+	this.add_isoform_files = (files) => { this.add_files('isoforms', files); }
+
+	this.add_protein_files = (files) => { this.add_files('proteins', files); }
+
+	this.add_rbh_files = (files) => { this.add_files('rbh', files); }
 
 	this.create_blast_records = async () => {
 		if (!this.files.blast.length || !this.extra_cargo.isoforms.length) { return; }
@@ -165,6 +165,7 @@ function ORTHOLOGS() {
 	this.create_isoforms = async () => {
 		// Either load compact isoform files ...
 		if (this.files.isoforms.length) {
+			this.extra_cargo.isoforms = [];
 			for (let i = this.files.isoforms.length - 1; i >= 0; i--) {
 				const isoforms = new ISOFORMS();
 				await isoforms.load_compact_file(this.files.isoforms[i]);
@@ -203,7 +204,20 @@ function ORTHOLOGS() {
 		console.log('DONE!');
 	}
 
-	this.create_rbh_records = () => {
+	this.create_rbh_records = async () => {
+		// Either load RBH files ...
+		if (this.files.rbh.length) {
+			this.extra_cargo.rbh = [];
+			for (let i = this.files.rbh.length - 1; i >= 0; i--) {
+				const rbh = new ORTHO_RBH();
+				await rbh.load_rbh_file(this.files.rbh[i]);
+				this.extra_cargo.rbh.push(rbh);
+				this.files.rbh.splice(i, 1);
+			}
+			this.get_organisms();
+			return;
+		}
+		// ... or create the RBH records from the BLAST records and isoforms.
 		if (!this.extra_cargo.blast.length || !this.extra_cargo.isoforms.length) { return; }
 		for (let i = 0; i < this.extra_cargo.blast.length; i++) {
 			const table = this.extra_cargo.blast[i].cargo;
@@ -214,14 +228,14 @@ function ORTHOLOGS() {
 			const new_rbh = new ORTHO_RBH();
 			new_rbh.organism_col_0 = species1;
 			new_rbh.organism_col_1 = species2;
+			console.log('RBH Table ' + (i + 1) + ' of ' + this.extra_cargo.blast.length + ' : ' + table.length + ' rows');
 			for (let j = 0; j < table.length; j++) {
-				console.log('RBH Table ' + (i + 1) + ' of ' + this.extra_cargo.blast.length + ' : ' + ' Entry ' + (j + 1) + ' of ' + table.length);
 				const group1 = isoforms1.get_group_numbers_by_accession(table[j][0]);
 				const group2 = isoforms2.get_group_numbers_by_accession(table[j][1]);
 				if (group1.length && group2.length) { new_rbh.cargo.push([group1[0], group2[0]]) }
 			}
 			new_rbh.cargo = Array.from(new Set(new_rbh.cargo.map(JSON.stringify)), JSON.parse);
-			new_rbh.save_as('iso_rbh');
+			await new_rbh.save_as('iso_rbh');
 			this.extra_cargo.rbh.push(new_rbh);
 		}
 		this.extra_cargo.blast = [];
@@ -229,16 +243,25 @@ function ORTHOLOGS() {
 
 	this.get_organisms = () => {
 		const isoforms = this.extra_cargo.isoforms;
+		const rbh = this.extra_cargo.rbh;
 		if (isoforms.length) {
 			const species = [];
 			for (let i = 0; i < isoforms.length; i++) { species.push(isoforms[i].organism); }
 			this.organisms = Array.from(new Set(species));
-			this.organisms.sort((a, b) => {
-				if (a < b) { return -1; }
-				if (a > b) { return 1; }
-				return 0;
-			})
 		}
+		else if (rbh.length) {
+			const species = [];
+			for (let i = 0; i < rbh.length; i++) {
+				species.push(rbh[i].organism_col_0);
+				species.push(rbh[i].organism_col_1);
+			}
+			this.organisms = Array.from(new Set(species));
+		}
+		this.organisms.sort((a, b) => {
+			if (a < b) { return -1; }
+			if (a > b) { return 1; }
+			return 0;
+		});
 		return this.organisms;
 	}
 

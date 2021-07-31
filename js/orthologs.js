@@ -162,20 +162,32 @@ function ORTHOLOGS() {
 		}
 	}
 
-	this.create_isoforms = async () => {
-		// Either load compact isoform files ...
-		if (this.files.isoforms.length) {
-			this.extra_cargo.isoforms = [];
-			for (let i = this.files.isoforms.length - 1; i >= 0; i--) {
-				const isoforms = new ISOFORMS();
-				await isoforms.load_compact_file(this.files.isoforms[i]);
-				this.extra_cargo.isoforms.push(isoforms);
-				this.files.isoforms.splice(i, 1);
+	this.create_initial_graphs = () => {
+		if (!this.extra_cargo.rbh.length) { return; }
+		this.get_organisms();
+		if (!this.organisms[0] || !this.organisms[1]) { return; }
+		const species1 = this.organisms[0];
+		const species2 = this.organisms[1];
+		const table = this.extra_cargo.rbh.find((x) => { return x.organism_col_0 === species1 && x.organism_col_1 === species2; }).cargo;
+		for (let t = 0; t < table.length; t++) {
+			const matrix = new Array(this.organisms.length);
+			for (let m = 0; m < matrix.length; m++) {
+				matrix[m] = new Array(this.organisms.length);
+				for (let n = 0; n < matrix[m].length; n++) {
+					matrix[m][n] = { i: -1, j: -1 };
+				}
 			}
-			this.get_organisms();
+			matrix[0][1].i = table[t][0];
+			matrix[0][1].j = table[t][1];
+			this.extra_cargo.graphs.push(matrix);
+		}
+	}
+
+	this.create_isoforms = async () => {
+		if (this.files.isoforms.length) {
+			await this.load_compact_isoform_files();
 			return;
 		}
-		// ... or load cds and protein FASTA files, and then construct isoforms
 		if (!this.files.cds.length || !this.files.proteins.length) { return; }
 		for (let i = this.files.cds.length - 1; i >= 0; i--) {
 			const isoforms = new ISOFORMS();
@@ -205,19 +217,10 @@ function ORTHOLOGS() {
 	}
 
 	this.create_rbh_records = async () => {
-		// Either load RBH files ...
 		if (this.files.rbh.length) {
-			this.extra_cargo.rbh = [];
-			for (let i = this.files.rbh.length - 1; i >= 0; i--) {
-				const rbh = new ORTHO_RBH();
-				await rbh.load_rbh_file(this.files.rbh[i]);
-				this.extra_cargo.rbh.push(rbh);
-				this.files.rbh.splice(i, 1);
-			}
-			this.get_organisms();
+			await this.load_rbh_files();
 			return;
 		}
-		// ... or create the RBH records from the BLAST records and isoforms.
 		if (!this.extra_cargo.blast.length || !this.extra_cargo.isoforms.length) { return; }
 		for (let i = 0; i < this.extra_cargo.blast.length; i++) {
 			const table = this.extra_cargo.blast[i].cargo;
@@ -265,27 +268,45 @@ function ORTHOLOGS() {
 		return this.organisms;
 	}
 
-	// undocumented methods
-	this.create_initial_graphs = () => {
-		const organisms = this.get_organisms();
-		if (!organism[0] || !organism[1]) { return; }
-		const species1 = organisms[0];
-		const species2 = organisms[1];
-		const table = this.extra_cargo.rbh.find((x) => { return x.organism_col_0 === species1 && x.organism_col_1 === species2; }).table;
-		for (let t = 0; t < table.length; t++) {
-			console.log('Initializing graphs: ' + (t + 1) + ' of ' + table.length);
-			const matrix = new Array(this.organisms.length);
-			for (let m = 0; m < matrix.length; m++) {
-				matrix[m] = new Array(this.organisms.length);
-				for (let n = 0; n < matrix[m].length; j++) {
-					matrix[m][n] = { i: -1, j: -1 };
-				}
+	this.load_compact_isoform_files = async (path) => {
+		if (typeof (path) !== 'string') { path = ''; }
+		if (path) {
+			const path_record = await pather.parse(path);
+			const full_path = await path_record.get_full_path();
+			this.add_isoform_files(full_path);
+		}
+		if (this.files.isoforms.length) {
+			this.extra_cargo.isoforms = [];
+			for (let i = this.files.isoforms.length - 1; i >= 0; i--) {
+				const isoforms = new ISOFORMS();
+				await isoforms.load_compact_isoform_file(this.files.isoforms[i]);
+				this.extra_cargo.isoforms.push(isoforms);
+				this.files.isoforms.splice(i, 1);
 			}
-			matrix[0][1].i = table[t][0];
-			matrix[0][1].j = table[t][1];
-			this.extra_cargo.graphs.push(matrix);
+			this.get_organisms();
 		}
 	}
+
+	this.load_rbh_files = async (path) => {
+		if (typeof (path) !== 'string') { path = ''; }
+		if (path) {
+			const path_record = await pather.parse(path);
+			const full_path = await path_record.get_full_path();
+			this.add_rbh_files(full_path);
+		}
+		if (this.files.rbh.length) {
+			this.extra_cargo.rbh = [];
+			for (let i = this.files.rbh.length - 1; i >= 0; i--) {
+				const rbh = new ORTHO_RBH();
+				await rbh.load_rbh_file(this.files.rbh[i]);
+				this.extra_cargo.rbh.push(rbh);
+				this.files.rbh.splice(i, 1);
+			}
+			this.get_organisms();
+		}
+	}
+
+	/////////////////////////////////////////////////////////////////////////////
 
 	this.__filter_rbh_by_hits = () => {
 		for (let i = 0; i < this.extra_cargo.rbh.length; i++) {
@@ -368,38 +389,6 @@ function ORTHOLOGS() {
 			g++;
 		}
 		this.extra_cargo.rbh = [];
-	}
-
-	this.__match_organisms = () => {
-		if (this.extra_cargo.blast.length && this.extra_cargo.isoforms.length) {
-			for (let i = 0; i < this.extra_cargo.blast.length; i++) {
-				const col_0 = this.extra_cargo.blast[i].table[0][0];
-				const col_1 = this.extra_cargo.blast[i].table[0][1];
-				for (let j = 0; j < this.extra_cargo.isoforms.length; j++) {
-					if (this.extra_cargo.isoforms[j].includes_accession(col_0)) {
-						this.extra_cargo.blast[i].organism_col_0 = this.extra_cargo.isoforms[j].organism;
-						if (!this.organisms.includes(this.extra_cargo.blast[i].organism_col_0)) {
-							this.organisms.push(this.extra_cargo.blast[i].organism_col_0);
-						}
-					}
-					if (this.extra_cargo.isoforms[j].includes_accession(col_1)) {
-						this.extra_cargo.blast[i].organism_col_1 = this.extra_cargo.isoforms[j].organism;
-						if (!this.organisms.includes(this.extra_cargo.blast[i].organism_col_1)) {
-							this.organisms.push(this.extra_cargo.blast[i].organism_col_1);
-						}
-					}
-				}
-			}
-			this.organisms.sort((a, b) => {
-				if (a < b) { return -1; }
-				if (a > b) { return 1; }
-				return 0;
-			});
-			this.__create_rbh();
-			this.__filter_rbh_by_hits();
-			this.__create_initial_graphs();
-			this.__finish_graphs();
-		}
 	}
 
 }

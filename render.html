@@ -84,6 +84,7 @@
 							orthologs.add_blast_files(arg.data.filePaths);
 							await orthologs.create_blast_records();
 							await orthologs.create_rbh_records();
+							orthologs.create_initial_graphs();
 							console.log(orthologs);
 						}
 						break;
@@ -96,6 +97,7 @@
 								await orthologs.create_isoforms();
 								await orthologs.create_blast_records();
 								await orthologs.create_rbh_records();
+								orthologs.create_initial_graphs();
 								console.log(orthologs);
 							}
 						}
@@ -108,6 +110,7 @@
 							await orthologs.create_isoforms();
 							await orthologs.create_blast_records();
 							await orthologs.create_rbh_records();
+							orthologs.create_initial_graphs();
 							console.log(orthologs);
 						}
 						break;
@@ -120,6 +123,7 @@
 								await orthologs.create_isoforms();
 								await orthologs.create_blast_records();
 								await orthologs.create_rbh_records();
+								orthologs.create_initial_graphs();
 								console.log(orthologs);
 							}
 						}
@@ -130,6 +134,7 @@
 						if (arg.data && arg.data.filePaths.length) {
 							orthologs.add_rbh_files(arg.data.filePaths);
 							await orthologs.create_rbh_records();
+							orthologs.create_initial_graphs();
 							console.log(orthologs);
 						}
 						break;

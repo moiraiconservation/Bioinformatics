@@ -372,7 +372,7 @@ function ISOFORMS() {
 		return false;
 	}
 
-	this.load_compact_file = async (path) => {
+	this.load_compact_isoform_file = async (path) => {
 		if (typeof (path) !== 'string') { path = ''; }
 		const path_record = await pather.parse(path);
 		const full_path = await path_record.get_full_path();

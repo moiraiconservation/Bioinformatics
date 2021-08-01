@@ -162,8 +162,83 @@ function ORTHOLOGS() {
 		}
 	}
 
+	this.create_final_graphs = () => {
+		if (!this.extra_cargo.graphs.length || !this.extra_cargo.rbh.length) { return; }
+		let g = 0;
+		while (g < this.extra_cargo.graphs.length) {
+			const matrix = this.extra_cargo.graphs[g];
+			// find first empty matrix cell
+			let start_i = Infinity;
+			let start_j = Infinity;
+			loop1:
+			for (let m = 0; m < matrix.length - 1; m++) {
+				for (let n = m + 1; n < matrix[m].length; n++) {
+					if (matrix[m][n].i === -1 && matrix[m][n].j === -1) {
+						start_i = m;
+						start_j = n;
+						break loop1;
+					}
+				}
+			}
+			if (start_i !== Infinity && start_j !== Infinity) {
+				loop2:
+				for (let i = start_i; i < matrix.length - 1; i++) {
+					if (i > start_i) { start_j = i + 1; }
+					for (let j = start_j; j < matrix[i].length; j++) {
+						const species1 = this.organisms[i];
+						const species2 = this.organisms[j];
+						const table = this.extra_cargo.rbh.find((x) => { return x.organism_col_0 === species1 && x.organism_col_1 === species2; }).cargo;
+						// keep the orthologs consistent with those already recorded in
+						//	the current matrix
+						let match_i = -1;
+						let match_j = -1;
+						if (j > i + 1) { match_i = matrix[i][i + 1].i; }
+						if (i > 0) { match_j = matrix[0][j].j; }
+						// find ALL consistent orthologs
+						let match = [];
+						if (match_i > -1 && match_j > -1) {
+							match = table.filter((x) => { return x[0] === match_i && x[1] === match_j; });
+						}
+						else if (match_i > -1) { match = table.filter((x) => { return x[0] === match_i; }); }
+						else if (match_j > -1) { match = table.filter((x) => { return x[1] === match_j; }); }
+						if (match.length) {
+							for (let k = 1; k < match.length; k++) {
+								// There are multiple compatible RBHs.  Create a new graph
+								//	for each possibility and and them to the cargo.
+								const new_matrix = JSON.parse(JSON.stringify(matrix));
+								new_matrix[i][j].i = match[k][0];
+								new_matrix[i][j].j = match[k][1];
+								this.extra_cargo.graphs.push(new_matrix);
+							}
+							matrix[i][j].i = match[0][0];
+							matrix[i][j].j = match[0][1];
+							this.extra_cargo.graphs[g] = matrix;
+						}
+						else { break loop2; }
+					}
+				}
+			}
+			g++;
+		}
+		// remove incomplete graphs
+		for (let g = this.extra_cargo.graphs.length - 1; g >= 0; g--) {
+			const matrix = this.extra_cargo.graphs[g];
+			loop3:
+			for (let m = 0; m < matrix.length - 1; m++) {
+				for (let n = m + 1; n < matrix[m].length; n++) {
+					if (matrix[m][n].i === -1 || matrix[m][n].j === -1) {
+						this.extra_cargo.graphs.splice(g, 1);
+						break loop3;
+					}
+				}
+			}
+		}
+		this.extra_cargo.rbh = [];
+	}
+
 	this.create_initial_graphs = () => {
 		if (!this.extra_cargo.rbh.length) { return; }
+		this.extra_cargo.graphs = [];
 		this.get_organisms();
 		if (!this.organisms[0] || !this.organisms[1]) { return; }
 		const species1 = this.organisms[0];
@@ -219,6 +294,7 @@ function ORTHOLOGS() {
 	this.create_rbh_records = async () => {
 		if (this.files.rbh.length) {
 			await this.load_rbh_files();
+			this.filter_rbh_by_hits();
 			return;
 		}
 		if (!this.extra_cargo.blast.length || !this.extra_cargo.isoforms.length) { return; }
@@ -241,7 +317,30 @@ function ORTHOLOGS() {
 			await new_rbh.save_as('iso_rbh');
 			this.extra_cargo.rbh.push(new_rbh);
 		}
+		this.filter_rbh_by_hits();
 		this.extra_cargo.blast = [];
+	}
+
+	this.filter_rbh_by_hits = () => {
+		if (!this.extra_cargo.rbh.length) { return; }
+		for (let i = 0; i < this.extra_cargo.rbh.length; i++) {
+			const species1 = this.extra_cargo.rbh[i].organism_col_0;
+			const species2 = this.extra_cargo.rbh[i].organism_col_1;
+			const table1 = this.extra_cargo.rbh[i].cargo;
+			const table2 = this.extra_cargo.rbh.find((x) => { return (x.organism_col_0 === species2) && (x.organism_col_1 === species1); }).table;
+			if (table1 && table2) {
+				for (let j = table1.length - 1; j >= 0; j--) {
+					const group1_1 = table1[j][0];
+					const group1_2 = table1[j][1];
+					const table2_row = table2.findIndex((x) => { return (x[0] === group1_2) && (x[1] === group1_1); });
+					if (table2_row < 0) {
+						// this is not a reciprocal best hit, so remove it from table1
+						table1.splice(j, 1);
+					}
+				}
+			}
+			this.extra_cargo.rbh[i].table = table1;
+		}
 	}
 
 	this.get_organisms = () => {
@@ -307,88 +406,5 @@ function ORTHOLOGS() {
 	}
 
 	/////////////////////////////////////////////////////////////////////////////
-
-	this.__filter_rbh_by_hits = () => {
-		for (let i = 0; i < this.extra_cargo.rbh.length; i++) {
-			const species1 = this.extra_cargo.rbh[i].organism_col_0;
-			const species2 = this.extra_cargo.rbh[i].organism_col_1;
-			const table1 = this.extra_cargo.rbh[i].table;
-			const table2 = this.extra_cargo.rbh.find((x) => { return (x.organism_col_0 === species2) && (x.organism_col_1 === species1); }).table;
-			if (table1 && table2) {
-				for (let j = table1.length - 1; j >= 0; j--) {
-					console.log('Filtering RBHs ' + j + ' of ' + table1.length);
-					const group1_1 = table1[j][0];
-					const group1_2 = table1[j][1];
-					const table2_row = table2.findIndex((x) => { return (x[0] === group1_2) && (x[1] === group1_1); });
-					if (table2_row < 0) {
-						// this is not a reciprocal best hit, so remove it from table1
-						table1.splice(j, 1);
-					}
-				}
-			}
-			this.extra_cargo.rbh[i].table = table1;
-		}
-	}
-
-	this.__finish_graphs = () => {
-		let g = 0;
-		while (g < this.graphs.length) {
-			console.log('Finishing Graphs: ' + (g + 1) + ' of ' + this.graphs.length);
-			const matrix = this.graphs[g];
-			// find first empty matrix cell
-			let start_i = Infinity;
-			let start_j = Infinity;
-			loop1:
-			for (let m = 0; m < matrix.length - 1; m++) {
-				for (let n = m + 1; n < matrix[m].length; n++) {
-					if (matrix[m][n].i === -1 && matrix[m][n].j === -1) {
-						start_i = m;
-						start_j = n;
-						break loop1;
-					}
-				}
-			}
-			if (start_i !== Infinity && start_j !== Infinity) {
-				loop2:
-				for (let i = start_i; i < matrix.length - 1; i++) {
-					if (i > start_i) { start_j = i + 1; }
-					for (let j = start_j; j < matrix[i].length; j++) {
-						const species1 = this.organisms[i];
-						const species2 = this.organisms[j];
-						const table = this.rbh.find((x) => { return x.organism_col_0 === species1 && x.organism_col_1 === species2; }).table;
-						// keep the orthologs consistent with those already recorded in
-						//	the current matrix
-						let match_i = -1;
-						let match_j = -1;
-						if (j > 1 + 1) { match_i = matrix[i][i + 1].i; }
-						if (i > 0) { match_j = matrix[0][j].j; }
-						// find ALL consistent orthologs
-						let match = [];
-						if (match_i > -1 && match_j > -1) {
-							match = table.filter((x) => { return x[0] === match_i && x[1] === match_j; });
-						}
-						else if (match_i > -1) { match = table.filter((x) => { return x[0] === match_i; }); }
-						else if (match_j > -1) { match = table.filter((x) => { return x[1] === match_j; }); }
-						if (match.length) {
-							for (let k = 1; k < match.length; k++) {
-								// There are multiple compatible RBHs.  Create a new graph
-								//	for each possibility and and them to the cargo.
-								const new_matrix = JSON.parse(JSON.stringify(matrix));
-								new_matrix[i][j].i = match[k].i;
-								new_matrix[i][j].j = match[k].j;
-								this.extra_cargo.graphs.push(new_matrix);
-							}
-							matrix[i][j].i = match[0].i;
-							matrix[i][j].j = match[0].j;
-							this.graphs[g] = matrix;
-						}
-						else { break loop2; }
-					}
-				}
-			}
-			g++;
-		}
-		this.extra_cargo.rbh = [];
-	}
 
 }

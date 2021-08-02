@@ -695,6 +695,7 @@ function SEQUENCES() {
 
 	this.get_consensus = (parameter) => {
 		const v_list = this.get_unique(parameter);
+		if (v_list.length === 1) { return v_list[0]; }
 		const p_list = [];
 		for (let i = 0; i < v_list.length; i++) {
 			const quant = this.cargo.filter((v) => { return v.info[parameter] === v_list[i]; }).length;
@@ -726,6 +727,8 @@ function SEQUENCES() {
 	this.get_consensus_sequence_type = () => { return this.get_consensus('seq_type'); }
 
 	this.get_consensus_status = () => { return this.get_consensus('status'); }
+
+	this.get_number_of_records = () => { return this.cargo.length; }
 
 	this.get_sequence_type = () => {
 		const types = [];

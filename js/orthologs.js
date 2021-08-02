@@ -457,9 +457,13 @@ function ORTHO_RECORD() {
 				quant = this.isoforms.filter((v) => { return v.organism === v_list[i]; }).length;
 			}
 			else {
-				quant = this.isoforms.filter((v) => { return v.cargo[0][parameter] === v_list[i]; }).length;
+				let quant = 0;
+				for (let j = 0; j < this.isoforms.length; j++) {
+					const filtered = this.isoforms[j].filter_by(parameter, v_list[i]);
+					quant += filtered.get_number_of_records();
+				}
+				p_list.push({ parameter: v_list[i], quant: quant });
 			}
-			p_list.push({ parameter: v_list[i], quant: quant });
 		}
 		p_list.sort((a, b) => { return b.quant - a.quant; });
 		if (p_list.length && p_list[0].parameter) { return p_list[0].parameter; }
@@ -500,6 +504,8 @@ function ORTHO_RECORD() {
 function ORTHOLOGS() {
 
 	this.cargo = [];
+
+	this.get_number_of_records = () => { return this.cargo.length; }
 
 }
 

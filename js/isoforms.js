@@ -121,7 +121,7 @@ function ISOFORMS() {
 					}
 				}
 				else if (x instanceof ISO_RECORD_COMPACT) {
-					const whitelist = ['group', 'gene', 'protein'];
+					const whitelist = ['group', 'gene', 'seq_name'];
 					if (whitelist.includes(parameter)) {
 						if (x[parameter]) { return x[parameter] === filter; }
 						else { return false; }
@@ -173,6 +173,7 @@ function ISOFORMS() {
 
 	this.get_consensus = (parameter) => {
 		const v_list = this.get_unique(parameter);
+		if (v_list.length === 1) { return v_list[0]; }
 		const p_list = [];
 		for (let i = 0; i < v_list.length; i++) {
 			const filtered = this.filter_by(parameter, v_list[i]);
@@ -272,6 +273,8 @@ function ISOFORMS() {
 	this.get_index_by_sequence_type = (filter) => { return this.get_index_by('seq_type', filter); }
 
 	this.get_index_by_status = (filter) => { return this.get_index_by('status', filter); }
+
+	this.get_number_of_records = () => { return this.cargo.length; }
 
 	this.get_sequences = () => {
 		const sequences = new SEQUENCES();

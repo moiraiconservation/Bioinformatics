@@ -131,8 +131,7 @@ function ISOFORMS() {
 				else { return false; }
 			});
 		}
-		const organisms = new_isoforms.get_unique_organism_names();
-		if (organisms.length) { new_isoforms.organism = organisms[0]; }
+		new_isoforms.organism = this.organism;
 		return new_isoforms;
 	}
 
@@ -298,11 +297,10 @@ function ISOFORMS() {
 				}
 			}
 			else if (x instanceof ISO_RECORD_COMPACT) {
-				const whitelist = ['group', 'gene', 'protein'];
+				const whitelist = ['group', 'gene', 'seq_name'];
 				if (whitelist.includes(parameter)) { arr.push(x[parameter]); }
 				else if (parameter === 'accession') {
-					arr = arr.concat(Array.from(new Set(x.gene_accessions)));
-					arr = arr.concat(Array.from(new Set(x.protein_accessions)));
+					arr = arr.concat(Array.from(new Set(x.accessions)));
 				}
 			}
 		}

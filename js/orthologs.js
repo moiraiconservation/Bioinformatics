@@ -230,6 +230,46 @@ function ORTHO_CREATOR() {
 		console.log('DONE!');
 	}
 
+	this.create_orthologs_from_graphs = () => {
+		const orthologs = new ORTHOLOGS();
+		if (!this.cargo.graphs.length || !this.cargo.isoforms.length) { return orthologs; }
+		console.log(this.cargo.graphs.length);
+		for (let g = 0; g < this.cargo.graphs.length; g++) {
+			console.log('looping');
+			const matrix = this.cargo.graphs[g];
+			const species = new Array(matrix.length);
+			for (let i = 0; i < species.length; i++) { species[i] = []; }
+			for (let m = 0; m < matrix.length - 1; m++) {
+				for (let n = m + 1; n < matrix[m].length; n++) {
+					species[m].push(matrix[m][n].i);
+					species[n].push(matrix[m][n].j);
+				}
+			}
+			const record = new ORTHO_RECORD();
+			for (let i = 0; i < species.length; i++) {
+				species[i] = Array.from(new Set(species[i]));
+				if (species[i].length === 1) {
+					const isoforms = this.cargo.isoforms.filter((x) => { return x.organism === this.organisms[i]; });
+					if (isoforms.length && isoforms[0].is_loaded()) {
+						const group = isoforms[0].filter_by_group_number(species[i][0]);
+						if (group.cargo.length === 1) { record.isoforms.push(group); }
+					}
+				}
+			}
+			if (record.isoforms.length === this.organisms.length) {
+				record.gene = record.get_consensus_gene_name();
+				record.seq_name = record.get_consensus_sequence_name();
+				orthologs.cargo.push(record);
+			}
+			orthologs.cargo.sort((a, b) => {
+				if (a.gene < b.gene) { return -1; }
+				if (a.gene > b.gene) { return 1; }
+				return 0;
+			});
+		}
+		return orthologs;
+	}
+
 	this.create_rbh_records = async () => {
 		if (this.files.rbh.length) {
 			await this.load_rbh_files();
@@ -396,6 +436,70 @@ function ORTHO_RBH() {
 		if (parts2[1]) { filename2 += '_' + parts2[1]; }
 		return filename1 + '_to_' + filename2;
 	}
+
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+function ORTHO_RECORD() {
+
+	this.gene = '';
+	this.isoforms = [];
+	this.seq_name = '';
+
+	this.get_consensus = (parameter) => {
+		const v_list = this.get_unique(parameter);
+		if (v_list.length === 1) { return v_list[0]; }
+		const p_list = [];
+		for (let i = 0; i < v_list.length; i++) {
+			let quant = 0;
+			if (parameter === 'organism') {
+				quant = this.isoforms.filter((v) => { return v.organism === v_list[i]; }).length;
+			}
+			else {
+				quant = this.isoforms.filter((v) => { return v.cargo[0][parameter] === v_list[i]; }).length;
+			}
+			p_list.push({ parameter: v_list[i], quant: quant });
+		}
+		p_list.sort((a, b) => { return b.quant - a.quant; });
+		if (p_list.length && p_list[0].parameter) { return p_list[0].parameter; }
+		return '';
+	}
+
+	this.get_consensus_accession = () => { return this.get_consensus('accession'); }
+
+	this.get_consensus_gene_name = () => { return this.get_consensus('gene'); }
+
+	this.get_consensus_organism_name = () => { return this.get_consensus('organism'); }
+
+	this.get_consensus_sequence_name = () => { return this.get_consensus('seq_name'); }
+
+	this.get_unique = (parameter) => {
+		let arr = [];
+		for (let i = 0; i < this.isoforms.length; i++) {
+			if (parameter === 'organism') { arr.push(this.isoforms[i].organism);  }
+			else {
+				arr = arr.concat(this.isoforms[i].get_unique(parameter));
+			}
+		}
+		return Array.from(new Set(arr));
+	}
+
+	this.get_unique_accessions = () => { return this.get_unique('accession'); }
+
+	this.get_unique_gene_names = () => { return this.get_unique('gene'); }
+
+	this.get_unique_organism_names = () => { return this.get_unique('organism'); }
+
+	this.get_unique_sequence_names = () => { return this.get_unique('seq_name'); }
+
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+function ORTHOLOGS() {
+
+	this.cargo = [];
 
 }
 

@@ -69,8 +69,9 @@
 		///////////////////////////////////////////////////////////////////////////
 		// VARIABLES //////////////////////////////////////////////////////////////
 
-		var app_storage;
+		var app_storage, orthologs;
 		wrapper.get_app_storage().then((result) => { app_storage = result; });
+		ortho_creator.options.trust_defline = true;
 
 		///////////////////////////////////////////////////////////////////////////
 		// IPC COMMUNICATION //////////////////////////////////////////////////////
@@ -82,12 +83,7 @@
 					case 'open_blast': {
 						if (arg.data && arg.data.filePaths.length) {
 							ortho_creator.add_blast_files(arg.data.filePaths);
-							await ortho_creator.create_blast_records();
-							await ortho_creator.create_rbh_records();
-							ortho_creator.create_initial_graphs();
-							ortho_creator.create_final_graphs();
-							//console.log(ortho_creator);
-							const orthologs = ortho_creator.create_orthologs_from_graphs();
+							orthologs = await ortho_creator.create();
 							console.log(orthologs);
 						}
 						break;
@@ -96,16 +92,8 @@
 					case 'open_cds': {
 						if (arg.data && arg.data.filePaths.length) {
 							ortho_creator.add_cds_files(arg.data.filePaths);
-							if (ortho_creator.files.cds.length && ortho_creator.files.proteins.length) {
-								await ortho_creator.create_isoforms();
-								await ortho_creator.create_blast_records();
-								await ortho_creator.create_rbh_records();
-								ortho_creator.create_initial_graphs();
-								ortho_creator.create_final_graphs();
-								//console.log(ortho_creator);
-								const orthologs = ortho_creator.create_orthologs_from_graphs();
-								console.log(orthologs);
-							}
+							orthologs = await ortho_creator.create();
+							console.log(orthologs);
 						}
 						break;
 					}
@@ -113,13 +101,7 @@
 					case 'open_compact_isoforms': {
 						if (arg.data && arg.data.filePaths.length) {
 							ortho_creator.add_isoform_files(arg.data.filePaths);
-							await ortho_creator.create_isoforms();
-							await ortho_creator.create_blast_records();
-							await ortho_creator.create_rbh_records();
-							ortho_creator.create_initial_graphs();
-							ortho_creator.create_final_graphs();
-							//console.log(ortho_creator);
-							const orthologs = ortho_creator.create_orthologs_from_graphs();
+							orthologs = await ortho_creator.create();
 							console.log(orthologs);
 						}
 						break;
@@ -128,17 +110,8 @@
 					case 'open_protein': {
 						if (arg.data && arg.data.filePaths.length) {
 							ortho_creator.add_protein_files(arg.data.filePaths);
-							if (ortho_creator.files.cds.length && ortho_creator.files.proteins.length) {
-								await ortho_creator.create_isoforms();
-								await ortho_creator.create_blast_records();
-								await ortho_creator.create_rbh_records();
-								ortho_creator.create_initial_graphs();
-								ortho_creator.create_final_graphs();
-								//console.log(ortho_creator);
-								const orthologs = ortho_creator.create_orthologs_from_graphs();
-								console.log(orthologs);
-
-							}
+							orthologs = await ortho_creator.create();
+							console.log(orthologs);
 						}
 						break;
 					}
@@ -146,11 +119,7 @@
 					case 'open_rbh': {
 						if (arg.data && arg.data.filePaths.length) {
 							ortho_creator.add_rbh_files(arg.data.filePaths);
-							await ortho_creator.create_rbh_records();
-							ortho_creator.create_initial_graphs();
-							ortho_creator.create_final_graphs();
-							//console.log(ortho_creator);
-							const orthologs = ortho_creator.create_orthologs_from_graphs();
+							orthologs = await ortho_creator.create();
 							console.log(orthologs);
 						}
 						break;

@@ -57,6 +57,9 @@ function ORTHO_CREATOR() {
 		proteins: [],
 		rbh: []
 	}
+	this.options = {
+		trust_defline: false
+	};
 	this.organisms = [];
 
 	this.add_files = (parameter, files) => {
@@ -81,6 +84,24 @@ function ORTHO_CREATOR() {
 	this.add_protein_files = (files) => { this.add_files('proteins', files); }
 
 	this.add_rbh_files = (files) => { this.add_files('rbh', files); }
+
+	this.create = async () => {
+		if (this.is_ready()) {
+			if (this.options.trust_defline) {
+				await this.create_isoforms();
+				return this.create_orthologs_from_isoforms();
+			}
+			else {
+				await this.create_isoforms();
+				await this.create_blast_records();
+				await this.create_rbh_records();
+				this.create_initial_graphs();
+				this.create_final_graphs();
+				return this.create_orthologs_from_graphs();
+			}
+		}
+		return new ORTHOLOGS();
+	}
 
 	this.create_blast_records = async () => {
 		if (!this.files.blast.length || !this.cargo.isoforms.length) { return; }
@@ -261,12 +282,38 @@ function ORTHO_CREATOR() {
 				record.seq_name = record.get_consensus_sequence_name();
 				orthologs.cargo.push(record);
 			}
-			orthologs.cargo.sort((a, b) => {
-				if (a.gene < b.gene) { return -1; }
-				if (a.gene > b.gene) { return 1; }
-				return 0;
-			});
 		}
+		orthologs.cargo.sort((a, b) => {
+			if (a.gene < b.gene) { return -1; }
+			if (a.gene > b.gene) { return 1; }
+			return 0;
+		});
+		return orthologs;
+	}
+
+	this.create_orthologs_from_isoforms = () => {
+		const orthologs = new ORTHOLOGS();
+		if (!this.cargo.isoforms.length) { return orthologs; }
+		const unique = this.cargo.isoforms[0].get_unique_gene_names();
+		console.log(unique.length);
+		for (let i = 0; i < unique.length; i++) {
+			console.log('looping');
+			const record = new ORTHO_RECORD();
+			for (let j = 0; j < this.cargo.isoforms.length; j++) {
+				const group = this.cargo.isoforms[j].filter_by_gene_name(unique[i]);
+				if (group.cargo.length) { record.isoforms.push(group); }
+			}
+			if (record.isoforms.length === this.organisms.length) {
+				record.gene = record.get_consensus_gene_name();
+				record.seq_name = record.get_consensus_sequence_name();
+				orthologs.cargo.push(record);
+			}
+		}
+		orthologs.cargo.sort((a, b) => {
+			if (a.gene < b.gene) { return -1; }
+			if (a.gene > b.gene) { return 1; }
+			return 0;
+		});
 		return orthologs;
 	}
 
@@ -344,6 +391,13 @@ function ORTHO_CREATOR() {
 			return 0;
 		});
 		return this.organisms;
+	}
+
+	this.is_ready =() => {
+		let ready = true;
+		if ((!this.files.cds.length || !this.files.proteins.length) && (!this.files.isoforms.length)) { ready = false; }
+		if (!this.options.trust_defline) { if (!this.files.blast.length && !this.files.rbh.length) { ready = false; } }
+		return ready;
 	}
 
 	this.load_compact_isoform_files = async (path) => {

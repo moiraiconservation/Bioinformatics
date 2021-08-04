@@ -59,7 +59,6 @@ function ORTHO_CREATOR() {
 	}
 	this.options = {
 		clean_sequences: true,
-		force_consensus: true,
 		trust_defline: false
 	};
 	this.organisms = [];
@@ -119,6 +118,7 @@ function ORTHO_CREATOR() {
 	this.clear_rbh_files = () => { this.files.rbh = []; }
 
 	this.create = async () => {
+		console.log('Creating orthologs');
 		if (this.is_ready()) {
 			if (this.options.trust_defline) {
 				await this.create_isoforms();
@@ -323,10 +323,6 @@ function ORTHO_CREATOR() {
 		});
 		this.clear();
 		this.clear_files();
-		if (this.options.force_consensus) {
-			orthologs.set_all_gene_names_to_consensus();
-			orthologs.set_all_sequence_names_to_consensus();
-		}
 		return orthologs;
 	}
 
@@ -355,9 +351,6 @@ function ORTHO_CREATOR() {
 		});
 		this.clear();
 		this.clear_files();
-		if (this.options.force_consensus) {
-			orthologs.set_all_sequence_names_to_consensus();
-		}
 		return orthologs;
 	}
 
@@ -598,7 +591,10 @@ function ORTHO_RECORD() {
 	this.set_all = (parameter, value) => {
 		if (!parameter || typeof (parameter) !== 'string') { return; }
 		for (let i = 0; i < this.isoforms.length; i++) {
-			this.isoforms[i].cargo[0].set(parameter, value);
+			for (let j = 0; j < this.isoforms[i].cargo.length; j++) {
+				this.isoforms[i].cargo[j].set(parameter, value);
+				this.isoforms[i].cargo[j][parameter] = value;
+			}
 		}
 	}
 
@@ -667,30 +663,6 @@ function ORTHOLOGS() {
 	this.is_loaded = () => {
 		if (this.cargo.length) { return true; }
 		return false;
-	}
-
-	this.set_all_gene_names_to_consensus = () => { this.set_all_to_consensus('gene'); }
-
-	this.set_all_sequence_names_to_consensus = () => { this.set_all_to_consensus('seq_name'); }
-
-	this.set_all_to_consensus = (parameter) => {
-		if (!parameter || typeof (parameter) !== 'string') { return; }
-		for (let i = 0; i < this.cargo.length; i++) {
-			const value = this.cargo[i].get_consensus(parameter);
-			this.cargo[i].set_all(parameter, value);
-		}
-	}
-
-	this.set_gene_name_to_consensus = () => { this.set_to_consensus('gene'); }
-
-	this.set_sequence_name_to_consensus = () => { this.set_to_consensus('seq_name'); }
-
-	this.set_to_consensus = (parameter) => {
-		if (!parameter || typeof (parameter) !== 'string') { return; }
-		for (let i = 0; i < this.cargo.length; i++) {
-			const value = this.cargo[i].get_consensus(parameter);
-			this.cargo[i].set(parameter, value);
-		}
 	}
 
 }

@@ -58,7 +58,9 @@ function ISO_RECORD_COMPACT() {
 	this.set = (parameter, value) => {
 		if (!parameter || typeof (parameter) !== 'string') { return; }
 		const whitelist = ['accessions', 'group', 'gene', 'seq_name'];
-		if (whitelist.includes(parameter)) { this[parameter] = value; }
+		if (whitelist.includes(parameter)) {
+			this[parameter] = value;
+		}
 	}
 
 }

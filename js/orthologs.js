@@ -58,6 +58,7 @@ function ORTHO_CREATOR() {
 		rbh: []
 	}
 	this.options = {
+		clean_sequences: true,
 		trust_defline: false
 	};
 	this.organisms = [];
@@ -226,6 +227,7 @@ function ORTHO_CREATOR() {
 		if (!this.files.cds.length || !this.files.proteins.length) { return; }
 		for (let i = this.files.cds.length - 1; i >= 0; i--) {
 			const isoforms = new ISOFORMS();
+			isoforms.options.clean_sequences = this.options.clean_sequences;
 			console.log('Loading CDS file.');
 			await isoforms.load_cds_fasta_file(this.files.cds[i]);
 			for (let j = this.files.proteins.length - 1; j >= 0; j--) {
@@ -560,6 +562,26 @@ function ORTHOLOGS() {
 	this.cargo = [];
 
 	this.get_number_of_records = () => { return this.cargo.length; }
+
+	this.get_nonconsensus = (parameter) => {
+		if (typeof (parameter) !== 'string') { parameter = ''; }
+		const filtered = new ORTHOLOGS();
+		const whitelist = ['gene', 'seq_name'];
+		if (parameter && !whitelist.includes(parameter)) { return filtered; }
+		filtered.cargo = this.cargo.filter((x) => {
+			for (let i = 0; i < x.isoforms.length; i++) {
+				if (!parameter) {
+					if (x.isoforms[i].cargo[0].gene !== x.gene || x.isoforms[i].cargo[0].seq_name !== x.seq_name) { return true; }
+					else { return false; }
+				}
+				else {
+					if (x.isoforms[i].cargo[0][parameter] !== x[parameter]) { return true; }
+					else { return false; }
+				}
+			}
+		});
+		return filtered;
+	}
 
 }
 

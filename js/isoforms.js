@@ -66,6 +66,7 @@ function ISO_RECORD_COMPACT() {
 function ISOFORMS() {
 
 	this.cargo = []; // array of ISO_RECORDS
+	this.options = { clean_sequences: true };
 	this.organism = '';
 
 	this.add = (record) => {
@@ -404,6 +405,7 @@ function ISOFORMS() {
 		await sequences.load_fasta_file(full_path);
 		sequences.set_database_to_consensus();
 		sequences.set_sequence_type_to_consensus();
+		if (this.options.clean_sequences) { sequences.delete_by_exception(); }
 		let unique = sequences.get_unique_gene_names();
 		console.log(unique.length + ' groups found.');
 		if (unique.length) {

@@ -29,6 +29,7 @@ function ISO_RECORD() {
 	}
 
 	this.set = (parameter, value) => {
+		if (!parameter || typeof (parameter) !== 'string') { return; }
 		const whitelist = ['group'];
 		if (whitelist.includes(parameter)) { this[parameter] = value; }
 		else {
@@ -55,6 +56,7 @@ function ISO_RECORD_COMPACT() {
 	this.seq_name = '';
 
 	this.set = (parameter, value) => {
+		if (!parameter || typeof (parameter) !== 'string') { return; }
 		const whitelist = ['accessions', 'group', 'gene', 'seq_name'];
 		if (whitelist.includes(parameter)) { this[parameter] = value; }
 	}
@@ -104,6 +106,7 @@ function ISOFORMS() {
 	// for the filter functions, the filter term can be a string or an array of strings
 	this.filter_by = (parameter, filter) => {
 		const new_isoforms = new ISOFORMS();
+		if (!parameter || typeof (parameter) !== 'string') { return new_isoforms; }
 		if (Array.isArray(filter)) {
 			for (let i = 0; i < filter.length; i++) {
 				new_isoforms.add(this.filter_by(parameter, filter[i]));
@@ -173,6 +176,7 @@ function ISOFORMS() {
 	}
 
 	this.get_consensus = (parameter) => {
+		if (!parameter || typeof (parameter) !== 'string') { return ''; }
 		const v_list = this.get_unique(parameter);
 		if (v_list.length === 1) { return v_list[0]; }
 		const p_list = [];
@@ -208,6 +212,7 @@ function ISOFORMS() {
 
 	this.get_group_numbers_by = (parameter, filter) => {
 		const group_numbers = [];
+		if (!parameter || typeof (parameter) !== 'string') { return group_numbers; }
 		const results = this.filter_by(parameter, filter);
 		for (let i = 0; i < results.cargo.length; i++) {
 			if (typeof (results.cargo[i].group) === 'number') {
@@ -236,6 +241,7 @@ function ISOFORMS() {
 	this.get_group_numbers_by_status = (filter) => { return this.get_group_numbers_by('status', filter); }
 
 	this.get_index_by = (parameter, filter) => {
+		if (!parameter || typeof (parameter) !== 'string') { return -1; }
 		const whitelist = ['group'];
 		if (whitelist.includes(parameter)) {
 			for (let i = 0; i < this.cargo.length; i++) {
@@ -290,6 +296,7 @@ function ISOFORMS() {
 
 	this.get_unique = (parameter) => {
 		let arr = [];
+		if (!parameter || typeof (parameter) !== 'string') { return arr; }
 		for (let i = 0; i < this.cargo.length; i++) {
 			const x = this.cargo[i];
 			if (x instanceof ISO_RECORD) {
@@ -334,6 +341,7 @@ function ISOFORMS() {
 	this.get_unique_status = () => { return this.get_unique('status'); }
 
 	this.includes = (parameter, filter) => {
+		if (!parameter || typeof (parameter) !== 'string') { return false; }
 		if (Array.isArray(filter)) {
 			for (let i = 0; i < filter.length; i++) {
 				if (this.includes(parameter, filter[i])) { return true; }
@@ -471,6 +479,7 @@ function ISOFORMS() {
 	}
 
 	this.set = (parameter, value) => {
+		if (!parameter || typeof (parameter) !== 'string') { return; }
 		for (let i = 0; i < this.cargo.length; i++) {
 			this.cargo[i].set(parameter, value);
 		}
@@ -512,6 +521,7 @@ function ISOFORMS() {
 	}
 
 	this.set_to_consensus = (parameter) => {
+		if (!parameter || typeof (parameter) !== 'string') { return; }
 		const value = this.get_consensus(parameter);
 		this.set(parameter, value);
 	}

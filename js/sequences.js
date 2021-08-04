@@ -396,6 +396,7 @@ function SEQ_RECORD() {
 	}
 
 	this.set = (parameter, value) => {
+		if (!parameter || typeof (parameter) !== 'string') { return; }
 		this.info[parameter] = value;
 		this.defline = build_defline(this.info);
 	}
@@ -606,6 +607,7 @@ function SEQUENCES() {
 	//	values is used as the filtering carierion.
 
 	this.delete_by = (parameter, filter) => {
+		if (!parameter || typeof (parameter) !== 'string') { return; }
 		if (typeof (filter) === 'undefined') { filter = this.get_unique(parameter); }
 		if (Array.isArray(filter)) {
 			for (let i = 0; i < filter.length; i++) {
@@ -650,6 +652,7 @@ function SEQUENCES() {
 
 	this.filter_by = (parameter, filter) => {
 		const new_sequences = new SEQUENCES();
+		if (!parameter || typeof (parameter) !== 'string') { return new_sequences; }
 		if (typeof (filter) === 'undefined') { filter = this.get_unique(parameter); }
 		if (Array.isArray(filter)) {
 			for (let i = 0; i < filter.length; i++) {
@@ -694,6 +697,7 @@ function SEQUENCES() {
 	this.filter_by_status = (filter) => { return this.filter_by('status', filter); }
 
 	this.get_consensus = (parameter) => {
+		if (!parameter || typeof (parameter) !== 'string') { return ''; }
 		const v_list = this.get_unique(parameter);
 		if (v_list.length === 1) { return v_list[0]; }
 		const p_list = [];
@@ -745,6 +749,7 @@ function SEQUENCES() {
 
 	this.get_unique = (parameter) => {
 		const arr = [];
+		if (!parameter || typeof (parameter) !== 'string') { return arr; }
 		for (let i = 0; i < this.cargo.length; i++) {
 			if (this.cargo[i].info[parameter]) {
 				arr.push(this.cargo[i].info[parameter]);
@@ -782,6 +787,7 @@ function SEQUENCES() {
 	this.get_unique_status = () => { return this.get_unique('status'); }
 
 	this.includes = (parameter, filter) => {
+		if (!parameter || typeof (parameter) !== 'string') { return false; }
 		if (typeof (filter) === 'undefined') { filter = this.get_unique(parameter); }
 		if (Array.isArray(filter)) {
 			for (let i = 0; i < filter.length; i++) {
@@ -882,6 +888,7 @@ function SEQUENCES() {
 	}
 
 	this.set = (parameter, value) => {
+		if (!parameter || typeof (parameter) !== 'string') { return; }
 		for(let i = 0; i <this.cargo.length; i++) {
 			this.cargo[i].set(parameter, value);
 		}
@@ -891,11 +898,15 @@ function SEQUENCES() {
 
 	this.set_database = (value) => { this.set('database', value); }
 	
+	this.set_database_to_consensus = () => { this.set_to_consensus('database'); }
+
 	this.set_location = (value) => { this.set('location', value); }
 
 	this.set_gene_name = (value) => { this.set('gene', value); }
 
 	this.set_organism_name = (value) => { this.set('organism', value); }
+	
+	this.set_organism_name_to_consensus = () => { this.set_to_consensus('organism'); }
 
 	this.set_protein_id = (value) => { this.set('protein_id', value); }
 
@@ -905,15 +916,12 @@ function SEQUENCES() {
 
 	this.set_sequence_type = (value) => { this.set('seq_type', value); }
 
-	this.set_status = (value) => { this.set('status', value); }
-
-	this.set_database_to_consensus = () => { this.set_to_consensus('database'); }
-
-	this.set_organism_name_to_consensus = () => { this.set_to_consensus('organism'); }
-
 	this.set_sequence_type_to_consensus = () => { this.set_to_consensus('seq_type'); }
 
+	this.set_status = (value) => { this.set('status', value); }
+
 	this.set_to_consensus = (parameter) => {
+		if (!parameter || typeof (parameter) !== 'string') { return; }
 		const value = this.get_consensus(parameter);
 		this.set(parameter, value);
 	}

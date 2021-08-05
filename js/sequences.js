@@ -74,6 +74,7 @@ function SEQ_RECORD() {
 		const full_path = await path_record.get_full_path();
 		const contents = this.to_fasta();
 		await wrapper.write_file(full_path, contents);
+		return;
 	}
 
 	this.sdust = (options) => {
@@ -665,6 +666,9 @@ function SEQUENCES() {
 				else { return false; }
 			});
 		}
+		for (let i = 0; i < new_sequences.cargo.length; i++) {
+			new_sequences.cargo[i] = Object.assign(Object.create(Object.getPrototypeOf(new_sequences.cargo[i])), new_sequences.cargo[i]);
+		}
 		return new_sequences;
 	}
 
@@ -846,6 +850,7 @@ function SEQUENCES() {
 		const full_path = await path_record.get_full_path();
 		const str = await wrapper.read_file(full_path);
 		this.cargo = parse_fasta(str);
+		return;
 	}
 
 	this.load_string = (str) => { this.cargo = parse_fasta(str); }
@@ -872,6 +877,7 @@ function SEQUENCES() {
 			}
 			await wrapper.write_file(full_path, contents);		
 		}
+		return;
 	}
 
 	this.save_each_as_fasta = async (path) => {
@@ -885,11 +891,12 @@ function SEQUENCES() {
 				await this.cargo[i].save_as_fasta(full_path);
 			}
 		}
+		return;
 	}
 
 	this.set = (parameter, value) => {
 		if (!parameter || typeof (parameter) !== 'string') { return; }
-		for(let i = 0; i <this.cargo.length; i++) {
+		for(let i = 0; i < this.cargo.length; i++) {
 			this.cargo[i].set(parameter, value);
 		}
 	}

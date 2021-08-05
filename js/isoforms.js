@@ -26,6 +26,7 @@ function ISO_RECORD() {
 		if (this.protein_sequences && this.protein_sequences.cargo.length) {
 			await this.protein_sequences.save_as_fasta(p_full_path);
 		}
+		return;
 	}
 
 	this.set = (parameter, value) => {
@@ -138,6 +139,9 @@ function ISOFORMS() {
 			});
 		}
 		new_isoforms.organism = this.organism;
+		for (let i = 0; i < new_isoforms.cargo.length; i++) {
+			new_isoforms.cargo[i] = Object.assign(Object.create(Object.getPrototypeOf(new_isoforms.cargo[i])), new_isoforms.cargo[i]);
+		}
 		return new_isoforms;
 	}
 
@@ -403,6 +407,7 @@ function ISOFORMS() {
 				this.cargo.push(record);
 			}
 		}
+		return;
 	}
 
 	this.load_cds_fasta_file = async (path) => {
@@ -442,6 +447,7 @@ function ISOFORMS() {
 				this.cargo.push(iso_record);
 			}
 		}
+		return;
 	}
 
 	this.merge_protein_sequences = (sequences) => {
@@ -478,6 +484,7 @@ function ISOFORMS() {
 				await save_as_compact(path, this.organism, this.cargo);
 			}
 		}
+		return;
 	}
 
 	this.set = (parameter, value) => {
@@ -566,6 +573,7 @@ function ISOFORMS() {
 		}
 		contents += ']}';
 		await wrapper.write_file(full_path, contents);
+		return;
 	}
 
 	async function save_as_full(path, organism, cargo) {
@@ -581,6 +589,7 @@ function ISOFORMS() {
 			const full_path = await path_record.get_full_path();
 			await cargo[i].save_as_fasta(full_path);
 		}
+		return;
 	}
 
 }

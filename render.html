@@ -103,7 +103,7 @@
 							ortho_creator.add_isoform_files(arg.data.filePaths);
 							orthologs = await ortho_creator.create();
 							console.log(orthologs);
-							const filtered = orthologs.get_nonconsensus('seq_name');
+							const filtered = orthologs.get_nonconsensus('gene');
 							console.log(filtered);
 						}
 						break;

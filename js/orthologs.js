@@ -703,6 +703,9 @@ function ORTHOLOGS() {
 				}
 			}
 		});
+		for (let i = 0; i < filtered.cargo.length; i++) {
+			filtered.cargo[i] = Object.assign(Object.create(Object.getPrototypeOf(filtered.cargo[i])), filtered.cargo[i]);
+		}
 		return filtered;
 	}
 

@@ -71,7 +71,7 @@
 
 		var app_storage, orthologs;
 		wrapper.get_app_storage().then((result) => { app_storage = result; });
-		ortho_creator.options.trust_defline = true;
+		//ortho_creator.options.trust_defline = true;
 
 		///////////////////////////////////////////////////////////////////////////
 		// IPC COMMUNICATION //////////////////////////////////////////////////////
@@ -103,7 +103,7 @@
 							ortho_creator.add_isoform_files(arg.data.filePaths);
 							orthologs = await ortho_creator.create();
 							console.log(orthologs);
-							const filtered = orthologs.get_nonconsensus('gene');
+							const filtered = orthologs.get_nonconsensus();
 							console.log(filtered);
 						}
 						break;
@@ -123,7 +123,7 @@
 							ortho_creator.add_rbh_files(arg.data.filePaths);
 							orthologs = await ortho_creator.create();
 							console.log(orthologs);
-							const filtered = orthologs.get_nonconsensus('seq_name');
+							const filtered = orthologs.get_nonconsensus();
 							console.log(filtered);
 						}
 						break;

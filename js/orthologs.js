@@ -589,8 +589,8 @@ function ORTHO_RECORD() {
 		const v_list = this.get_unique(parameter);
 		if (v_list.length === 1) { return v_list[0]; }
 		const p_list = [];
-		let quant = 0;
 		for (let i = 0; i < v_list.length; i++) {
+			let quant = 0;
 			for (let j = 0; j < this.isoforms.length; j++) {
 				const filtered = this.isoforms[j].filter_by(parameter, v_list[i]);
 				quant += filtered.get_number_of_records();
@@ -637,7 +637,6 @@ function ORTHO_RECORD() {
 		for (let i = 0; i < this.isoforms.length; i++) {
 			for (let j = 0; j < this.isoforms[i].cargo.length; j++) {
 				this.isoforms[i].cargo[j].set(parameter, value);
-				this.isoforms[i].cargo[j][parameter] = value;
 			}
 		}
 	}
@@ -694,14 +693,17 @@ function ORTHOLOGS() {
 		filtered.cargo = this.cargo.filter((x) => {
 			for (let i = 0; i < x.isoforms.length; i++) {
 				if (!parameter) {
-					if (x.isoforms[i].cargo[0].gene !== x.gene || x.isoforms[i].cargo[0].seq_name !== x.seq_name) { return true; }
-					else { return false; }
+					for (let j = 0; j < x.isoforms[i].cargo.length; j++) {
+						if (x.isoforms[i].cargo[j].gene !== x.gene || x.isoforms[i].cargo[j].seq_name !== x.seq_name) { return true; }
+					}
 				}
 				else {
-					if (x.isoforms[i].cargo[0][parameter] !== x[parameter]) { return true; }
-					else { return false; }
+					for (let j = 0; j < x.isoforms[i].cargo.length; j++) {
+						if (x.isoforms[i].cargo[j][parameter] !== x[parameter]) { return true; }
+					}
 				}
 			}
+			return false;
 		});
 		for (let i = 0; i < filtered.cargo.length; i++) {
 			filtered.cargo[i] = Object.assign(Object.create(Object.getPrototypeOf(filtered.cargo[i])), filtered.cargo[i]);

@@ -261,12 +261,15 @@ function ORTHO_CREATOR() {
 		}
 	}
 
-	this.create_isoforms = async () => {
+	this.create_isoforms = async (folders) => {
 		if (this.files.isoforms.length) {
 			await this.load_compact_isoform_files();
 			return;
 		}
 		if (!this.files.cds.length || !this.files.proteins.length) { return; }
+		if (typeof (folders) === 'undefined' || typeof(folders) !== 'object') { options = {}; }
+		if (typeof (folders.iso_compact_files) === 'undefined') { folders.iso_compact_files = 'iso_compact'; }
+		if (typeof (folders.iso_fasta_files) === 'undefined') { folders.iso_fasta_files = 'iso_full'; }
 		for (let i = this.files.cds.length - 1; i >= 0; i--) {
 			const isoforms = new ISOFORMS();
 			isoforms.options.clean_sequences = this.options.clean_sequences;
@@ -281,10 +284,10 @@ function ORTHO_CREATOR() {
 					isoforms.merge_protein_sequences(sequences);
 					console.log(isoforms);
 					console.log('Saving isoform groups.');
-					await isoforms.save_as('iso_full');
+					await isoforms.save_as(folders.iso_fasta_files);
 					isoforms.compact();
 					console.log('Saving compact isoform files.');
-					await isoforms.save_as('iso_compact');
+					await isoforms.save_as(folders.iso_compact_files);
 					this.cargo.isoforms.push(isoforms);
 					this.files.proteins.splice(j, 1);
 				}
@@ -393,13 +396,15 @@ function ORTHO_CREATOR() {
 		return orthologs;
 	}
 
-	this.create_rbh_records = async () => {
+	this.create_rbh_records = async (folders) => {
 		if (this.files.rbh.length) {
 			await this.load_rbh_files();
 			this.filter_rbh_by_hits();
 			return;
 		}
 		if (!this.cargo.blast.length || !this.cargo.isoforms.length) { return; }
+		if (typeof (folders) === 'undefined' || typeof (folders) !== 'object') { options = {}; }
+		if (typeof (folders.iso_rbh_files) === 'undefined') { folders.iso_rbh_files = 'iso_rbh'; }
 		for (let i = 0; i < this.cargo.blast.length; i++) {
 			const table = this.cargo.blast[i].cargo;
 			const species1 = this.cargo.blast[i].organism_col_0;
@@ -416,7 +421,7 @@ function ORTHO_CREATOR() {
 				if (group1.length && group2.length) { new_rbh.cargo.push([group1[0], group2[0]]) }
 			}
 			new_rbh.cargo = Array.from(new Set(new_rbh.cargo.map(JSON.stringify)), JSON.parse);
-			await new_rbh.save_as('iso_rbh');
+			await new_rbh.save_as(folders.iso_rbh_files);
 			this.cargo.rbh.push(new_rbh);
 		}
 		this.filter_rbh_by_hits();

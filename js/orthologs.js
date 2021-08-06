@@ -59,7 +59,6 @@ function ORTHO_CREATOR() {
 	}
 	this.options = {
 		clean_sequences: true,
-		force_consensus: false,
 		trust_defline: false
 	};
 	this.organisms = [];
@@ -332,10 +331,10 @@ function ORTHO_CREATOR() {
 				const cons_seq = record.get_consensus_sequence_name();
 				record.gene = cons_gene;
 				record.seq_name = cons_seq;
-				if (this.options.force_consensus) {
-					for (let i = 0; i < record.isoforms.length; i++) {
-						record.isoforms[i].cargo[0].gene = cons_gene;
-						record.isoforms[i].cargo[0].seq_name = cons_seq;
+				for (let i = 0; i < record.isoforms.length; i++) {
+					for (let j = 0; j < record.isoforms[i].cargo.length; j++) {
+						if (!record.isoforms[i].cargo[j].gene) { record.isoforms[i].cargo[j].gene = cons_gene; }
+						if (!record.isoforms[i].cargo[j].seq_name) { record.isoforms[i].cargo[j].seq_name = cons_seq; }
 					}
 				}
 				record.isoforms.sort((a, b) => {
@@ -373,12 +372,6 @@ function ORTHO_CREATOR() {
 				const cons_seq = record.get_consensus_sequence_name();
 				record.gene = cons_gene;
 				record.seq_name = cons_seq;
-				if (this.options.force_consensus) {
-					for (let i = 0; i < record.isoforms.length; i++) {
-						record.isoforms[i].cargo[0].gene = cons_gene;
-						record.isoforms[i].cargo[0].seq_name = cons_seq;
-					}
-				}
 				record.isoforms.sort((a, b) => {
 					if (a.organism < b.organism) { return -1; }
 					if (a.organism > b.organism) { return 1; }
@@ -630,53 +623,6 @@ function ORTHO_RECORD() {
 	this.get_unique_organism_names = () => { return this.get_unique('organism'); }
 
 	this.get_unique_sequence_names = () => { return this.get_unique('seq_name'); }
-
-	this.set = (parameter, value) => {
-		if (!parameter || typeof (parameter) !== 'string') { return; }
-		const whitelist = ['gene', 'seq_name'];
-		if (whitelist.includes(parameter)) { this[parameter] = value; }
-	}
-
-	this.set_all = (parameter, value) => {
-		if (!parameter || typeof (parameter) !== 'string') { return; }
-		for (let i = 0; i < this.isoforms.length; i++) {
-			for (let j = 0; j < this.isoforms[i].cargo.length; j++) {
-				this.isoforms[i].cargo[j].set(parameter, value);
-			}
-		}
-	}
-
-	this.set_all_gene_names = (value) => { this.set_all('gene', value); }
-
-	this.set_all_gene_names_to_consensus = () => { this.set_all_to_consensus('gene'); }
-
-	this.set_all_organism_names = (value) => { this.set_all('organism', value); }
-
-	this.set_all_sequence_names = (value) => { this.set_all('seq_name', value); }
-
-	this.set_all_sequence_names_to_consensus = () => { this.set_all_to_consensus('seq_name'); }
-
-	this.set_all_to_consensus = (parameter) => {
-		if (!parameter || typeof (parameter) !== 'string') { return; }
-		const value = this.get_consensus(parameter);
-		this.set_all(parameter, value);
-	}
-
-	this.set_gene_name = (value) => { this.set('gene', value); }
-
-	this.set_gene_name_to_consensus = () => { this.set_to_consensus('gene'); }
-
-	this.set_organism_name = (value) => { this.set('organism', value); }
-
-	this.set_sequence_name = (value) => { this.set('seq_name', value); }
-
-	this.set_sequence_name_to_consensus = () => { this.set_to_consensus('seq_name'); }
-
-	this.set_to_consensus = (parameter) => {
-		if (!parameter || typeof (parameter) !== 'string') { return; }
-		const value = this.get_consensus(parameter);
-		this.set(parameter, value);
-	}
 
 }
 

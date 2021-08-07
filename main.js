@@ -131,6 +131,7 @@ catch (e) { console.log(e); }
 //	unlink
 
 ipc.on('toMain', (event, arg) => {
+	event.preventDefault();
 	if (arg.command) {
 		switch (arg.command) {
 

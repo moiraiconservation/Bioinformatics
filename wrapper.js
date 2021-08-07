@@ -23,7 +23,6 @@
 //	set_app_storage
 //	sqlite3_all
 //	sqlite3_run
-//	to_render
 //	update_menu_item
 //	update_menu_item_batch
 //	url_exists
@@ -74,7 +73,7 @@ function WRAPPER() {
 
 	this.create_write_stream = (filename, encoding) => {
 		return new Promise((resolve) => {
-			window.api.send('toMain', { command: 'create_write_stream', filename: filename, encoding });
+			window.api.send('toMain', { command: 'create_write_stream', filename: filename, encoding: encoding });
 			window.api.receive_once('fromMain', (arg) => { if (arg.command == 'create_write_stream') { return resolve(arg.success); } });
 		});
 	}
@@ -150,13 +149,6 @@ function WRAPPER() {
 		return new Promise((resolve) => {
 			window.api.send('toMain', { command: 'sqlite3_run', sql: sql, param: param });
 			window.api.receive_once('fromMain', (arg) => { if (arg.command == 'sqlite3_run') { return resolve(arg.success); } });
-		});
-	}
-
-	this.to_render = (data) => {
-		return new Promise((resolve) => {
-			window.api.send('passthrough', { data: data });
-			return resolve();
 		});
 	}
 

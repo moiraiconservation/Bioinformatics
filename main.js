@@ -26,9 +26,10 @@ const write_stream = { buffer: '', contents: [], filename: '', handle: undefined
 // LOAD THE DEFAULT SETTINGS //////////////////////////////////////////////////
 
 let app_storage = {};
+app_storage.project_directory = store.get('projectDirectory');
 app_storage.window_bounds = store.get('windowBounds');
+if (typeof (app_storage.project_directory) === 'undefined') { app_storage.project_directory = ''; }
 if (typeof (app_storage.window_bounds) === 'undefined') { app_storage.window_bounds = {}; }
-if (typeof (app_storage.user_settings) === 'undefined') { app_storage.user_settings = {}; }
 if (typeof (app_storage.window_bounds.height) === 'undefined') { app_storage.window_bounds.height = 800; }
 if (typeof (app_storage.window_bounds.maximized) === 'undefined') { app_storage.window_bounds.maximized = false; }
 if (typeof (app_storage.window_bounds.width) === 'undefined') { app_storage.window_bounds.width = 1000; }
@@ -72,6 +73,7 @@ function show_window(filename) {
 		win.main.on('close', () => {
 			ipc.removeAllListeners();
 			const position = win.main.getPosition();
+			store.set('projectDirectory', app_storage.project_directory);
 			store.set('windowBounds.height', app_storage.window_bounds.height);
 			store.set('windowBounds.maximized', app_storage.window_bounds.maximized);
 			store.set('windowBounds.width', app_storage.window_bounds.width);

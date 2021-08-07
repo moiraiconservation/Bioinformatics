@@ -7,6 +7,7 @@
 	<meta content="script-src 'self' 'unsafe-inline';" http-equiv="Content-Security-Policy" />
 	<script src="element.js" type="text/javascript"></script>
 	<script src="pather.js" type="text/javascript"></script>
+	<script src="project.js" type="text/javascript"></script>
 	<script src="wrapper.js" type="text/javascript"></script>
 	<script src="js/alignment.js" type="text/javascript"></script>
 	<script src="js/clustal.js" type="text/javascript"></script>
@@ -61,6 +62,7 @@
 		const codons = new CODONS();
 		const isoforms = new ISOFORMS();
 		const ortho_creator = new ORTHO_CREATOR();
+		const project = new PROJECT();
 		const sequences = new SEQUENCES();
 		const stats = new STATS();
 		const tree = new TREE();
@@ -70,8 +72,15 @@
 		// VARIABLES //////////////////////////////////////////////////////////////
 
 		var app_storage, orthologs;
-		wrapper.get_app_storage().then((result) => { app_storage = result; });
-		//ortho_creator.options.trust_defline = true;
+		wrapper.get_app_storage().then((result) => {
+			app_storage = result;
+			console.log(app_storage);
+			project.set_directory(app_storage.project_directory).then(() => {
+				app_storage.project_directory = project.directory;
+				wrapper.set_app_storage(app_storage);
+				console.log(project);
+			});
+		});
 
 		///////////////////////////////////////////////////////////////////////////
 		// IPC COMMUNICATION //////////////////////////////////////////////////////

@@ -115,8 +115,6 @@
 							ortho_creator.add_isoform_files(arg.data.filePaths);
 							orthologs = await ortho_creator.create(project.folders);
 							console.log(orthologs);
-							const filtered = orthologs.get_nonconsensus();
-							console.log(filtered);
 						}
 						break;
 					}
@@ -144,8 +142,6 @@
 							ortho_creator.add_rbh_files(arg.data.filePaths);
 							orthologs = await ortho_creator.create(project.folders);
 							console.log(orthologs);
-							const filtered = orthologs.get_nonconsensus();
-							console.log(filtered);
 						}
 						break;
 					}

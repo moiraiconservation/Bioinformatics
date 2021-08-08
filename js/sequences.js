@@ -30,6 +30,14 @@ function SEQ_RECORD() {
 
 	this.alphabet = () => { return Array.from(new Set(this.sequence)); }
 
+	this.clone = () => {
+		const record = new SEQ_RECORD();
+		record.defline = this.defline;
+		record.sequence = this.sequence;
+		record.info = JSON.parse(JSON.stringify(this.info));
+		return record;
+	}
+
 	this.create_file_name = () => {
 		let filename = this.defline || 'sequence';
 		filename = filename.replace(/[/\\?%*:|"<>]/g, ' '); // removes all illegal file characters
@@ -587,6 +595,20 @@ function SEQUENCES() {
 
 	this.clear = () => { this.cargo = []; }
 
+	this.clone = () => {
+		const seq = new SEQUENCES();
+		seq.cargo = this.clone_cargo();
+		return seq;
+	}
+
+	this.clone_cargo = () => {
+		const cargo = [];
+		for (let i = 0; i < this.cargo.length; i++) {
+			cargo.push(this.cargo[i].clone());
+		}
+		return cargo;
+	}
+
 	this.create_file_name = () => {
 		let filename = this.get_consensus_organism_name() || 'sequences';
 		filename = filename.replace(/[/\\?%*:|"<>]/g, ' '); // removes all illegal file characters
@@ -666,10 +688,7 @@ function SEQUENCES() {
 				else { return false; }
 			});
 		}
-		for (let i = 0; i < new_sequences.cargo.length; i++) {
-			new_sequences.cargo[i] = Object.assign(Object.create(Object.getPrototypeOf(new_sequences.cargo[i])), new_sequences.cargo[i]);
-		}
-		return new_sequences;
+		return new_sequences.clone();
 	}
 
 	this.filter_by_accession = (filter) => { return this.filter_by('accession', filter); }

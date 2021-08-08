@@ -125,17 +125,17 @@ function ORTHO_CREATOR() {
 
 	this.clear_rbh_files = () => { this.files.rbh = []; }
 
-	this.create = async () => {
+	this.create = async (folders) => {
 		console.log('Creating orthologs');
 		if (this.is_ready()) {
 			if (this.options.trust_defline) {
-				await this.create_isoforms();
+				await this.create_isoforms(folders);
 				return this.create_orthologs_from_isoforms();
 			}
 			else {
-				await this.create_isoforms();
+				await this.create_isoforms(folders);
 				await this.create_blast_records();
-				await this.create_rbh_records();
+				await this.create_rbh_records(folders);
 				this.create_initial_graphs();
 				this.create_final_graphs();
 				return this.create_orthologs_from_graphs();
@@ -266,9 +266,9 @@ function ORTHO_CREATOR() {
 			return;
 		}
 		if (!this.files.cds.length || !this.files.proteins.length) { return; }
-		if (typeof (folders) === 'undefined' || typeof(folders) !== 'object') { options = {}; }
-		if (typeof (folders.iso_compact_files) === 'undefined') { folders.iso_compact_files = 'iso_compact'; }
-		if (typeof (folders.iso_fasta_files) === 'undefined') { folders.iso_fasta_files = 'iso_full'; }
+		if (typeof (folders) === 'undefined' || typeof(folders) !== 'object') { folders = {}; }
+		if (typeof (folders.iso_compact) === 'undefined') { folders.iso_compact = 'iso_compact'; }
+		if (typeof (folders.iso_fasta) === 'undefined') { folders.iso_fasta = 'iso_fasta'; }
 		for (let i = this.files.cds.length - 1; i >= 0; i--) {
 			const isoforms = new ISOFORMS();
 			isoforms.options.clean_sequences = this.options.clean_sequences;
@@ -283,10 +283,10 @@ function ORTHO_CREATOR() {
 					isoforms.merge_protein_sequences(sequences);
 					console.log(isoforms);
 					console.log('Saving isoform groups.');
-					await isoforms.save_as(folders.iso_fasta_files);
+					await isoforms.save_as(folders.iso_fasta);
 					isoforms.compact();
 					console.log('Saving compact isoform files.');
-					await isoforms.save_as(folders.iso_compact_files);
+					await isoforms.save_as(folders.iso_compact);
 					this.cargo.isoforms.push(isoforms);
 					this.files.proteins.splice(j, 1);
 				}
@@ -396,8 +396,8 @@ function ORTHO_CREATOR() {
 			return;
 		}
 		if (!this.cargo.blast.length || !this.cargo.isoforms.length) { return; }
-		if (typeof (folders) === 'undefined' || typeof (folders) !== 'object') { options = {}; }
-		if (typeof (folders.iso_rbh_files) === 'undefined') { folders.iso_rbh_files = 'iso_rbh'; }
+		if (typeof (folders) === 'undefined' || typeof (folders) !== 'object') { folders = {}; }
+		if (typeof (folders.iso_rbh) === 'undefined') { folders.iso_rbh = 'iso_rbh'; }
 		for (let i = 0; i < this.cargo.blast.length; i++) {
 			const table = this.cargo.blast[i].cargo;
 			const species1 = this.cargo.blast[i].organism_col_0;
@@ -414,7 +414,7 @@ function ORTHO_CREATOR() {
 				if (group1.length && group2.length) { new_rbh.cargo.push([group1[0], group2[0]]) }
 			}
 			new_rbh.cargo = Array.from(new Set(new_rbh.cargo.map(JSON.stringify)), JSON.parse);
-			await new_rbh.save_as(folders.iso_rbh_files);
+			await new_rbh.save_as(folders.iso_rbh);
 			this.cargo.rbh.push(new_rbh);
 		}
 		this.filter_rbh_by_hits();
@@ -580,6 +580,16 @@ function ORTHO_RECORD() {
 	this.isoforms = [];
 	this.seq_name = '';
 
+	this.clone = () => {
+		const record = new ORTHO_RECORD();
+		record.gene = this.gene;
+		record.seq_name = this.seq_name;
+		for (let i = 0; i < this.isoforms.length; i++) {
+			record.isoforms.push(this.isoforms[i].clone);
+		}
+		return record;
+	}
+
 	this.get_consensus = (parameter) => {
 		if (!parameter || typeof (parameter) !== 'string') { return ''; }
 		const whitelist = ['gene', 'seq_name'];
@@ -632,6 +642,21 @@ function ORTHOLOGS() {
 
 	this.cargo = [];
 	this.organisms = [];
+
+	this.clone = () => {
+		const ortho = new ORTHOLOGS();
+		ortho.cargo = this.clone_cargo();
+		ortho.organisms = JSON.parse(JSON.stringify(this.organisms));
+		return ortho;
+	}
+
+	this.clone_cargo = () => {
+		const cargo = [];
+		for (let i = 0; i < this.cargo.length; i++) {
+			cargo.push(this.cargo[i].clone());
+		}
+		return cargo;
+	}
 
 	this.get_number_of_records = () => { return this.cargo.length; }
 

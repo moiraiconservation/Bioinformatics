@@ -40,6 +40,20 @@ function PATHER_RECORD() {
 		return parts;
 	}
 
+	this.clone = async () => {
+		const path_record = new PATHER_RECORD();
+		path_record.app_drive = this.app_drive;
+		path_record.basename = this.basename;
+		path_record.delimiter = this.delimiter;
+		path_record.drive = this.drive;
+		path_record.extension = this.extension;
+		path_record.filename = this.filename;
+		path_record.folders = this.folders;
+		path_record.folders_to_app = this.folders_to_app;
+		path_record.verified_folders = this.verified_folders;
+		return path_record;
+	}
+
 	this.get_delimiter = async () => {
 		const platform = await wrapper.get_operating_system();
 		if (platform === 'win32') { this.delimiter = '\\'; return '\\'; }

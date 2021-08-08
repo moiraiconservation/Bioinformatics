@@ -72,6 +72,23 @@ module.exports = {
 								});
 						}
 					},
+
+					{
+						id: 'open_project_folder',
+						label: 'Open Project Folder...',
+						enabled: true,
+						click() {
+							dialog.showOpenDialog({
+								properties: ['openDirectory']
+							})
+								.then((response) => {
+									if (!response.canceled) {
+										win.main.webContents.send('fromMain', { command: 'open_project_folder', success: true, data: response });
+									}
+								});
+						}
+					},
+
 					{
 						id: 'open_protein',
 						label: 'Open Protein Files...',

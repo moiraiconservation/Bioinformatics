@@ -69,18 +69,21 @@
 		const tsv = new TSV();
 
 		///////////////////////////////////////////////////////////////////////////
-		// VARIABLES //////////////////////////////////////////////////////////////
+		// APPLICATION STORAGE AND PROJECT SETTINGS ///////////////////////////////
 
-		var app_storage, orthologs;
+		var app_storage;
 		wrapper.get_app_storage().then((result) => {
 			app_storage = result;
-			console.log(app_storage);
 			project.set_directory(app_storage.project_directory).then(() => {
 				app_storage.project_directory = project.directory;
 				wrapper.set_app_storage(app_storage);
-				console.log(project);
 			});
 		});
+
+		///////////////////////////////////////////////////////////////////////////
+		// VARIABLES //////////////////////////////////////////////////////////////
+	
+		var orthologs;
 
 		///////////////////////////////////////////////////////////////////////////
 		// IPC COMMUNICATION //////////////////////////////////////////////////////
@@ -92,7 +95,7 @@
 					case 'open_blast': {
 						if (arg.data && arg.data.filePaths.length) {
 							ortho_creator.add_blast_files(arg.data.filePaths);
-							orthologs = await ortho_creator.create();
+							orthologs = await ortho_creator.create(project.folders);
 							console.log(orthologs);
 						}
 						break;
@@ -101,7 +104,7 @@
 					case 'open_cds': {
 						if (arg.data && arg.data.filePaths.length) {
 							ortho_creator.add_cds_files(arg.data.filePaths);
-							orthologs = await ortho_creator.create();
+							orthologs = await ortho_creator.create(project.folders);
 							console.log(orthologs);
 						}
 						break;
@@ -110,7 +113,7 @@
 					case 'open_compact_isoforms': {
 						if (arg.data && arg.data.filePaths.length) {
 							ortho_creator.add_isoform_files(arg.data.filePaths);
-							orthologs = await ortho_creator.create();
+							orthologs = await ortho_creator.create(project.folders);
 							console.log(orthologs);
 							const filtered = orthologs.get_nonconsensus();
 							console.log(filtered);
@@ -118,10 +121,19 @@
 						break;
 					}
 
+					case 'open_project_folder': {
+						if (arg.data && arg.data.filePaths.length) {
+							await project.set_directory(arg.data.filePaths[0]);
+							app_storage.project_directory = project.directory;
+							await wrapper.set_app_storage(app_storage);
+						}
+						break;
+					}
+
 					case 'open_protein': {
 						if (arg.data && arg.data.filePaths.length) {
 							ortho_creator.add_protein_files(arg.data.filePaths);
-							orthologs = await ortho_creator.create();
+							orthologs = await ortho_creator.create(project.folders);
 							console.log(orthologs);
 						}
 						break;
@@ -130,7 +142,7 @@
 					case 'open_rbh': {
 						if (arg.data && arg.data.filePaths.length) {
 							ortho_creator.add_rbh_files(arg.data.filePaths);
-							orthologs = await ortho_creator.create();
+							orthologs = await ortho_creator.create(project.folders);
 							console.log(orthologs);
 							const filtered = orthologs.get_nonconsensus();
 							console.log(filtered);

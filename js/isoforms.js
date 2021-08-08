@@ -8,6 +8,14 @@ function ISO_RECORD() {
 	this.group = 0;
 	this.protein_sequences = new SEQUENCES();
 
+	this.clone = () => {
+		const record = new ISO_RECORD();
+		record.cds_sequences = this.cds_sequences.clone();
+		record.group = this.group;
+		record.protein_sequences = this.protein_sequences.clone();
+		return record;
+	}
+
 	this.save_as_fasta = async (path) => {
 		if (typeof (path) === 'undefined') { path = ''; }
 		const g_path_record = await pather.parse(path);
@@ -56,6 +64,15 @@ function ISO_RECORD_COMPACT() {
 	this.gene = '';
 	this.seq_name = '';
 
+	this.clone = () => {
+		const record = new ISO_RECORD_COMPACT();
+		record.accessions = JSON.parse(JSON.stringify(this.accessions));
+		record.group = this.group;
+		record.gene = this.gene;
+		record.seq_name = this.seq_name;
+		return record;
+	}
+
 	this.set = (parameter, value) => {
 		if (!parameter || typeof (parameter) !== 'string') { return; }
 		const whitelist = ['accessions', 'group', 'gene', 'seq_name'];
@@ -88,6 +105,22 @@ function ISOFORMS() {
 	}
 
 	this.clear = () => { this.organism = ''; this.cargo = []; }
+
+	this.clone = () => {
+		const iso = new ISOFORMS();
+		iso.cargo = this.clone_cargo();
+		iso.options.clean_sequences = this.options.clean_sequences;
+		iso.organism = this.organism;
+		return iso;
+	}
+
+	this.clone_cargo = () => {
+		const cargo = [];
+		for (let i = 0; i < this.cargo.length; i++) {
+			cargo.push(this.cargo[i].clone());
+		}
+		return cargo;
+	}
 
 	this.compact = () => {
 		// This function removes sequence information and is irreversible.
@@ -139,10 +172,7 @@ function ISOFORMS() {
 			});
 		}
 		new_isoforms.organism = this.organism;
-		for (let i = 0; i < new_isoforms.cargo.length; i++) {
-			new_isoforms.cargo[i] = Object.assign(Object.create(Object.getPrototypeOf(new_isoforms.cargo[i])), new_isoforms.cargo[i]);
-		}
-		return new_isoforms;
+		return new_isoforms.clone();
 	}
 
 	this.filter_by_accession = (filter) => { return this.filter_by('accession', filter); }

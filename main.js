@@ -119,14 +119,14 @@ catch (e) { console.log(e); }
 //	get_app_data_directory
 //	get_app_directory
 //	get_app_storage
+//	open_file_dialog
+//	read_file
 //	read_from_delimited_stream
 //	set_app_storage
 //	sqlite3_all
 //	sqlite3_run
 //	update_menu_item
 //	update_menu_item_batch
-//	open_file_dialog
-//	read_file
 //	url_exists
 //	write_canvas_to_png
 //	write_file
@@ -164,21 +164,23 @@ ipc.on('toMain', (event, arg) => {
 			}
 
 			case 'close_read_stream': {
-				if (stream.open) {
-					read_stream.handle.end();
+				if (read_stream.open) {
+					if (typeof (read_stream.handle) !== 'undefined') { read_stream.handle.close(); }
 					read_stream.filename = '';
 					read_stream.handle = undefined;
 					read_stream.open = false;
+					win.main.webContents.send('fromMain', { command: arg.command, success: true });
 				}
 				break;
 			}
 
 			case 'close_write_stream': {
-				if (stream.open) {
-					write_stream.handle.end();
+				if (write_stream.open) {
+					if (typeof (write_stream.handle) !== 'undefined') { write_stream.handle.close(); }
 					write_stream.filename = '';
 					write_stream.handle = undefined;
 					write_stream.open = false;
+					win.main.webContents.send('fromMain', { command: arg.command, success: true });
 				}
 				break;
 			}
@@ -194,7 +196,7 @@ ipc.on('toMain', (event, arg) => {
 			case 'create_read_stream': {
 				if (arg.filename) {
 					if (typeof (arg.encoding) === 'undefined') { encoding = 'utf-8'; }
-					if (read_stream.open && (read_stream.filename !== arg.filename)) { read_stream.handle.end(); }
+					if (read_stream.open && (read_stream.filename !== arg.filename)) { read_stream.handle.close(); }
 					read_stream.filename = arg.filename;
 					read_stream.handle = fs.createReadStream(read_stream.filename, { encoding: encoding, flags: 'r' });
 					read_stream.open = true;
@@ -206,7 +208,7 @@ ipc.on('toMain', (event, arg) => {
 			case 'create_write_stream': {
 				if (arg.filename) {
 					if (typeof (arg.encoding) === 'undefined') { encoding = 'utf-8'; }
-					if (write_stream.open && (write_stream.filename !== arg.filename)) { write_stream.handle.end(); }
+					if (write_stream.open && (write_stream.filename !== arg.filename)) { write_stream.handle.close(); }
 					write_stream.filename = arg.filename;
 					write_stream.handle = fs.createWriteStream(write_stream.filename, { encoding: encoding, flags: 'a' });
 					write_stream.open = true;
@@ -235,6 +237,35 @@ ipc.on('toMain', (event, arg) => {
 				break;
 			}
 
+			case 'open_file_dialog': {
+				let filters = [
+					{ name: 'FASTA', extensions: ['fasta', 'faa', 'fna'] },
+					{ name: 'Text Files', extensions: ['txt'] },
+					{ name: 'All Files', extensions: ['*'] }
+				];
+				if (arg.filters) { filters = arg.filters; }
+				dialog.showOpenDialog({
+					filters: filters,
+					properties: ['openFile']
+				})
+					.then((response) => {
+						if (!response.canceled) {
+							win.main.webContents.send('fromMain', { command: arg.command, success: true, data: response });
+						}
+					});
+				break;
+			}
+
+			case 'read_file': {
+				if (arg.filename) {
+					fs.readFile(arg.filename, 'utf-8', (err, data) => {
+						if (err) { win.main.webContents.send('fromMain', { command: arg.command, success: false, data: err }) }
+						else { win.main.webContents.send('fromMain', { command: arg.command, success: true, data: data }); }
+					});
+				}
+				break;
+			}
+
 			case 'read_from_delimited_stream': {
 				if (arg.delimiter) {
 					read_stream.buffer = '';
@@ -251,6 +282,27 @@ ipc.on('toMain', (event, arg) => {
 						read_stream.contents = [];
 					});
 				}
+				break;
+			}
+
+			case 'read_from_stream': {
+				read_stream.buffer = '';
+				read_stream.contents = [];
+				read_stream.handle.on('data', (str) => {
+					let lines = (read_stream.buffer + str).match(/(.|[\r\n]){1,256}/g);
+					read_stream.contents = read_stream.contents.concat(lines);
+					read_stream.buffer = read_stream.contents.pop();
+				});
+				read_stream.handle.on('close', () => {
+					read_stream.contents.push(read_stream.buffer);
+					let data = '';
+					for (let i = 0; i < read_stream.contents.length; i++) {
+						data += read_stream.contents[i];
+					}
+					win.main.webContents.send('fromMain', { command: arg.command, success: true, data: data });
+					read_stream.buffer = '';
+					read_stream.contents = [];
+				});
 				break;
 			}
 
@@ -303,35 +355,6 @@ ipc.on('toMain', (event, arg) => {
 							}
 						}
 					}
-				}
-				break;
-			}
-
-			case 'open_file_dialog': {
-				let filters = [
-					{ name: 'FASTA', extensions: ['fasta', 'faa', 'fna'] },
-					{ name: 'Text Files', extensions: ['txt'] },
-					{ name: 'All Files', extensions: ['*'] }
-				];
-				if (arg.filters) { filters = arg.filters; }
-				dialog.showOpenDialog({
-					filters: filters,
-					properties: ['openFile']
-				})
-				.then((response) => {
-					if (!response.canceled) {
-						win.main.webContents.send('fromMain', { command: arg.command, success: true, data: response });
-					}
-				});
-				break;
-			}
-
-			case 'read_file': {
-				if (arg.filename) {
-					fs.readFile(arg.filename, 'utf-8', (err, data) => {
-						if (err) { win.main.webContents.send('fromMain', { command: arg.command, success: false, data: err }) }
-						else { win.main.webContents.send('fromMain', { command: arg.command, success: true, data: data }); }
-					});
 				}
 				break;
 			}

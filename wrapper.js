@@ -17,9 +17,9 @@
 //	get_app_directory
 //	get_app_storage
 //	get_operating_system
-//	read_from_delimited_stream
 //	open_file_dialog
 //	read_file
+//	read_from_delimited_stream
 //	set_app_storage
 //	sqlite3_all
 //	sqlite3_run
@@ -53,9 +53,19 @@ function WRAPPER() {
 		});
 	}
 
-	this.close_read_stream = () => { window.api.send('toMain', { command: 'close_read_stream' }); }
+	this.close_read_stream = () => {
+		return new Promise((resolve) => {
+			window.api.send('toMain', { command: 'close_read_stream' });
+			window.api.receive_once('fromMain', (arg) => { if (arg.command == 'close_read_stream') { return resolve(arg.success); } });
+		});
+	}
 
-	this.close_write_stream = () => { window.api.send('toMain', { command: 'close_write_stream' }); }
+	this.close_write_stream = () => {
+		return new Promise((resolve) => {
+			window.api.send('toMain', { command: 'close_write_stream' });
+			window.api.receive_once('fromMain', (arg) => { if (arg.command == 'close_write_stream') { return resolve(arg.success); } });
+		});
+	}
 
 	this.create_directory = (dir_name) => {
 		return new Promise((resolve) => {
@@ -113,13 +123,6 @@ function WRAPPER() {
 		});
 	}
 
-	this.read_from_delimited_stream = (delimiter) => {
-		return new Promise((resolve) => {
-			window.api.send('toMain', { command: 'read_from_delimited_stream', delimiter: delimiter });
-			window.api.receive_once('fromMain', (arg) => { if (arg.command == 'read_from_delimited_stream') { return resolve(arg.data); } });
-		});
-	}
-
 	this.open_file_dialog = (filters) => {
 		return new Promise((resolve) => {
 			window.api.send('toMain', { command: 'open_file_dialog', filters: filters });
@@ -131,6 +134,20 @@ function WRAPPER() {
 		return new Promise((resolve) => {
 			window.api.send('toMain', { command: 'read_file', filename: filename });
 			window.api.receive_once('fromMain', (arg) => { if (arg.command == 'read_file') { return resolve(arg.data); } });
+		});
+	}
+
+	this.read_from_delimited_stream = (delimiter) => {
+		return new Promise((resolve) => {
+			window.api.send('toMain', { command: 'read_from_delimited_stream', delimiter: delimiter });
+			window.api.receive_once('fromMain', (arg) => { if (arg.command == 'read_from_delimited_stream') { return resolve(arg.data); } });
+		});
+	}
+
+	this.read_from_stream = () => {
+		return new Promise((resolve) => {
+			window.api.send('toMain', { command: 'read_from_stream' });
+			window.api.receive_once('fromMain', (arg) => { if (arg.command == 'read_from_stream') { return resolve(arg.data); } });
 		});
 	}
 

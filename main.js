@@ -132,7 +132,7 @@ catch (e) { console.log(e); }
 //	write_file
 //	unlink
 
-ipc.on('toMain', (event, arg) => {
+ipc.on('toMain', async (event, arg) => {
 	event.preventDefault();
 	if (arg.command) {
 		switch (arg.command) {
@@ -386,6 +386,17 @@ ipc.on('toMain', (event, arg) => {
 						else { win.main.webContents.send('fromMain', { command: arg.command, success: true }); }
 					});
 				}
+				break;
+			}
+
+			case 'write_to_stream': {
+				if (!write_stream.open) { win.main.webContents.send('fromMain', { command: arg.command, success: false }); }
+				if (arg.data) {
+					await write_stream.handle.write(arg.data);
+					await write_stream.handle.end();
+				}
+				write_stream.handle.on('error', () => { win.main.webContents.send('fromMain', { command: arg.command, success: false }); });
+				write_stream.handle.on('finish', () => { win.main.webContents.send('fromMain', { command: arg.command, success: true }); });
 				break;
 			}
 

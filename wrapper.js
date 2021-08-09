@@ -211,4 +211,11 @@ function WRAPPER() {
 		});
 	}
 
+	this.write_to_stream = (contents) => {
+		return new Promise((resolve) => {
+			window.api.send('toMain', { command: 'write_to_stream', data: contents });
+			window.api.receive_once('fromMain', (arg) => { if (arg.command == 'write_to_stream') { return resolve(arg.success); } });
+		});
+	}
+
 }

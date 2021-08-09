@@ -81,7 +81,9 @@ function SEQ_RECORD() {
 		await path_record.force_path();
 		const full_path = await path_record.get_full_path();
 		const contents = this.to_fasta();
-		await wrapper.write_file(full_path, contents);
+		await wrapper.create_write_stream(full_path);
+		await wrapper.write_to_stream(contents);
+		await wrapper.close_write_stream();
 		return;
 	}
 
@@ -896,7 +898,9 @@ function SEQUENCES() {
 			for (let i = 0; i < this.cargo.length; i++) {
 				contents += this.cargo[i].to_fasta();
 			}
-			await wrapper.write_file(full_path, contents);		
+			await wrapper.create_write_stream(full_path);
+			await wrapper.write_to_stream(contents);
+			await wrapper.close_write_stream();
 		}
 		return;
 	}

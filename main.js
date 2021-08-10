@@ -17,7 +17,6 @@ const qs = require('qs');
 ///////////////////////////////////////////////////////////////////////////////
 // GLOBAL VARIABLES ///////////////////////////////////////////////////////////
 
-const read_stream = { buffer: '', contents: [], filename: '', handle: undefined, open: false };
 const store = new eStore();
 const win = { main: null, icon: 'assets/icons/pentagon_512x512.png' };
 const write_stream = { buffer: '', contents: [], filename: '', handle: undefined, open: false };
@@ -122,6 +121,7 @@ catch (e) { console.log(e); }
 //	open_file_dialog
 //	read_file
 //	read_from_delimited_stream
+//	read_from_stream
 //	set_app_storage
 //	sqlite3_all
 //	sqlite3_run
@@ -130,6 +130,7 @@ catch (e) { console.log(e); }
 //	url_exists
 //	write_canvas_to_png
 //	write_file
+//	write_to_stream
 //	unlink
 
 ipc.on('toMain', async (event, arg) => {
@@ -258,10 +259,32 @@ ipc.on('toMain', async (event, arg) => {
 
 			case 'read_file': {
 				if (arg.filename) {
-					fs.readFile(arg.filename, 'utf-8', (err, data) => {
-						if (err) { win.main.webContents.send('fromMain', { command: arg.command, success: false, data: err }) }
-						else { win.main.webContents.send('fromMain', { command: arg.command, success: true, data: data }); }
+					const read_stream = { buffer: '', contents: [], filename: '', handle: undefined };
+					if (typeof (arg.encoding) === 'undefined') { encoding = 'utf-8'; }
+					// create read stream
+					read_stream.filename = arg.filename;
+					read_stream.handle = fs.createReadStream(read_stream.filename, { encoding: encoding, flags: 'r' });
+			
+					// read from stream
+					read_stream.buffer = '';
+					read_stream.contents = [];
+					read_stream.handle.on('data', (str) => {
+						let lines = (read_stream.buffer + str).match(/(.|[\r\n]){1,256}/g);
+						read_stream.contents = read_stream.contents.concat(lines);
+						read_stream.buffer = read_stream.contents.pop();
 					});
+					read_stream.handle.on('close', () => {
+						read_stream.contents.push(read_stream.buffer);
+						let data = '';
+						for (let i = 0; i < read_stream.contents.length; i++) {
+							data += read_stream.contents[i];
+						}
+						read_stream.buffer = '';
+						read_stream.contents = [];
+					});
+					// close read stream
+					read_stream.handle.close();
+					win.main.webContents.send('fromMain', { command: arg.command, success: true });
 				}
 				break;
 			}

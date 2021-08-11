@@ -1,25 +1,19 @@
 ///////////////////////////////////////////////////////////////////////////////
-// wrapper.js /////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-// OBJECT /////////////////////////////////////////////////////////////////////
+// wrapper.js
+//
 // Manifest:
 //	append_file
 //	axios_get
 //	axios_post
 //	axios_post
-//	close_read_stream
-//	close_write_stream
 //	create_directory
-//	create_read_stream
-//	create_write_stream
-//	delete_file (corresponds with 'unlink' in main.js)
+//	delete_file
 //	get_app_data_directory
 //	get_app_directory
 //	get_app_storage
 //	get_operating_system
 //	open_file_dialog
 //	read_file
-//	read_from_delimited_stream
 //	set_app_storage
 //	sqlite3_all
 //	sqlite3_run
@@ -53,20 +47,6 @@ function WRAPPER() {
 		});
 	}
 
-	this.close_read_stream = () => {
-		return new Promise((resolve) => {
-			window.api.send('toMain', { command: 'close_read_stream' });
-			window.api.receive_once('fromMain', (arg) => { if (arg.command == 'close_read_stream') { return resolve(arg.success); } });
-		});
-	}
-
-	this.close_write_stream = () => {
-		return new Promise((resolve) => {
-			window.api.send('toMain', { command: 'close_write_stream' });
-			window.api.receive_once('fromMain', (arg) => { if (arg.command == 'close_write_stream') { return resolve(arg.success); } });
-		});
-	}
-
 	this.create_directory = (dir_name) => {
 		return new Promise((resolve) => {
 			window.api.send('toMain', { command: 'create_directory', dir_name: dir_name });
@@ -74,24 +54,10 @@ function WRAPPER() {
 		});
 	}
 
-	this.create_read_stream = (filename, encoding) => {
-		return new Promise((resolve) => {
-			window.api.send('toMain', { command: 'create_read_stream', filename: filename, encoding: encoding });
-			window.api.receive_once('fromMain', (arg) => { if (arg.command == 'create_read_stream') { return resolve(arg.success); } });
-		});
-	}
-
-	this.create_write_stream = (filename, encoding) => {
-		return new Promise((resolve) => {
-			window.api.send('toMain', { command: 'create_write_stream', filename: filename, encoding: encoding });
-			window.api.receive_once('fromMain', (arg) => { if (arg.command == 'create_write_stream') { return resolve(arg.success); } });
-		});
-	}
-
 	this.delete_file = (filename) => {
 		return new Promise((resolve) => {
-			window.api.send('toMain', { command: 'unlink', filename: filename });
-			window.api.receive_once('fromMain', (arg) => { if (arg.command == 'unlink') { return resolve(arg.success); } });
+			window.api.send('toMain', { command: 'delete_file', filename: filename });
+			window.api.receive_once('fromMain', (arg) => { if (arg.command == 'delete_file') { return resolve(arg.success); } });
 		});
 	}
 
@@ -130,24 +96,10 @@ function WRAPPER() {
 		});
 	}
 
-	this.read_file = (filename) => {
+	this.read_file = (filename, encoding) => {
 		return new Promise((resolve) => {
-			window.api.send('toMain', { command: 'read_file', filename: filename });
+			window.api.send('toMain', { command: 'read_file', filename: filename, encoding: encoding });
 			window.api.receive_once('fromMain', (arg) => { if (arg.command == 'read_file') { return resolve(arg.data); } });
-		});
-	}
-
-	this.read_from_delimited_stream = (delimiter) => {
-		return new Promise((resolve) => {
-			window.api.send('toMain', { command: 'read_from_delimited_stream', delimiter: delimiter });
-			window.api.receive_once('fromMain', (arg) => { if (arg.command == 'read_from_delimited_stream') { return resolve(arg.data); } });
-		});
-	}
-
-	this.read_from_stream = () => {
-		return new Promise((resolve) => {
-			window.api.send('toMain', { command: 'read_from_stream' });
-			window.api.receive_once('fromMain', (arg) => { if (arg.command == 'read_from_stream') { return resolve(arg.data); } });
 		});
 	}
 
@@ -208,13 +160,6 @@ function WRAPPER() {
 		return new Promise((resolve) => {
 			window.api.send('toMain', { command: 'write_file', filename: filename, data: contents });
 			window.api.receive_once('fromMain', (arg) => { if (arg.command == 'write_file') { return resolve(arg.success); } });
-		});
-	}
-
-	this.write_to_stream = (contents) => {
-		return new Promise((resolve) => {
-			window.api.send('toMain', { command: 'write_to_stream', data: contents });
-			window.api.receive_once('fromMain', (arg) => { if (arg.command == 'write_to_stream') { return resolve(arg.success); } });
 		});
 	}
 

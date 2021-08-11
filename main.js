@@ -19,7 +19,6 @@ const qs = require('qs');
 
 const store = new eStore();
 const win = { main: null, icon: 'assets/icons/pentagon_512x512.png' };
-const write_stream = { buffer: '', contents: [], filename: '', handle: undefined, open: false };
 
 ///////////////////////////////////////////////////////////////////////////////
 // LOAD THE DEFAULT SETTINGS //////////////////////////////////////////////////
@@ -110,18 +109,13 @@ catch (e) { console.log(e); }
 //	append_file
 //	axios_get
 //	axios_post
-//	close_read_stream
-//	close_write_stream
 //	create_directory
-//	create_read_stream
-//	create_write_stream
+//	delete_file
 //	get_app_data_directory
 //	get_app_directory
 //	get_app_storage
 //	open_file_dialog
 //	read_file
-//	read_from_delimited_stream
-//	read_from_stream
 //	set_app_storage
 //	sqlite3_all
 //	sqlite3_run
@@ -130,8 +124,6 @@ catch (e) { console.log(e); }
 //	url_exists
 //	write_canvas_to_png
 //	write_file
-//	write_to_stream
-//	unlink
 
 ipc.on('toMain', async (event, arg) => {
 	event.preventDefault();
@@ -164,28 +156,6 @@ ipc.on('toMain', async (event, arg) => {
 				break;
 			}
 
-			case 'close_read_stream': {
-				if (read_stream.open) {
-					if (typeof (read_stream.handle) !== 'undefined') { read_stream.handle.close(); }
-					read_stream.filename = '';
-					read_stream.handle = undefined;
-					read_stream.open = false;
-					win.main.webContents.send('fromMain', { command: arg.command, success: true });
-				}
-				break;
-			}
-
-			case 'close_write_stream': {
-				if (write_stream.open) {
-					if (typeof (write_stream.handle) !== 'undefined') { write_stream.handle.close(); }
-					write_stream.filename = '';
-					write_stream.handle = undefined;
-					write_stream.open = false;
-					win.main.webContents.send('fromMain', { command: arg.command, success: true });
-				}
-				break;
-			}
-
 			case 'create_directory': {
 				if (arg.dir_name) {
 					if (!fs.existsSync(arg.dir_name)) { fs.mkdirSync(arg.dir_name); }
@@ -194,26 +164,9 @@ ipc.on('toMain', async (event, arg) => {
 				break;
 			}
 
-			case 'create_read_stream': {
+			case 'delete_file': {
 				if (arg.filename) {
-					if (typeof (arg.encoding) === 'undefined') { encoding = 'utf-8'; }
-					if (read_stream.open && (read_stream.filename !== arg.filename)) { read_stream.handle.close(); }
-					read_stream.filename = arg.filename;
-					read_stream.handle = fs.createReadStream(read_stream.filename, { encoding: encoding, flags: 'r' });
-					read_stream.open = true;
-					win.main.webContents.send('fromMain', { command: arg.command, success: true });
-				}
-				break;
-			}
-
-			case 'create_write_stream': {
-				if (arg.filename) {
-					if (typeof (arg.encoding) === 'undefined') { encoding = 'utf-8'; }
-					if (write_stream.open && (write_stream.filename !== arg.filename)) { write_stream.handle.close(); }
-					write_stream.filename = arg.filename;
-					write_stream.handle = fs.createWriteStream(write_stream.filename, { encoding: encoding, flags: 'a' });
-					write_stream.open = true;
-					win.main.webContents.send('fromMain', { command: arg.command, success: true });
+					fs.unlink(arg.filename, () => { win.main.webContents.send('fromMain', { command: arg.command, success: true }); });
 				}
 				break;
 			}
@@ -258,74 +211,15 @@ ipc.on('toMain', async (event, arg) => {
 			}
 
 			case 'read_file': {
-				if (arg.filename) {
-					const read_stream = { buffer: '', contents: [], filename: '', handle: undefined };
-					if (typeof (arg.encoding) === 'undefined') { encoding = 'utf-8'; }
-					// create read stream
-					read_stream.filename = arg.filename;
-					read_stream.handle = fs.createReadStream(read_stream.filename, { encoding: encoding, flags: 'r' });
-			
-					// read from stream
-					read_stream.buffer = '';
-					read_stream.contents = [];
-					read_stream.handle.on('data', (str) => {
-						let lines = (read_stream.buffer + str).match(/(.|[\r\n]){1,256}/g);
-						read_stream.contents = read_stream.contents.concat(lines);
-						read_stream.buffer = read_stream.contents.pop();
-					});
-					read_stream.handle.on('close', () => {
-						read_stream.contents.push(read_stream.buffer);
-						let data = '';
-						for (let i = 0; i < read_stream.contents.length; i++) {
-							data += read_stream.contents[i];
-						}
-						read_stream.buffer = '';
-						read_stream.contents = [];
-					});
-					// close read stream
-					read_stream.handle.close();
-					win.main.webContents.send('fromMain', { command: arg.command, success: true });
-				}
-				break;
-			}
-
-			case 'read_from_delimited_stream': {
-				if (arg.delimiter) {
-					read_stream.buffer = '';
-					read_stream.contents = [];
-					read_stream.handle.on('data', (str) => {
-						let lines = (read_stream.buffer + str).split(arg.delimiter);
-						read_stream.contents = read_stream.contents.concat(lines);
-						read_stream.buffer = read_stream.contents.pop();
-					});
-					read_stream.handle.on('close', () => {
-						read_stream.contents.push(read_stream.buffer);
-						win.main.webContents.send('fromMain', { command: arg.command, success: true, data: read_stream.contents });
-						read_stream.buffer = '';
-						read_stream.contents = [];
-					});
-				}
-				break;
-			}
-
-			case 'read_from_stream': {
-				read_stream.buffer = '';
-				read_stream.contents = [];
-				read_stream.handle.on('data', (str) => {
-					let lines = (read_stream.buffer + str).match(/(.|[\r\n]){1,256}/g);
-					read_stream.contents = read_stream.contents.concat(lines);
-					read_stream.buffer = read_stream.contents.pop();
-				});
-				read_stream.handle.on('close', () => {
-					read_stream.contents.push(read_stream.buffer);
-					let data = '';
-					for (let i = 0; i < read_stream.contents.length; i++) {
-						data += read_stream.contents[i];
-					}
-					win.main.webContents.send('fromMain', { command: arg.command, success: true, data: data });
-					read_stream.buffer = '';
-					read_stream.contents = [];
-				});
+				if (!arg.filename) { win.main.webContents.send('fromMain', { command: arg.command, success: false, data: data }); }
+				let data = '';
+				encoding = 'utf-8';
+				if (arg.encoding) { encoding = arg.encoding; }
+				const handle = fs.createReadStream(arg.filename, { encoding: encoding, flags: 'r' });
+				handle.on('close', () => { win.main.webContents.send('fromMain', { command: arg.command, success: true, data: data }); });
+				handle.on('data', (chunk) => { data += chunk; });
+				handle.on('end', () => { handle.close(); });
+				handle.on('error', (err) => { console.log(err); });
 				break;
 			}
 
@@ -403,29 +297,25 @@ ipc.on('toMain', async (event, arg) => {
 			}
 
 			case 'write_file': {
-				if (arg.filename && arg.data) {
-					fs.writeFile(arg.filename, arg.data, 'utf-8', (err, data) => {
-						if (err) { win.main.webContents.send('fromMain', { command: arg.command, success: false, data: err }) }
-						else { win.main.webContents.send('fromMain', { command: arg.command, success: true }); }
-					});
-				}
-				break;
-			}
-
-			case 'write_to_stream': {
-				if (!write_stream.open) { win.main.webContents.send('fromMain', { command: arg.command, success: false }); }
-				if (arg.data) {
-					await write_stream.handle.write(arg.data);
-					await write_stream.handle.end();
-				}
-				write_stream.handle.on('error', () => { win.main.webContents.send('fromMain', { command: arg.command, success: false }); });
-				write_stream.handle.on('finish', () => { win.main.webContents.send('fromMain', { command: arg.command, success: true }); });
-				break;
-			}
-
-			case 'unlink': {
 				if (arg.filename) {
-					fs.unlink(arg.filename, () => { win.main.webContents.send('fromMain', { command: arg.command, success: true }); });
+					data = '';
+					encoding = 'utf-8';
+					if (arg.data) { data = arg.data; }
+					if (arg.encoding) { encoding = arg.encoding; }
+					if (data.length <= 10000) {
+						fs.writeFile(arg.filename, data, encoding, (err) => {
+							if (err) { win.main.webContents.send('fromMain', { command: arg.command, success: false, data: err }) }
+							else { win.main.webContents.send('fromMain', { command: arg.command, success: true }); }
+						});
+					}
+					else {
+						const handle = fs.createWriteStream(arg.filename, { encoding: encoding, flags: 'a' });
+						await handle.write(data);
+						await handle.end();
+						handle.close();
+						handle.on('error', () => { win.main.webContents.send('fromMain', { command: arg.command, success: false }); });
+						handle.on('finish', () => { win.main.webContents.send('fromMain', { command: arg.command, success: true }); });
+					}
 				}
 				break;
 			}

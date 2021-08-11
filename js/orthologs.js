@@ -531,9 +531,7 @@ function ORTHO_RBH() {
 		this.organism_col_0 = '';
 		this.organism_col_1 = '';
 		this.cargo = [];
-		await wrapper.create_read_stream(full_path);
-		const contents = await wrapper.read_from_stream();
-		await wrapper.close_read_stream();
+		const contents = await wrapper.read_file(full_path);
 		const pre_record = JSON.parse(contents);
 		if (pre_record.organism_col_0) { this.organism_col_0 = pre_record.organism_col_0; }
 		if (pre_record.organism_col_1) { this.organism_col_1 = pre_record.organism_col_1; }

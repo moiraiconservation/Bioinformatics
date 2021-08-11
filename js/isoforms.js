@@ -424,9 +424,7 @@ function ISOFORMS() {
 		const full_path = await path_record.get_full_path();
 		this.organism = '';
 		this.cargo = [];
-		await wrapper.create_read_stream(full_path);
-		const contents = await wrapper.read_from_stream();
-		await wrapper.close_read_stream();
+		const contents = await wrapper.read_file(full_path);
 		const pre_record = JSON.parse(contents);
 		if (pre_record.organism) { this.organism = pre_record.organism; }
 		if (pre_record.cargo && pre_record.cargo.length) {

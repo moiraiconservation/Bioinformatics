@@ -692,6 +692,32 @@ function ORTHOLOGS() {
 		return false;
 	}
 
+	this.match_isoforms = async (folders) => {
+		console.log('Matching isoforms ...');
+		if (typeof (folders) === 'undefined' || typeof (folders) !== 'object') { folders = {}; }
+		if (typeof (folders.iso_fasta) === 'undefined') { folders.iso_fasta = 'iso_fasta'; }
+		for (let i = 0; i < this.cargo.length; i++) {
+			const sequences = [];
+			for (let j = 0; j < this.cargo[i].isoforms.length; j++) {
+				const org_folder = this.cargo[i].isoforms[j].get_file_safe_organism_name();
+				const path_record = await pather.parse(folders.iso_fasta);
+				await path_record.add_folder(org_folder);
+				const full_path = await path_record.get_full_path();
+				for (let k = 0; k < this.cargo[i].isoforms[j].cargo.length; k++) {
+					if (this.cargo[i].isoforms[j].cargo[k].accessions.length) {
+						const protein = await this.cargo[i].isoforms[j].cargo[k].get_protein_sequences(full_path);
+						const filtered = protein.filter_by_accession(this.cargo[i].isoforms[j].cargo[k].accessions);
+						if (filtered.get_number_of_records()) { sequences.push(filtered); }
+					}
+				}
+			}
+			if (sequences.length === this.cargo[i].isoforms.length) {
+				console.log(sequences);
+				console.log(kjdhfkjs.dsjhfjkshk);
+			}
+		}
+	}
+
 }
 
 ///////////////////////////////////////////////////////////////////////////////

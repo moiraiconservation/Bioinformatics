@@ -73,6 +73,32 @@ function ISO_RECORD_COMPACT() {
 		return record;
 	}
 
+	this.get_cds_sequences = async (path) => {
+		if (typeof (path) !== 'string') { path = ''; }
+		const path_record = await pather.parse(path);
+		let filename = path_record.basename + '.fna';
+		if (!path_record.basename) { filename = 'group_' + this.group.toString() + '.fna'; }
+		if (path_record.filename) { await path_record.remove_file_name(); }
+		await path_record.set_file_name(filename);
+		const full_path = await path_record.get_full_path();
+		const sequences = new SEQUENCES();
+		await sequences.load_fasta_file(full_path);
+		return sequences;
+	}
+	
+	this.get_protein_sequences = async (path) => {
+		if (typeof (path) !== 'string') { path = ''; }
+		const path_record = await pather.parse(path);
+		if (path_record.filename) { await path_record.remove_file_name(); }
+		let filename = path_record.basename + '.faa';
+		if (!path_record.basename) { filename = 'group_' + this.group.toString() + '.faa'; }
+		await path_record.set_file_name(filename);
+		const full_path = await path_record.get_full_path();
+		const sequences = new SEQUENCES();
+		await sequences.load_fasta_file(full_path);
+		return sequences;
+	}
+
 	this.set = (parameter, value) => {
 		if (!parameter || typeof (parameter) !== 'string') { return; }
 		const whitelist = ['accessions', 'group', 'gene', 'seq_name'];
@@ -126,15 +152,17 @@ function ISOFORMS() {
 		// This function removes sequence information and is irreversible.
 		const new_cargo = [];
 		for (let i = 0; i < this.cargo.length; i++) {
-			const old_record = this.cargo[i];
-			const new_record = new ISO_RECORD_COMPACT();
-			new_record.group = old_record.group;
-			new_record.gene = old_record.cds_sequences.get_consensus_gene_name();
-			new_record.seq_name = old_record.protein_sequences.get_consensus_sequence_name();
-			for (let j = 0; j < old_record.protein_sequences.cargo.length; j++) {
-				new_record.accessions.push(old_record.protein_sequences.cargo[j].info.accession);
+			if (this.cargo[i] instanceof ISO_RECORD) {
+				const old_record = this.cargo[i];
+				const new_record = new ISO_RECORD_COMPACT();
+				new_record.group = old_record.group;
+				new_record.gene = old_record.cds_sequences.get_consensus_gene_name();
+				new_record.seq_name = old_record.protein_sequences.get_consensus_sequence_name();
+				for (let j = 0; j < old_record.protein_sequences.cargo.length; j++) {
+					new_record.accessions.push(old_record.protein_sequences.cargo[j].info.accession);
+				}
+				new_cargo.push(new_record);
 			}
-			new_cargo.push(new_record);
 		}
 		this.cargo = new_cargo;
 	}
@@ -275,6 +303,17 @@ function ISOFORMS() {
 	this.get_group_numbers_by_sequence_type = (filter) => { return this.get_group_numbers_by('seq_type', filter); }
 
 	this.get_group_numbers_by_status = (filter) => { return this.get_group_numbers_by('status', filter); }
+
+	this.get_file_safe_organism_name = () => {
+		if (typeof (this.organism) !== 'string') { this.organism = ''; }
+		let folder = this.organism || 'unknown_' + Math.random().toString(36).substring(7);
+		folder = folder.replace(/[/\\?%*:|"<>]/g, ' '); // removes all illegal file characters
+		folder = folder.replace(/[^\x20-\x7E]/g, ''); // removes all non-printable characters
+		folder = folder.trim();
+		folder = folder.replace(/ /g, '_');
+		folder = folder.replace(/_+/g, '_');
+		return folder;
+	}
 
 	this.get_index_by = (parameter, filter) => {
 		if (!parameter || typeof (parameter) !== 'string') { return -1; }

@@ -219,7 +219,7 @@ ipc.on('toMain', async (event, arg) => {
 				handle.on('close', () => { win.main.webContents.send('fromMain', { command: arg.command, success: true, data: data }); });
 				handle.on('data', (chunk) => { data += chunk; });
 				handle.on('end', () => { handle.close(); });
-				handle.on('error', (err) => { console.log(err); });
+				handle.on('error', () => { win.main.webContents.send('fromMain', { command: arg.command, success: false, data: '' }); });
 				break;
 			}
 

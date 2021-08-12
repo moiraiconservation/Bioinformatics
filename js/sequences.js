@@ -868,7 +868,7 @@ function SEQUENCES() {
 		const path_record = await pather.parse(path);
 		const full_path = await path_record.get_full_path();
 		const contents = await wrapper.read_file(full_path);
-		this.cargo = parse_fasta(contents);
+		if (contents) { this.cargo = parse_fasta(contents); }
 		return;
 	}
 

@@ -53,6 +53,24 @@ function SEQ_RECORD() {
 		return filename;
 	}
 
+	this.get_words = (word_size) => {
+		const words = [];
+		let sequence = this.sequence.toUpperCase().replace(/-/g, '');
+		for (let i = 0; i < sequence.length - word_size; i++) {
+			words.push(sequence.slice(i, i + word_size));
+		}
+		return words;
+	}
+
+	this.get_unique_words = (word_size) => {
+		const words = [];
+		let sequence = this.sequence.toUpperCase().replace(/-/g, '');
+		for (let i = 0; i < sequence.length - word_size; i++) {
+			words.push(sequence.slice(i, i + word_size));
+		}
+		return Array.from(new Set(words));
+	}
+
 	this.mask_low_complexity = (options) => {
 		if (this.seq_type === 'amino acids') { this.seg(options); }
 		else { this.sdust(options); }

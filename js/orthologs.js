@@ -126,8 +126,8 @@ function ORTHO_CREATOR() {
 	this.clear_rbh_files = () => { this.files.rbh = []; }
 
 	this.create = async (folders) => {
-		console.log('Creating orthologs');
 		if (this.is_ready()) {
+			console.log('Creating orthologs');
 			if (this.options.trust_defline) {
 				await this.create_isoforms(folders);
 				return this.create_orthologs_from_isoforms();
@@ -590,6 +590,26 @@ function ORTHO_RECORD() {
 		return record;
 	}
 
+	this.get_cds_sequences = async (folders) => {
+		if (typeof (folders) === 'undefined' || typeof (folders) !== 'object') { folders = {}; }
+		if (typeof (folders.iso_fasta) === 'undefined') { folders.iso_fasta = 'iso_fasta'; }
+		const sequences = [];
+		for (let j = 0; j < this.isoforms.length; j++) {
+			const org_folder = this.isoforms[j].get_file_safe_organism_name();
+			const path_record = await pather.parse(folders.iso_fasta);
+			await path_record.add_folder(org_folder);
+			const full_path = await path_record.get_full_path();
+			for (let k = 0; k < this.isoforms[j].cargo.length; k++) {
+				if (this.isoforms[j].cargo[k].accessions.length) {
+					const result = await this.isoforms[j].cargo[k].get_cds_sequences(full_path);
+					const filtered = result.filter_by_accession(this.isoforms[j].cargo[k].accessions);
+					if (filtered.get_number_of_records()) { sequences.push(filtered); }
+				}
+			}
+		}
+		return sequences;
+	}
+
 	this.get_consensus = (parameter) => {
 		if (!parameter || typeof (parameter) !== 'string') { return ''; }
 		const whitelist = ['gene', 'seq_name'];
@@ -613,6 +633,26 @@ function ORTHO_RECORD() {
 	this.get_consensus_gene_name = () => { return this.get_consensus('gene'); }
 
 	this.get_consensus_sequence_name = () => { return this.get_consensus('seq_name'); }
+
+	this.get_protein_sequences = async (folders) => {
+		if (typeof (folders) === 'undefined' || typeof (folders) !== 'object') { folders = {}; }
+		if (typeof (folders.iso_fasta) === 'undefined') { folders.iso_fasta = 'iso_fasta'; }
+		const sequences = [];
+		for (let j = 0; j < this.isoforms.length; j++) {
+			const org_folder = this.isoforms[j].get_file_safe_organism_name();
+			const path_record = await pather.parse(folders.iso_fasta);
+			await path_record.add_folder(org_folder);
+			const full_path = await path_record.get_full_path();
+			for (let k = 0; k < this.isoforms[j].cargo.length; k++) {
+				if (this.isoforms[j].cargo[k].accessions.length) {
+					const result = await this.isoforms[j].cargo[k].get_protein_sequences(full_path);
+					const filtered = result.filter_by_accession(this.isoforms[j].cargo[k].accessions);
+					if (filtered.get_number_of_records()) { sequences.push(filtered); }
+				}
+			}
+		}
+		return sequences;
+	}
 
 	this.get_unique = (parameter) => {
 		let arr = [];
@@ -658,6 +698,44 @@ function ORTHOLOGS() {
 		return cargo;
 	}
 
+	this.create_isoform_files = async (folders) => {
+		console.log('Matching isoforms ...');
+		if (typeof (folders) === 'undefined' || typeof (folders) !== 'object') { folders = {}; }
+		if (typeof (folders.iso_fasta) === 'undefined') { folders.iso_fasta = 'iso_fasta'; }
+		if (typeof (folders.ortho_fasta) === 'undefined') { folders.iso_fasta = 'ortho_fasta'; }
+		for (let i = 0; i < this.cargo.length; i++) {
+			const cds_sequences = await this.cargo[i].get_cds_sequences(folders);
+			const protein_sequences = await this.cargo[i].get_protein_sequences(folders);
+			if (cds_sequences.length === this.cargo[i].isoforms.length && protein_sequences.length === this.cargo[i].isoforms.length) {
+				// sort by the number of sequences
+				protein_sequences.sort((a, b) => { return a.cargo.length - b.cargo.length; });
+				console.log(protein_sequences);
+				for (let x = 0; x < protein_sequences[0].cargo.length; x++) {
+					const seq_path = new Array(protein_sequences.length);
+					seq_path[0] = x;
+					const q_words = protein_sequences[0].cargo[x].get_unique_words(5);
+					for (let y = 1; y < protein_sequences.length; y++) {
+						let max_score = -Infinity;
+						let max_index = 0;
+						for (let z = 0; z < protein_sequences[y].cargo.length; z++) {
+							const s_words = protein_sequences[y].cargo[z].get_unique_words(5);
+							let score = 0;
+							for (let w = 0; w < q_words.length; w++) { if (s_words.includes(q_words[w])) { score++; } }
+							score = score / Math.max(q_words.length, s_words.length);
+							if (score > max_score) {
+								max_score = score;
+								max_index = z;
+							}
+						}
+						seq_path[y] = max_index;
+					}
+					console.log(seq_path);
+				}
+				console.log(fhaljalk.ashjk);
+			}
+		}
+	}
+
 	this.get_number_of_records = () => { return this.cargo.length; }
 
 	this.get_nonconsensus = (parameter) => {
@@ -690,61 +768,6 @@ function ORTHOLOGS() {
 	this.is_loaded = () => {
 		if (this.cargo.length) { return true; }
 		return false;
-	}
-
-	this.match_isoforms = async (folders) => {
-		console.log('Matching isoforms ...');
-		if (typeof (folders) === 'undefined' || typeof (folders) !== 'object') { folders = {}; }
-		if (typeof (folders.iso_fasta) === 'undefined') { folders.iso_fasta = 'iso_fasta'; }
-		for (let i = 0; i < this.cargo.length; i++) {
-			const cds_sequences = [];
-			const protein_sequences = [];
-			for (let j = 0; j < this.cargo[i].isoforms.length; j++) {
-				const org_folder = this.cargo[i].isoforms[j].get_file_safe_organism_name();
-				const path_record = await pather.parse(folders.iso_fasta);
-				await path_record.add_folder(org_folder);
-				const full_path = await path_record.get_full_path();
-				for (let k = 0; k < this.cargo[i].isoforms[j].cargo.length; k++) {
-					if (this.cargo[i].isoforms[j].cargo[k].accessions.length) {
-						const cds = await this.cargo[i].isoforms[j].cargo[k].get_cds_sequences(full_path);
-						const protein = await this.cargo[i].isoforms[j].cargo[k].get_protein_sequences(full_path);
-						const filtered_cds = cds.filter_by_accession(this.cargo[i].isoforms[j].cargo[k].accessions);
-						if (filtered_cds.get_number_of_records()) { cds_sequences.push(filtered_cds); }
-						const filtered_protein = protein.filter_by_accession(this.cargo[i].isoforms[j].cargo[k].accessions);
-						if (filtered_protein.get_number_of_records()) { protein_sequences.push(filtered_protein); }
-					}
-				}
-			}
-			if (cds_sequences.length === this.cargo[i].isoforms.length && protein_sequences.length === this.cargo[i].isoforms.length) {
-				// sort by the number of sequences
-				protein_sequences.sort((a, b) => { return a.cargo.length - b.cargo.length; });
-				for (let x = 0; x < protein_sequences[0].cargo.length; x++) {
-					const seq_path = new Array(protein_sequences.length);
-					seq_path[0] = x;
-					const q_words = protein_sequences[0].cargo[x].get_unique_words(5);
-					for (let y = 1; y < protein_sequences.length; y++) {
-						let max_score = 0;
-						let max_index = 0;
-						for (let z = 0; z < protein_sequences[y].cargo.length; z++) {
-							const s_words = protein_sequences[y].cargo[z].get_unique_words(5);
-							let score = 0;
-							for (let w = 0; w < q_words.length; w++) {
-								if (s_words.includes(q_words[w])) { score++; }
-							}
-							score = score / Math.max(q_words.length, s_words.length);
-							if (score > max_score) {
-								max_score = score;
-								max_index = z;
-							}
-						}
-						seq_path[y] = max_index;
-					}
-				}
-				console.log(protein_sequences);
-				console.log(seq_path);
-				console.log(jhdksjsk.sdjfhkjs);
-			}
-		}
 	}
 
 }

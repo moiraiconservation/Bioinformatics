@@ -96,7 +96,10 @@
 						if (arg.data && arg.data.filePaths.length) {
 							ortho_creator.add_blast_files(arg.data.filePaths);
 							orthologs = await ortho_creator.create(project.folders);
-							console.log(orthologs);
+							console.log('loaded');
+							if (orthologs.is_loaded()) {
+								console.log(orthologs);
+							}
 						}
 						break;
 					}
@@ -105,7 +108,10 @@
 						if (arg.data && arg.data.filePaths.length) {
 							ortho_creator.add_cds_files(arg.data.filePaths);
 							orthologs = await ortho_creator.create(project.folders);
-							console.log(orthologs);
+							console.log('loaded');
+							if (orthologs.is_loaded()) {
+								console.log(orthologs);
+							}
 						}
 						break;
 					}
@@ -114,8 +120,11 @@
 						if (arg.data && arg.data.filePaths.length) {
 							ortho_creator.add_isoform_files(arg.data.filePaths);
 							orthologs = await ortho_creator.create(project.folders);
-							console.log(orthologs);
-							await orthologs.match_isoforms(project.folders);
+							console.log('loaded');
+							if (orthologs.is_loaded()) {
+								console.log(orthologs);
+								await orthologs.create_isoform_files(project.folders);
+							}
 						}
 						break;
 					}
@@ -133,7 +142,10 @@
 						if (arg.data && arg.data.filePaths.length) {
 							ortho_creator.add_protein_files(arg.data.filePaths);
 							orthologs = await ortho_creator.create(project.folders);
-							console.log(orthologs);
+							console.log('loaded');
+							if (orthologs.is_loaded()) {
+								console.log(orthologs);
+							}
 						}
 						break;
 					}
@@ -142,8 +154,11 @@
 						if (arg.data && arg.data.filePaths.length) {
 							ortho_creator.add_rbh_files(arg.data.filePaths);
 							orthologs = await ortho_creator.create(project.folders);
-							console.log(orthologs);
-							await orthologs.match_isoforms(project.folders);
+							console.log('loaded');
+							if (orthologs.is_loaded()) {
+								console.log(orthologs);
+								await orthologs.create_isoform_files(project.folders);
+							}
 						}
 						break;
 					}

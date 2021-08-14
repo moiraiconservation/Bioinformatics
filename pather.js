@@ -74,41 +74,12 @@ function PATHER_RECORD() {
 			}
 			for (let i = folder_start; i <= folder_stop; i++) {
 				if (parts[i]) {
-					parts[i] = parts[i].replace(/[/\\?%*:|"<>]/g, ' '); // removes all illegal file characters
-					parts[i] = parts[i].replace(/[^\x20-\x7E]/g, ''); // removes all non-printable characters			
+					parts[i] = this.make_text_file_safe(parts[i]);
 					folders.push(parts[i]);
 				}
 			}
 		}
 		return folders;
-	}
-
-	this.set_extension = async (extension) => {
-		if (typeof (extension) !== 'string') { extension = ''; }
-		this.extension = extension.trim();
-		this.filename = this.basename + '.' + this.extension;
-	}
-
-	this.set_file_name = async (filename) => {
-		if (typeof (filename) !== 'string') { filename = ''; }
-		this.filename = filename.trim();
-		const parts = this.filename.split('.');
-		if (parts && parts.length) {
-			for (let i = (parts.length - 1); i >= 0; i--) {
-				if (!parts[i]) { parts[i].splice(i, 1); }
-			}
-			const last = parts.length - 1;
-			if (last) {
-				// an extension was provided
-				this.extension = parts[last]
-				this.basename = filename.replace('.' + parts[last], '');
-			}
-			else {
-				// no extension was provided
-				this.extension = '';
-				this.basename = filename;
-			}
-		}
 	}
 
 	this.force_path = async () => {
@@ -131,10 +102,44 @@ function PATHER_RECORD() {
 		return path;
 	}
 
+	this.make_text_file_safe = (str) => {
+		str = str.replace(/[/\\?%*:|"<>]/g, ' '); // removes all illegal file characters
+		str = str.replace(/[^\x20-\x7E]/g, ''); // removes all non-printable characters
+		return str;
+	}
+
 	this.remove_file_name = async () => {
 		this.basename = '';
 		this.extension = '';
 		this.filename = '';
+	}
+
+	this.set_extension = async (extension) => {
+		if (typeof (extension) !== 'string') { extension = ''; }
+		this.extension = this.make_text_file_safe(extension.trim());
+		this.filename = this.basename + '.' + this.extension;
+	}
+
+	this.set_file_name = async (filename) => {
+		if (typeof (filename) !== 'string') { filename = ''; }
+		this.filename = filename.trim();
+		const parts = this.filename.split('.');
+		if (parts && parts.length) {
+			for (let i = (parts.length - 1); i >= 0; i--) {
+				if (!parts[i]) { parts[i].splice(i, 1); }
+			}
+			const last = parts.length - 1;
+			if (last) {
+				// an extension was provided
+				this.extension = this.make_text_file_safe(parts[last]);
+				this.basename = this.make_text_file_safe(filename.replace('.' + parts[last], ''));
+			}
+			else {
+				// no extension was provided
+				this.extension = '';
+				this.basename = this.make_text_file_safe(filename);
+			}
+		}
 	}
 
 }

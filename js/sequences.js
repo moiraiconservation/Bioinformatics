@@ -53,6 +53,41 @@ function SEQ_RECORD() {
 		return filename;
 	}
 
+	this.get_phylip_accession = () => {
+		if (!this.info.accession) { return ''; }
+		let replacement = this.info.accession;
+		replacement = replacement.slice(0, 10);
+		replacement = replacement.padEnd(10, 'x');
+		return replacement;
+	}
+
+	this.get_phylip_organism_name = () => {
+		if (!this.info.organism) { return ''; }
+		const parts = this.info.organism.split(' ');
+		if (!parts || !parts.length) { return ''; }
+		if (parts.length === 1) {
+			let replacement = parts[0].slice(0, 10);
+			replacement = replacement.padEnd(10, 'x');
+			return replacement;
+		}
+		else if (parts.length > 1) {
+			let replacement = parts[0].charAt(0).toUpperCase();
+			replacement += '_' + parts[1];
+			replacement = replacement.slice(0, 10);
+			replacement = replacement.padEnd(10, 'x');
+			return replacement;
+		}
+		return '';
+	}
+
+	this.get_phylip_protein_id = () => {
+		if (!this.info.protein_id) { return ''; }
+		let replacement = this.info.protein_id;
+		replacement = replacement.slice(0, 10);
+		replacement = replacement.padEnd(10, 'x');
+		return replacement;
+	}
+
 	this.get_words = (word_size) => {
 		const words = [];
 		let sequence = this.sequence.toUpperCase().replace(/-/g, '');
@@ -76,19 +111,7 @@ function SEQ_RECORD() {
 		else { this.sdust(options); }
 	}
 
-	this.to_fasta = () => {
-		let fasta = '>' + this.defline + '\n';
-		let sequence = this.sequence;
-		while (sequence.length) {
-			fasta += sequence.slice(0, 80) + '\n';
-			sequence = sequence.replace(sequence.slice(0, 80), '');
-		}
-		return fasta;
-	}
-
-	this.to_uppercase = () => { this.sequence = this.sequence.toUpperCase(); }
-
-	this.save_as_fasta = async (path) => {
+	this.save_as_fasta = async (path, options) => {
 		// If the filename has not been supplied, one will be created from the
 		//	defline.  If the specified folders do not exist, they will be
 		//	created.
@@ -98,7 +121,7 @@ function SEQ_RECORD() {
 		if (!path_record.filename) { await path_record.set_file_name(new_filename); }
 		await path_record.force_path();
 		const full_path = await path_record.get_full_path();
-		const contents = this.to_fasta();
+		const contents = this.to_fasta(options);
 		await wrapper.write_file(full_path, contents);
 		return;
 	}
@@ -216,7 +239,7 @@ function SEQ_RECORD() {
 
 		function get_every_suffix(str, offset) {
 			if (typeof (offset) === 'undefined') { offset = 0; }
-			var i, j, result = [];
+			var i, result = [];
 			for (i = 0; i < str.length; i++) {
 				let obj = {};
 				obj.str = str.slice(i, str.length);
@@ -472,6 +495,27 @@ function SEQ_RECORD() {
 		this.info.status = value;
 		this.defline = build_defline(this.info);
 	}
+
+	this.to_fasta = (options) => {
+		if (typeof (options) !== 'object') { options = {}; }
+		if (typeof (options.phylip_defline) === 'undefined') { options.phylip_defline = false; }
+		let defline = this.defline;
+		if (options.phylip_defline) {
+			defline = this.get_phylip_organism_name();
+			if (!defline) { defline = this.get_phylip_protein_id(); }
+			if (!defline) { defline = this.get_phylip_accession(); }
+			if (!defline) { defline = this.defline; }
+		}
+		let fasta = '>' + defline + '\n';
+		let sequence = this.sequence;
+		while (sequence.length) {
+			fasta += sequence.slice(0, 80) + '\n';
+			sequence = sequence.replace(sequence.slice(0, 80), '');
+		}
+		return fasta;
+	}
+
+	this.to_uppercase = () => { this.sequence = this.sequence.toUpperCase(); }
 
 	this.unmask = () => { this.to_uppercase(); }
 
@@ -898,7 +942,7 @@ function SEQUENCES() {
 		}
 	}
 
-	this.save_as_fasta = async (path) => {
+	this.save_as_fasta = async (path, options) => {
 		// If the filename has not been supplied, one will be created from the
 		//	defline.  If the specified folders do not exist, they will be
 		//	created.
@@ -910,7 +954,7 @@ function SEQUENCES() {
 			const full_path = await path_record.get_full_path();
 			let contents = '';
 			for (let i = 0; i < this.cargo.length; i++) {
-				contents += this.cargo[i].to_fasta();
+				contents += this.cargo[i].to_fasta(options);
 			}
 			await wrapper.write_file(full_path, contents);
 		}

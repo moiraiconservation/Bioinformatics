@@ -824,8 +824,11 @@ function ORTHOLOGS() {
 				//	tolerance and 90% identity for words 5 amino acids in length.
 				if (max_score > 0.45) { seq_path[y] = protein_sequences[y].cargo[max_index].clone(); }
 			}
-			const aberrant = seq_path.filter((a) => { return a instanceof Number; });
-			if (!aberrant.length) {
+			let all_good = true;
+			for (let i = 0; i < seq_path.length; i++) {
+				if (seq_path[i] === 1) { all_good = false; }
+			}
+			if (all_good) {
 				seq_path.sort((a, b) => {
 					if (a.info.organism < b.info.organism) { return -1; }
 					if (a.info.organism > b.info.organism) { return 1; }

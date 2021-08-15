@@ -9,7 +9,7 @@ function PROJECT() {
 		iso_compact: '',
 		iso_fasta: '',
 		ortho_fasta: '',
-		iso_rbh_files: ''
+		iso_rbh_files: '',
 	}
 	this.path_records = {
 		iso_compact: null,

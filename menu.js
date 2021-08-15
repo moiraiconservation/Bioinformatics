@@ -72,7 +72,26 @@ module.exports = {
 								});
 						}
 					},
-
+					{
+						id: 'open_orthologs',
+						label: 'Open Orthologs File...',
+						enabled: true,
+						click() {
+							dialog.showOpenDialog({
+								filters: [
+									{ name: 'Orthologs', extensions: ['ortho'] },
+									{ name: 'Text', extensions: ['txt'] },
+									{ name: 'All Files', extensions: ['*'] }
+								],
+								properties: ['openFile']
+							})
+								.then((response) => {
+									if (!response.canceled) {
+										win.main.webContents.send('fromMain', { command: 'open_orthologs', success: true, data: response });
+									}
+								});
+						}
+					},
 					{
 						id: 'open_project_folder',
 						label: 'Open Project Folder...',

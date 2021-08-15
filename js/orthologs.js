@@ -580,12 +580,12 @@ function ORTHO_RBH() {
 
 function ORTHO_RECORD() {
 
-	this.directory = {
+	this.gene = '';
+	this.isoforms = [];
+	this.resources = {
 		cds: [],
 		protein: []
 	};
-	this.gene = '';
-	this.isoforms = [];
 	this.seq_name = '';
 
 	this.clone = () => {
@@ -724,16 +724,21 @@ function ORTHOLOGS() {
 					if (protein_arr.length === cds_arr.length) {
 						for (let j = 0; j < protein_arr.length; j++) {
 							if (protein_arr[j].cargo.length && protein_arr[j].cargo.length === cds_arr[j].cargo.length) {
+								// create the cds FASTA file
 								const cds_filename = this.cargo[i].gene + '_group_' + (j + 1).toString() + '.fna';
-								const protein_filename = this.cargo[i].gene + '_group_' + (j + 1).toString() + '.faa';
 								await path_record.remove_file_name();
 								await path_record.set_file_name(cds_filename);
 								let full_path = await path_record.get_full_path();
-								this.cargo[i].directory.cds.push(full_path);
+								let unique_accessions = cds_arr[j].get_unique_accessions();
+								this.cargo[i].resources.cds.push({ accessions: unique_accessions, file: full_path });
 								await cds_arr[j].save_as_fasta(full_path, { phylip_defline: true });
+								// create the protein FASTA file
+								const protein_filename = this.cargo[i].gene + '_group_' + (j + 1).toString() + '.faa';
+								await path_record.remove_file_name();
 								await path_record.set_file_name(protein_filename);
 								full_path = await path_record.get_full_path();
-								this.cargo[i].directory.protein.push(full_path);
+								unique_accessions = protein_arr[j].get_unique_accessions();
+								this.cargo[i].resources.protein.push({ accessions: unique_accessions, file: full_path });
 								await protein_arr[j].save_as_fasta(full_path, { phylip_defline: true });
 							}
 						}
@@ -742,7 +747,7 @@ function ORTHOLOGS() {
 			}
 		}
 		for (let i = this.cargo.length - 1; i >= 0; i--) {
-			if (!this.cargo[i].directory.cds.length || !this.cargo[i].directory.protein.length) {
+			if (!this.cargo[i].resources.cds.length || !this.cargo[i].resources.protein.length) {
 				this.cargo.splice(i, 1);
 			}
 		}
@@ -780,6 +785,20 @@ function ORTHOLOGS() {
 	this.is_loaded = () => {
 		if (this.cargo.length) { return true; }
 		return false;
+	}
+
+	this.save_as = async (path) => {
+		if (typeof (path) === 'undefined') { path = ''; }
+		const path_record = await pather.parse(path);
+		if (!path_record.filename) { await path_record.set_file_name('orthologs.ortho'); }
+		await path_record.force_path();
+		const full_path = await path_record.get_full_path();
+		let contents = JSON.stringify(this.organisms) + '\n';
+		for (let i = 0; i < this.cargo.length; i++) {
+			contents += JSON.stringify(this.cargo[i]);
+			if (i < this.cargo.length - 1) { contents += '\n'; }
+		}
+		await wrapper.write_file(full_path, contents);
 	}
 
 	////////////////////////////////////////////////////////////////////////

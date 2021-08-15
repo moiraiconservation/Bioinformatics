@@ -122,6 +122,7 @@
 							orthologs = await ortho_creator.create(project.folders);
 							console.log('loaded');
 							if (orthologs.is_loaded()) {
+								await orthologs.save_as(project.directory);
 								console.log(orthologs);
 							}
 						}
@@ -133,6 +134,13 @@
 							await project.set_directory(arg.data.filePaths[0]);
 							app_storage.project_directory = project.directory;
 							await wrapper.set_app_storage(app_storage);
+						}
+						break;
+					}
+
+					case 'open_orthologs': {
+						if (arg.data && arg.data.filePaths.length) {
+							console.log(arg.data.filePaths);
 						}
 						break;
 					}
@@ -155,6 +163,7 @@
 							orthologs = await ortho_creator.create(project.folders);
 							console.log('loaded');
 							if (orthologs.is_loaded()) {
+								await orthologs.save_as(project.directory);
 								console.log(orthologs);
 							}
 						}

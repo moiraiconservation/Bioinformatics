@@ -1026,6 +1026,8 @@ function SEQUENCES() {
 		}
 	}
 
+	////////////////////////////////////////////////////////////////////////
+
 	function clean_sequence_name(seq_name) {
 		if (typeof (seq_name) !== 'string') { seq_name = ''; }
 		seq_name = seq_name.replace('hypothetical protein ', '');

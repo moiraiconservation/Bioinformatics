@@ -741,6 +741,11 @@ function ORTHOLOGS() {
 				}
 			}
 		}
+		for (let i = this.cargo.length - 1; i >= 0; i--) {
+			if (!this.cargo[i].directory.cds.length || !this.cargo[i].directory.protein.length) {
+				this.cargo.splice(i, 1);
+			}
+		}
 	}
 
 	this.get_number_of_records = () => { return this.cargo.length; }
@@ -820,9 +825,9 @@ function ORTHOLOGS() {
 						max_index = z;
 					}
 				}
-				// The threshold 0.45 is the CD-HIT threshold representing 99%
-				//	tolerance and 90% identity for words 5 amino acids in length.
-				if (max_score > 0.45) { seq_path[y] = protein_sequences[y].cargo[max_index].clone(); }
+				// The threshold 0.18 is the CD-HIT threshold representing 99%
+				//	tolerance and 80% identity for words 5 amino acids in length.
+				if (max_score > 0.18) { seq_path[y] = protein_sequences[y].cargo[max_index].clone(); }
 			}
 			let all_good = true;
 			for (let i = 0; i < seq_path.length; i++) {

@@ -83,7 +83,7 @@
 		///////////////////////////////////////////////////////////////////////////
 		// VARIABLES //////////////////////////////////////////////////////////////
 	
-		var orthologs;
+		let orthologs = new ORTHOLOGS();
 
 		///////////////////////////////////////////////////////////////////////////
 		// IPC COMMUNICATION //////////////////////////////////////////////////////
@@ -140,7 +140,8 @@
 
 					case 'open_orthologs': {
 						if (arg.data && arg.data.filePaths.length) {
-							console.log(arg.data.filePaths);
+							await orthologs.load_orthologs_file(arg.data.filePaths[0]);
+							console.log(orthologs);
 						}
 						break;
 					}

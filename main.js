@@ -116,6 +116,7 @@ catch (e) { console.log(e); }
 //	get_app_data_directory
 //	get_app_directory
 //	get_app_storage
+//	get_operating_system
 //	open_file_dialog
 //	read_file
 //	set_app_storage
@@ -174,13 +175,14 @@ ipc.on('toMain', async (event, arg) => {
 			}
 
 			case 'execute': {
+				if (!arg.cmd) { win.main.webContents.send('fromMain', { command: arg.command, success: false, data: '' }); break; }
+				if (!arg.args) { arg.args = []; }
+				if (!arg.options) { arg.options = {}; }
 				let result = '';
-				const child = child_process.spawn('wsl', ['/home/neilcopes/.t_coffee/bin/linux/t_coffee', '--version', '&&', 'exit'], { shell: true, windowsHide: false });
+				const child = child_process.spawn(arg.cmd, arg.args, arg.options);
 				child.stdout.on('data', (data) => { result += data.toString(); });
 				child.stderr.on('data', (data) => { result += data.toString(); });
-				child.on('close', (code) => {
-					win.main.webContents.send('fromMain', { command: arg.command, success: true, data: result });
-				});
+				child.on('close', () => { win.main.webContents.send('fromMain', { command: arg.command, success: true, data: result }); });
 				break;
 			}
 
@@ -200,7 +202,15 @@ ipc.on('toMain', async (event, arg) => {
 			}
 
 			case 'get_operating_system': {
-				win.main.webContents.send('fromMain', { command: arg.command, success: true, data: process.platform });
+				let os = '';
+				switch(process.platform) {
+					case 'darwin': { os = 'MacOS'; break; }
+					case 'linux': { os = 'Linux'; break; }
+					case 'win32': { os = 'Windows'; break; }
+					case 'win64': { os = 'Windows'; break; }
+					default: { os = 'Unknown'; }
+				}
+				win.main.webContents.send('fromMain', { command: arg.command, success: true, data: os });
 				break;
 			}
 

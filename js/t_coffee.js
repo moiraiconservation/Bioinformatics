@@ -17,7 +17,11 @@ function T_COFFEE() {
 	this.align = async (path) => {
 		//const path_record = await pather.parse(path);
 		//const full_path = await path_record.get_full_path();
-		const stdout = await wrapper.execute();
+		//const stdout = await wrapper.execute('wsl', ['/home/neilcopes/.t_coffee/bin/linux/t_coffee', '--version', '&&', 'exit'], { shell: true, windowsHide: false });
+		//console.log(stdout);
+		//const arr = await pather.get_wsl_env_path();
+		//console.log(arr);
+		const stdout = await wrapper.execute('wsl', ['echo', '$PATH', '&&', 'exit'], { shell: false });
 		console.log(stdout);
 		
 	}

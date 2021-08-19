@@ -62,9 +62,9 @@ function WRAPPER() {
 		});
 	}
 
-	this.execute = (command_arr) => {
+	this.execute = (cmd, args, options) => {
 		return new Promise((resolve) => {
-			window.api.send('toMain', { command: 'execute', command_arr: command_arr });
+			window.api.send('toMain', { command: 'execute', cmd: cmd, args: args, options: options });
 			window.api.receive_once('fromMain', (arg) => { if (arg.command == 'execute') { return resolve(arg.data); } });
 		});
 	}

@@ -7,6 +7,7 @@
 const { app, BrowserWindow, dialog, Menu } = require('electron');
 const app_menu = require ('./menu.js');
 const axios = require('axios');
+const child_process = require('child_process');
 const eStore = require('electron-store');
 const fs = require('fs');
 const ipc = require('electron').ipcMain;
@@ -111,6 +112,7 @@ catch (e) { console.log(e); }
 //	axios_post
 //	create_directory
 //	delete_file
+//	execute
 //	get_app_data_directory
 //	get_app_directory
 //	get_app_storage
@@ -168,6 +170,17 @@ ipc.on('toMain', async (event, arg) => {
 				if (arg.filename) {
 					fs.unlink(arg.filename, () => { win.main.webContents.send('fromMain', { command: arg.command, success: true }); });
 				}
+				break;
+			}
+
+			case 'execute': {
+				let result = '';
+				const child = child_process.spawn('wsl', ['/home/neilcopes/.t_coffee/bin/linux/t_coffee', '--version', '&&', 'exit'], { shell: true, windowsHide: false });
+				child.stdout.on('data', (data) => { result += data.toString(); });
+				child.stderr.on('data', (data) => { result += data.toString(); });
+				child.on('close', (code) => {
+					win.main.webContents.send('fromMain', { command: arg.command, success: true, data: result });
+				});
 				break;
 			}
 

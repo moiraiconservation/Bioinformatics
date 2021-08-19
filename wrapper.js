@@ -8,6 +8,7 @@
 //	axios_post
 //	create_directory
 //	delete_file
+//	execute
 //	get_app_data_directory
 //	get_app_directory
 //	get_app_storage
@@ -58,6 +59,13 @@ function WRAPPER() {
 		return new Promise((resolve) => {
 			window.api.send('toMain', { command: 'delete_file', filename: filename });
 			window.api.receive_once('fromMain', (arg) => { if (arg.command == 'delete_file') { return resolve(arg.success); } });
+		});
+	}
+
+	this.execute = (command_arr) => {
+		return new Promise((resolve) => {
+			window.api.send('toMain', { command: 'execute', command_arr: command_arr });
+			window.api.receive_once('fromMain', (arg) => { if (arg.command == 'execute') { return resolve(arg.data); } });
 		});
 	}
 

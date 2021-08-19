@@ -13,6 +13,7 @@ module.exports = {
 			{
 				label: 'File',
 				submenu: [
+
 					{
 						id: 'open_blast',
 						label: 'Open BLAST Output Files...',
@@ -32,6 +33,7 @@ module.exports = {
 								});
 						}
 					},
+
 					{
 						id: 'open_cds',
 						label: 'Open CDS Files...',
@@ -52,6 +54,7 @@ module.exports = {
 								});
 						}
 					},
+
 					{
 						id: 'open_compact_isoforms',
 						label: 'Open Isoform Files...',
@@ -72,6 +75,7 @@ module.exports = {
 								});
 						}
 					},
+
 					{
 						id: 'open_orthologs',
 						label: 'Open Orthologs File...',
@@ -92,6 +96,7 @@ module.exports = {
 								});
 						}
 					},
+
 					{
 						id: 'open_project_folder',
 						label: 'Open Project Folder...',
@@ -121,13 +126,14 @@ module.exports = {
 								],
 								properties: ['multiSelections', 'openFile']
 							})
-								.then((response) => {
-									if (!response.canceled) {
-										win.main.webContents.send('fromMain', { command: 'open_protein', success: true, data: response });
-									}
-								});
+							.then((response) => {
+								if (!response.canceled) {
+									win.main.webContents.send('fromMain', { command: 'open_protein', success: true, data: response });
+								}
+							});
 						}
 					},
+
 					{
 						id: 'open_rbh',
 						label: 'Open RBH Files...',
@@ -148,10 +154,28 @@ module.exports = {
 								});
 						}
 					},
+
 					{ type: 'separator' },
+
 					{ label: 'Exit', click() { app.quit() } }
+
 				]
 			},
+
+			{
+				label: 'Actions',
+				submenu: [
+
+					{
+						id: 't_coffee',
+						label: 'T-Coffee',
+						enabled: true,
+						click() { win.main.webContents.send('fromMain', { command: 't_coffee' }); 	}
+					}
+
+				]
+			},
+
 			{
 				label: 'Debug',
 				submenu: [

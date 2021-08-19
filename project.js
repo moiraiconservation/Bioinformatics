@@ -1,6 +1,6 @@
 ///////////////////////////////////////////////////////////////////////////////
 // project.js
-//	Requires globals: pather
+//	Requires globals: pather.js
 
 function PROJECT() {
 	this.name = '';
@@ -8,8 +8,8 @@ function PROJECT() {
 	this.folders = {
 		iso_compact: '',
 		iso_fasta: '',
-		ortho_fasta: '',
 		iso_rbh_files: '',
+		ortho_fasta: ''
 	}
 	this.path_records = {
 		iso_compact: null,

@@ -149,36 +149,24 @@ function PATHER_RECORD() {
 function PATHER() {
 
 	this.get_env_path = async () => {
+		let delimiter = '';
 		const env_path = [];
+		let script = [];
 		const os = await wrapper.get_operating_system();
 		switch (os) {
 			case 'Linux': {
-				const stdout = await wrapper.execute('echo', ['$PATH'], { shell: true });
-				const parts = stdout.split(':');
-				for (let i = 0; i < parts.length; i++) { env_path.push(parts[i]); }
+				delimiter = ':';
+				script = ['$PATH'];
 				break;
 			}
 			case 'Windows': {
-				const stdout = await wrapper.execute('echo', ['%PATH%'], { shell: true });
-				const parts = stdout.split(';');
-				for (let i = 0; i < parts.length; i++) { env_path.push(parts[i]); }
+				delimiter = ';';
+				script = ['%PATH%'];
 				break;
 			}
 		}
-		return env_path;
-	}
-
-	this.get_wsl_env_path = async () => {
-		const env_path = [];
-		const os = await wrapper.get_operating_system();
-		console.log(os);
-		if (os !== 'Windows') { return env_path; }
-		const wsl_check = await wrapper.execute('wsl', ['exit'], { shell: true });
-		console.log(wsl_check);
-		if (wsl_check.includes('is not recognized as an internal or external command')) { return env_path; }
-		const stdout = await wrapper.execute('wsl', ['echo', '$PATH', '&&', 'exit'], { shell: true });
-		console.log(stdout);
-		const parts = stdout.split(':');
+		const stdout = await wrapper.execute('echo', script, { shell: true });
+		const parts = stdout.split(delimiter);
 		for (let i = 0; i < parts.length; i++) { env_path.push(parts[i]); }
 		return env_path;
 	}

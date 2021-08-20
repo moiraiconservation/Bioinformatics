@@ -21,7 +21,7 @@ function T_COFFEE() {
 		//console.log(stdout);
 		//const arr = await pather.get_wsl_env_path();
 		//console.log(arr);
-		const stdout = await wrapper.execute('wsl', ['echo', '$PATH', '&&', 'exit'], { shell: false });
+		const stdout = await wrapper.execute('wsl', ['whoami', '&&', 'exit'], { shell: true });
 		console.log(stdout);
 		
 	}

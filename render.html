@@ -180,7 +180,8 @@
 
 					case 't_coffee': {
 						const t_coffee = new T_COFFEE();
-						await terminal.activate();
+						await t_coffee.install_engine();
+						console.log(t_coffee);
 						break;
 					}
 

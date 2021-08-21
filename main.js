@@ -110,7 +110,7 @@ function SPAWN() {
 	this.create = (cmd, args, options) => {
 		if (!cmd) { cmd = 'cmd'; }
 		if (!args) { args = []; }
-		if (!options) { options = {}; }
+		if (!options) { options = { shell: true }; }
 		this.handle = child_process.spawn(cmd);
 		this.id = Math.random().toString(36).substring(7);
 
@@ -213,7 +213,7 @@ ipc.on('toMain', async (event, arg) => {
 				let options = arg.options;
 				if (!cmd) { cmd = 'cmd'; }
 				if (!args) { args = []; }
-				if (!options) { options = {}; }
+				if (!options) { options = { shell: true }; }
 				let id = '';
 				const spawn = new SPAWN();
 				id = spawn.create(cmd, args, options);

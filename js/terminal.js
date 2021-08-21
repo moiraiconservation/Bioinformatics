@@ -6,48 +6,66 @@ function TERMINAL() {
 
 	this.buffer = '';
 	this.id = '';
-	this.stdout = '';
-	this.stderr = '';
+	this.out = '';
+	this.error = '';
 
 	this.activate = async (options) => {
+		if (this.id) { await this.kill(); }
 		this.id = await wrapper.create_spawn('cmd', [], options);
-		const output = await this.get_output();
-		console.log(output);
+		return await this.get_output();
 	}
 
 	this.get_output = () => {
 		return new Promise((resolve) => {
-			if (this.stdout) {
-				const stdout = this.stdout;
-				this.stdout = '';
-				return resolve(stdout);
-			}
-			if (this.stderr) {
-				const stderr = this.stderr;
-				this.stderr = '';
-				return resolve(stderr);
-			}
+			if (this.buffer) { return resolve(this.flush_buffer()); }
 			const interval = setInterval(() => {
-				if (this.stdout) {
+				if (this.buffer) {
 					clearInterval(interval);
-					const stdout = this.stdout;
-					this.stdout = '';
-					return resolve(stdout);
-				}
-				if (this.stderr) {
-					clearInterval(interval);
-					const stderr = this.stderr;
-					this.stderr = '';
-					return resolve(stderr);
+					return resolve(this.flush_buffer());
 				}
 			}, 250);
 		});
 	}
 
+	this.flush_buffer = () => {
+		const buff = this.buffer;
+		this.buffer = '';
+		this.error = '';
+		this.out = '';
+		return buff;
+	}
+
+	this.flush_error = () => {
+		const error = this.error;
+		this.error = '';
+		return error;
+	}
+
+	this.flush_out = () => {
+		const out = this.out;
+		this.out = '';
+		return out;
+	}
+
+	this.io = async (cmd) => {
+		await this.stdin(cmd);
+		return await this.get_output();
+	}
+
+	this.kill = async () => {
+		await wrapper.kill_spawn(this.id);
+	}
+
+	this.stdin = async (cmd) => {
+		await wrapper.write_to_spawn(this.id, cmd);
+	}
+
+	////////////////////////////////////////////////////////////////////////
+
 	window.api.receive('fromSpawn', async (arg) => {
 		if (arg.id === this.id) {
-			if (arg.success) { this.stdout = arg.data }
-			else { this.stderr = arg.data; }
+			if (arg.success) { this.out = arg.data }
+			else { this.error = arg.data; }
 			this.buffer += arg.data;
 		}
 	});

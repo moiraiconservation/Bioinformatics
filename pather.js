@@ -148,29 +148,6 @@ function PATHER_RECORD() {
 
 function PATHER() {
 
-	this.get_env_path = async () => {
-		let delimiter = '';
-		const env_path = [];
-		let script = [];
-		const os = await wrapper.get_operating_system();
-		switch (os) {
-			case 'Linux': {
-				delimiter = ':';
-				script = ['$PATH'];
-				break;
-			}
-			case 'Windows': {
-				delimiter = ';';
-				script = ['%PATH%'];
-				break;
-			}
-		}
-		const stdout = await wrapper.execute('echo', script, { shell: true });
-		const parts = stdout.split(delimiter);
-		for (let i = 0; i < parts.length; i++) { env_path.push(parts[i]); }
-		return env_path;
-	}
-
 	this.parse = async (path) => {
 		const record = new PATHER_RECORD();
 		if (typeof (path) !== 'string') { path = ''; }

@@ -7,12 +7,13 @@
 //	axios_post
 //	axios_post
 //	create_directory
+//	create_spawn
 //	delete_file
-//	execute
 //	get_app_data_directory
 //	get_app_directory
 //	get_app_storage
 //	get_operating_system
+//	kill_spawn
 //	open_file_dialog
 //	read_file
 //	set_app_storage
@@ -24,6 +25,7 @@
 //	wait
 //	write_canvas_to_png
 //	write_file
+//	write_to_spawn
 
 function WRAPPER() {
 
@@ -55,17 +57,17 @@ function WRAPPER() {
 		});
 	}
 
+	this.create_spawn = (cmd, args, options) => {
+		return new Promise((resolve) => {
+			window.api.send('toMain', { command: 'create_spawn', cmd: cmd, args: args, options: options });
+			window.api.receive_once('fromMain', (arg) => { if (arg.command == 'create_spawn') { return resolve(arg.data); } });
+		});
+	}
+
 	this.delete_file = (filename) => {
 		return new Promise((resolve) => {
 			window.api.send('toMain', { command: 'delete_file', filename: filename });
 			window.api.receive_once('fromMain', (arg) => { if (arg.command == 'delete_file') { return resolve(arg.success); } });
-		});
-	}
-
-	this.execute = (cmd, args, options) => {
-		return new Promise((resolve) => {
-			window.api.send('toMain', { command: 'execute', cmd: cmd, args: args, options: options });
-			window.api.receive_once('fromMain', (arg) => { if (arg.command == 'execute') { return resolve(arg.data); } });
 		});
 	}
 
@@ -94,6 +96,13 @@ function WRAPPER() {
 		return new Promise((resolve) => {
 			window.api.send('toMain', { command: 'get_operating_system' });
 			window.api.receive_once('fromMain', (arg) => { if (arg.command == 'get_operating_system') { return resolve(arg.data); } });
+		});
+	}
+
+	this.kill_spawn = (id) => {
+		return new Promise((resolve) => {
+			window.api.send('toSpawn', { command: 'kill_spawn', id: id });
+			window.api.receive_once('fromMain', (arg) => { if (arg.command == 'kill_spawn') { return resolve(arg.success); } });
 		});
 	}
 
@@ -170,5 +179,13 @@ function WRAPPER() {
 			window.api.receive_once('fromMain', (arg) => { if (arg.command == 'write_file') { return resolve(arg.success); } });
 		});
 	}
+
+	this.write_to_spawn = (id, cmd) => {
+		return new Promise((resolve) => {
+			window.api.send('toSpawn', { command: 'write_to_spawn', id: id, cmd: cmd });
+			window.api.receive_once('fromMain', (arg) => { if (arg.command == 'write_to_spawn') { return resolve(arg.success); } });
+		});
+	}
+
 
 }

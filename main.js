@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////////
-// main.js ////////////////////////////////////////////////////////////////////
+// main.js
 
 ///////////////////////////////////////////////////////////////////////////////
 // REQUIRED COMPONENTS ////////////////////////////////////////////////////////
@@ -19,6 +19,7 @@ const qs = require('qs');
 // GLOBAL VARIABLES ///////////////////////////////////////////////////////////
 
 const store = new eStore();
+const spawns = [];
 const win = { main: null, icon: 'assets/icons/pentagon_512x512.png' };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -100,19 +101,58 @@ function show_window(filename) {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// IPC COMMUNICATION //////////////////////////////////////////////////////////
+// OBJECTS ////////////////////////////////////////////////////////////////////
 
-// passthrough function for sending messages to the render process
-try { ipc.on('passthrough', (event, arg) => { win.main.webContents.send('toRender', { passthrough: arg }); }); }
-catch (e) { console.log(e); }
+function SPAWN() {
+	this.handle = undefined;
+	this.id = '';
+
+	this.create = (cmd, args, options) => {
+		if (!cmd) { cmd = 'cmd'; }
+		if (!args) { args = []; }
+		if (!options) { options = {}; }
+		this.handle = child_process.spawn(cmd);
+		this.id = Math.random().toString(36).substring(7);
+
+		this.handle.stdout.on('data', (data) => {
+			const cleaned = data.toString() + '\r\n';
+			win.main.webContents.send('fromSpawn', { id: this.id, data: cleaned, success: true });
+		});
+
+		this.handle.stderr.on('data', (data) => {
+			const cleaned = data.toString() + '\r\n';
+			win.main.webContents.send('fromSpawn', { id: this.id, data: cleaned, success: false });
+		});
+
+		this.handle.on('close', () => { this.handle = undefined; });
+
+		return this.id;
+
+	}
+
+	this.kill = () => {
+		this.handle.stdin.pause();
+		this.handle.kill();
+	}
+
+	this.write = (cmd) => {
+		this.handle.stdin.cork();
+		this.handle.stdin.write(cmd + '\n');
+		this.handle.stdin.uncork();
+	}
+
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// IPC COMMUNICATION //////////////////////////////////////////////////////////
 
 // toMain Manifest:
 //	append_file
 //	axios_get
 //	axios_post
 //	create_directory
+//	create_spawn
 //	delete_file
-//	execute
 //	get_app_data_directory
 //	get_app_directory
 //	get_app_storage
@@ -167,22 +207,25 @@ ipc.on('toMain', async (event, arg) => {
 				break;
 			}
 
+			case 'create_spawn': {
+				let cmd = arg.cmd;
+				let args = arg.args;
+				let options = arg.options;
+				if (!cmd) { cmd = 'cmd'; }
+				if (!args) { args = []; }
+				if (!options) { options = {}; }
+				let id = '';
+				const spawn = new SPAWN();
+				id = spawn.create(cmd, args, options);
+				spawns.push(spawn);
+				win.main.webContents.send('fromMain', { command: arg.command, data: id, success: true });
+				break;
+			}
+
 			case 'delete_file': {
 				if (arg.filename) {
 					fs.unlink(arg.filename, () => { win.main.webContents.send('fromMain', { command: arg.command, success: true }); });
 				}
-				break;
-			}
-
-			case 'execute': {
-				if (!arg.cmd) { win.main.webContents.send('fromMain', { command: arg.command, success: false, data: '' }); break; }
-				if (!arg.args) { arg.args = []; }
-				if (!arg.options) { arg.options = {}; }
-				let result = '';
-				const child = child_process.spawn(arg.cmd, arg.args, arg.options);
-				child.stdout.on('data', (data) => { result += data.toString(); });
-				child.stderr.on('data', (data) => { result += data.toString(); });
-				child.on('close', () => { win.main.webContents.send('fromMain', { command: arg.command, success: true, data: result }); });
 				break;
 			}
 
@@ -344,6 +387,35 @@ ipc.on('toMain', async (event, arg) => {
 			}
 
 			default: { win.main.webContents.send('fromMain', { command: arg.command, success: false, data: undefined }); }
+
+		}
+	}
+});
+
+///////////////////////////////////////////////////////////////////////////////
+
+ipc.on('toSpawn', async (event, arg) => {
+	event.preventDefault();
+	if (arg.id) {
+		const filtered = spawns.filter((x) => { return x.id === arg.id; });
+		if (filtered.length && arg.command) {
+
+			const spawn = filtered[0];
+			switch(arg.command) {
+
+				case 'kill_spawn': {
+					spawn.kill();
+					win.main.webContents.send('fromMain', { command: arg.command, success: true });
+					break;
+				}
+
+				case 'write_to_spawn': {
+					spawn.write(arg.cmd);
+					win.main.webContents.send('fromMain', { command: arg.command, success: true });
+					break;
+				}
+
+			}
 
 		}
 	}

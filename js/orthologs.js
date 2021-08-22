@@ -1,6 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // orthologs.js
-//	Requires: isoforms.js, pather.js, sequences.js, tsv.js, and wrapper.js
+//	Requires: isoforms.js, pather.js, sequences.js, t_coffee.js, tsv.js,
+//	and wrapper.js
 //	Uses main.js for reading and writing files
 
 function ORTHO_BLAST() {
@@ -588,7 +589,8 @@ function ORTHO_RECORD() {
 	//	resources can be added here.
 	this.resources = {
 		cds: [],
-		protein: []
+		protein: [],
+		protein_aln: []
 	};
 
 	this.clone = () => {
@@ -816,6 +818,7 @@ function ORTHOLOGS() {
 				//	resources can be added here.
 				if (obj.resources.cds) { record.resources.cds = obj.resources.cds; }
 				if (obj.resources.protein) { record.resources.protein = obj.resources.protein; }
+				if (obj.resources.protein_aln) { record.resources.protein_aln = obj.resources.protein_aln; }
 			}
 			if (obj.isoforms && obj.isoforms.length) {
 				// Add new ISOFORM objects to the ORTHO_RECORDS
@@ -855,6 +858,33 @@ function ORTHOLOGS() {
 			if (i < this.cargo.length - 1) { contents += '\n'; }
 		}
 		await wrapper.write_file(full_path, contents);
+	}
+
+	this.t_coffee = async (folders, options) => {
+		if (typeof (folders) === 'undefined' || typeof (folders) !== 'object') { folders = {}; }
+		if (typeof (folders.ortho_protein_aln) === 'undefined') { folders.ortho_protein_aln = 'ortho_protein_aln'; }
+		if (typeof (options) === 'undefined' || typeof (options) !== 'object') { options = {}; }
+		options.engine = options.engine ?? '';
+		const t_coffee = new T_COFFEE();
+		if (options.engine) { t_coffee.engine = options.engine; }
+		else {
+			await t_coffee.install_engine();
+			if (!t_coffee.engine) { return; }
+		}
+		for (let i = 0; i < this.cargo.length; i++) {
+			for (let j = 0; j < this.cargo[i].resources.protein.length; j++) {
+				const source = await pather.parse(this.cargo[i].resources.protein[j].file);
+				const target = await pather.parse(folders.ortho_protein_aln);
+				await target.force_path();
+				await target.set_file_name(source.basename + '.fasta_aln');
+				const source_path = await source.get_full_path({ os: 'Linux' });
+				const target_path = await target.get_full_path({ os: 'Linux' });
+				this.cargo[i].resources.protein_aln.push(await target.get_full_path());
+				const cmd = t_coffee.engine + ' ' + source_path + ' -run_name=' + target_path + ' -thread 0 -output fasta_aln';
+				const output = await t_coffee.terminal.io(cmd);
+				console.log(output);
+			}
+		}
 	}
 
 	////////////////////////////////////////////////////////////////////////

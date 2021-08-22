@@ -375,7 +375,7 @@ ipc.on('toMain', async (event, arg) => {
 						});
 					}
 					else {
-						const handle = fs.createWriteStream(arg.filename, { encoding: encoding, flags: 'a' });
+						const handle = fs.createWriteStream(arg.filename, { encoding: encoding, flags: 'w' });
 						await handle.write(data);
 						await handle.end();
 						handle.close();

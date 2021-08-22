@@ -66,12 +66,9 @@ function PATHER_RECORD() {
 			const last = parts.length - 1;
 			let folder_start = 0;
 			let folder_stop = last;
-			if (parts[0] && parts[0].includes(':')) {
-				folder_start = 1;
-			}
-			if (parts[last] && parts[last].includes('.')) {
-				folder_stop = last - 1;
-			}
+			if (parts[0] && parts[0].includes(':')) { folder_start = 1; }
+			if (parts[0] && parts[0] === 'mnt') { folder_start = 2; }
+			if (parts[last] && parts[last].includes('.')) { folder_stop = last - 1; }
 			for (let i = folder_start; i <= folder_stop; i++) {
 				if (parts[i]) {
 					parts[i] = this.make_text_file_safe(parts[i]);
@@ -93,8 +90,31 @@ function PATHER_RECORD() {
 		}
 	}
 
-	this.get_full_path = async () => {
-		let path = this.drive + this.delimiter;
+	this.get_full_path = async (options) => {
+		if (typeof (options) === 'undefined' || typeof (options) !== 'object') { options = {}; }
+		const os = await wrapper.get_operating_system();
+		options.os = options.os ?? os;
+		let path = '';
+		switch (options.os) {
+			case 'Linux': {
+				this.delimiter = '/';
+				if (this.drive) {
+					path = this.drive.toLowerCase();
+					path = path.replace(':', '');
+					path = '/mnt/' + path + '/';
+				}
+				break;
+			}
+			case 'Windows': {
+				this.delimiter = '\\';
+				path = this.drive + this.delimiter;
+				break;
+			}
+			default: {
+				path = this.drive + this.delimiter;
+				break;
+			}
+		}
 		for (let i = 0; i < this.folders.length; i++) {
 			path += this.folders[i] + this.delimiter;
 		}
@@ -122,6 +142,7 @@ function PATHER_RECORD() {
 
 	this.set_file_name = async (filename) => {
 		if (typeof (filename) !== 'string') { filename = ''; }
+		await this.remove_file_name();
 		this.filename = filename.trim();
 		const parts = this.filename.split('.');
 		if (parts && parts.length) {
@@ -129,7 +150,7 @@ function PATHER_RECORD() {
 				if (!parts[i]) { parts[i].splice(i, 1); }
 			}
 			const last = parts.length - 1;
-			if (last) {
+			if (parts.length > 1 && last) {
 				// an extension was provided
 				this.extension = this.make_text_file_safe(parts[last]);
 				this.basename = this.make_text_file_safe(filename.replace('.' + parts[last], ''));
@@ -158,6 +179,12 @@ function PATHER() {
 		record.folders = await record.get_folders_from_parts(parts);
 		const last = parts.length - 1;
 		if (parts[0] && parts[0].includes(':')) { record.drive = parts[0]; }
+		if (parts[0] && parts[0] === 'mnt') {
+			if (parts[1]) {
+				record.drive = parts[1].toUpperCase();
+				if (!record.drive.includes(':')) { record.drive += ':' }
+			}
+		}
 		if (parts[last] && parts[last].includes('.')) { await record.set_file_name(parts[last]); }
 		// parse the path to the application
 		const app_path = await wrapper.get_app_directory();

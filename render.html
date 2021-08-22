@@ -179,9 +179,8 @@
 					// actions
 
 					case 't_coffee': {
-						const t_coffee = new T_COFFEE();
-						await t_coffee.install_engine();
-						console.log(t_coffee);
+						await orthologs.t_coffee(project.folders);
+						await orthologs.save_as(project.directory);
 						break;
 					}
 

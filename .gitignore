@@ -3,3 +3,5 @@ data
 iso_fasta
 iso_compact
 iso_rbh
+ortho_fasta
+ortho_aln

@@ -29,38 +29,38 @@ function T_COFFEE() {
 			return;
 		}
 
-		this.run = async (source, target, options) => {
-			if (!source || typeof (source) === 'undefined') { return; }
-			if (typeof (target) !== 'string') { target = ''; }
-			if (typeof (options) === 'undefined' || typeof (options) !== 'object') { options = {}; }
-			const source_record = await pather.parse(source);
-			const target_record = await pather.parse(target);
-			await target_record.force_path();
-			if (!target_record.basename) {
-				let ext = '.fasta_aln';
-				if (options.output) {
-					if (options.output.includes(',')) {
-						const ext_parts = options.output.split(',');
-						ext = '.' + ext_parts[0];
-					}
-					else { ext += '.' + options.output; }
-				}
-				await target_record.set_file_name(source_record.basename + ext);
-			}
-			const source_path = await source_record.get_full_path({ os: 'Linux' });
-			const target_path = await target_record.get_full_path({ os: 'Linux' });
-			let cmd = this.engine + ' ' + source_path + ' -run_name=' + target_path;
-			const keys = Object.keys(options);
-			for (let i = 0; i < keys.length; i++) {
-				if (keys[i] !== 'run_name') {
-					cmd += ' -' + keys[i] + ' ' + options[keys[i]];
-				}
-			}
-			console.log(cmd);
-			const output = await this.terminal.io(cmd);
-			console.log(output);
-		}
+	}
 
+	this.run = async (source, target, options) => {
+		if (!source || typeof (source) === 'undefined') { return; }
+		if (typeof (target) !== 'string') { target = ''; }
+		if (typeof (options) === 'undefined' || typeof (options) !== 'object') { options = {}; }
+		const source_record = await pather.parse(source);
+		const target_record = await pather.parse(target);
+		await target_record.force_path();
+		if (!target_record.basename) {
+			let ext = '.fasta_aln';
+			if (options.output) {
+				if (options.output.includes(',')) {
+					const ext_parts = options.output.split(',');
+					ext = '.' + ext_parts[0];
+				}
+				else { ext += '.' + options.output; }
+			}
+			await target_record.set_file_name(source_record.basename + ext);
+		}
+		const source_path = await source_record.get_full_path({ os: 'Linux' });
+		const target_path = await target_record.get_full_path({ os: 'Linux' });
+		let cmd = this.engine + ' ' + source_path + ' -run_name=' + target_path;
+		const keys = Object.keys(options);
+		for (let i = 0; i < keys.length; i++) {
+			if (keys[i] !== 'run_name') {
+				cmd += ' -' + keys[i] + ' ' + options[keys[i]];
+			}
+		}
+		const output = await this.terminal.io(cmd);
+		console.log(output);
+		return await target_record.get_full_path();
 	}
 
 }

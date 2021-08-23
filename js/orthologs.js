@@ -871,18 +871,12 @@ function ORTHOLOGS() {
 			await t_coffee.install_engine();
 			if (!t_coffee.engine) { return; }
 		}
+		const target = folders.ortho_protein_aln;
 		for (let i = 0; i < this.cargo.length; i++) {
 			for (let j = 0; j < this.cargo[i].resources.protein.length; j++) {
-				const source = await pather.parse(this.cargo[i].resources.protein[j].file);
-				const target = await pather.parse(folders.ortho_protein_aln);
-				await target.force_path();
-				await target.set_file_name(source.basename + '.fasta_aln');
-				const source_path = await source.get_full_path({ os: 'Linux' });
-				const target_path = await target.get_full_path({ os: 'Linux' });
-				this.cargo[i].resources.protein_aln.push(await target.get_full_path());
-				const cmd = t_coffee.engine + ' ' + source_path + ' -run_name=' + target_path + ' -thread 0 -output fasta_aln';
-				const output = await t_coffee.terminal.io(cmd);
-				console.log(output);
+				const source = this.cargo[i].resources.protein[j].file;
+				const output = await t_coffee.run(source, target, { thread: 0, output: 'fasta_aln' });
+				this.cargo[i].resources.protein_aln.push(output);
 			}
 		}
 	}

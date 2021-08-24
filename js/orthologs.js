@@ -871,14 +871,17 @@ function ORTHOLOGS() {
 			await t_coffee.install_engine();
 			if (!t_coffee.engine) { return; }
 		}
+		const source_arr = [];
 		const target = folders.ortho_protein_aln;
 		for (let i = 0; i < this.cargo.length; i++) {
 			for (let j = 0; j < this.cargo[i].resources.protein.length; j++) {
-				const source = this.cargo[i].resources.protein[j].file;
-				const output = await t_coffee.run(source, target, { thread: 0, output: 'fasta_aln' });
-				this.cargo[i].resources.protein_aln.push(output);
+				source_arr.push(this.cargo[i].resources.protein[j].file);
 			}
 		}
+		await t_coffee.create_batch(source_arr, target, { thread: 0, output: 'fasta_aln' });
+		await t_coffee.terminal.io('chmod +x t_coffee.sh');
+		await t_coffee.terminal.io('./t_coffee.sh');
+		t_coffee.kill();
 	}
 
 	////////////////////////////////////////////////////////////////////////

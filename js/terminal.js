@@ -17,12 +17,14 @@ function TERMINAL() {
 
 	this.get_output = () => {
 		return new Promise((resolve) => {
+			let timeout = 0;
 			if (this.buffer) { return resolve(this.flush_buffer()); }
 			const interval = setInterval(() => {
-				if (this.buffer) {
+				if (this.buffer || timeout >= 30000) {
 					clearInterval(interval);
 					return resolve(this.flush_buffer());
 				}
+				timeout += 250;
 			}, 250);
 		});
 	}
@@ -48,6 +50,7 @@ function TERMINAL() {
 	}
 
 	this.io = async (cmd) => {
+		this.flush_buffer();
 		await this.stdin(cmd);
 		return await this.get_output();
 	}
@@ -60,6 +63,13 @@ function TERMINAL() {
 		await wrapper.write_to_spawn(this.id, cmd);
 	}
 
+	this.wait = (x) => {
+		return new Promise((resolve) => {
+			x = x ?? 10;
+			setTimeout(() => { return resolve(); }, x);
+		});
+	}
+
 	////////////////////////////////////////////////////////////////////////
 
 	window.api.receive('fromSpawn', async (arg) => {
@@ -67,6 +77,7 @@ function TERMINAL() {
 			if (arg.success) { this.out = arg.data }
 			else { this.error = arg.data; }
 			this.buffer += arg.data;
+			console.log(arg.data);
 		}
 	});
 

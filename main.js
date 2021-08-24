@@ -114,16 +114,19 @@ function SPAWN() {
 		this.handle = child_process.spawn(cmd);
 		this.id = Math.random().toString(36).substring(7);
 
+		this.handle.stdout.setEncoding('utf8');
+		this.handle.stderr.setEncoding('utf8');
 		this.handle.stdout.on('data', (data) => {
-			const cleaned = data.toString() + '\r\n';
+			const cleaned = data + '\r\n';
 			win.main.webContents.send('fromSpawn', { id: this.id, data: cleaned, success: true });
 		});
 
 		this.handle.stderr.on('data', (data) => {
-			const cleaned = data.toString() + '\r\n';
+			const cleaned = data + '\r\n';
 			win.main.webContents.send('fromSpawn', { id: this.id, data: cleaned, success: false });
 		});
 
+		this.handle.on('error', (error) => { console.log(error); });
 		this.handle.on('close', () => { this.handle = undefined; });
 
 		return this.id;
@@ -136,8 +139,9 @@ function SPAWN() {
 	}
 
 	this.write = (cmd) => {
+		if (!cmd.includes('\n')) { cmd += '\n'; }
 		this.handle.stdin.cork();
-		this.handle.stdin.write(cmd + '\n');
+		this.handle.stdin.write(cmd);
 		this.handle.stdin.uncork();
 	}
 

@@ -301,9 +301,10 @@ function ELEMENT() {
 		});
 	}
 	////////////////////////////////////////////////////////////////////////
-	this.wait = () => {
+	this.wait = (x) => {
 		return new Promise((resolve) => {
-			setTimeout(() => { return resolve(); }, 10);
+			x = x ?? 10;
+			setTimeout(() => { return resolve(); }, x);
 		});
 	}
 //////////////////////////////////////////////////////////////////////////

@@ -10,7 +10,8 @@ function PROJECT() {
 		iso_fasta: '',
 		iso_rbh_files: '',
 		ortho_fasta: '',
-		ortho_protein_aln: ''
+		ortho_protein_aln: '',
+		project: ''
 	}
 	this.path_records = {
 		iso_compact: null,
@@ -25,6 +26,7 @@ function PROJECT() {
 		const path_record = await pather.parse(path);
 		this.name = path_record.basename;
 		this.directory = await path_record.get_full_path();
+		this.folders.project = this.directory;
 		this.path_records.iso_compact = await path_record.clone();
 		this.path_records.iso_fasta = await path_record.clone();
 		this.path_records.iso_rbh = await path_record.clone();

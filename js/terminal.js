@@ -32,8 +32,6 @@ function TERMINAL() {
 	this.flush_buffer = () => {
 		const buff = this.buffer;
 		this.buffer = '';
-		this.error = '';
-		this.out = '';
 		return buff;
 	}
 
@@ -61,13 +59,6 @@ function TERMINAL() {
 
 	this.stdin = async (cmd) => {
 		await wrapper.write_to_spawn(this.id, cmd);
-	}
-
-	this.wait = (x) => {
-		return new Promise((resolve) => {
-			x = x ?? 10;
-			setTimeout(() => { return resolve(); }, x);
-		});
 	}
 
 	////////////////////////////////////////////////////////////////////////

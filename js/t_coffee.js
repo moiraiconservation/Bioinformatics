@@ -35,7 +35,7 @@ function T_COFFEE() {
 		this.terminal.kill();
 	}
 
-	this.create_batch = async (source_arr, target, options) => {
+	this.create_batch_file = async (source_arr, target, options) => {
 		if (typeof (source_arr) === 'undefined' || !Array.isArray(source_arr)) { return; }
 		if (typeof (target) !== 'string') { target = ''; }
 		if (typeof (options) === 'undefined' || typeof (options) !== 'object') { options = {}; }
@@ -49,6 +49,7 @@ function T_COFFEE() {
 			const target_path = await target_record.get_full_path({ os: 'Linux' });
 			contents += this.create_cmd(source_path, target_path, options);
 		}
+		contents += 'echo Hedron action is complete\n';
 		await wrapper.write_file('t_coffee.sh', contents);
 	}
 
@@ -64,33 +65,30 @@ function T_COFFEE() {
 		return cmd;
 	}
 
-	this.create_target_filename = async (source_record, target_record, options) => {
+	this.create_target_filename = async (source, target, options) => {
 		let ext = '.fasta_aln';
+		if (typeof (source) === 'string') { source = await pather.parse(source); }
+		if (typeof (target) === 'string') { target = await pather.parse(target); }
 		if (options.output) {
 			if (options.output.includes(',')) {
 				const ext_parts = options.output.split(',');
 				ext = '.' + ext_parts[0];
 			}
-			else { ext += '.' + options.output; }
+			else { ext = '.' + options.output; }
 		}
-		await target_record.set_file_name(source_record.basename + ext);
-		return target_record;
+		await target.set_file_name(source.basename + ext);
+		return target;
 	}
 
-	this.run = async (source, target, options) => {
-		if (!source || typeof (source) === 'undefined') { return; }
-		if (typeof (target) !== 'string') { target = ''; }
-		if (typeof (options) === 'undefined' || typeof (options) !== 'object') { options = {}; }
-		const source_record = await pather.parse(source);
-		let target_record = await pather.parse(target);
-		await target_record.force_path();
-		target_record = await this.create_target_filename(source_record, target_record, options);
-		const source_path = await source_record.get_full_path({ os: 'Linux' });
-		const target_path = await target_record.get_full_path({ os: 'Linux' });
-		const cmd = this.create_cmd(source_path, target_path, options);
-		const output = await this.terminal.io(cmd);
-		console.log(output);
-		return await target_record.get_full_path();
+	this.run_batch_file = async () => {
+			await this.terminal.io('chmod +x t_coffee.sh');
+			await this.terminal.io('./t_coffee.sh');
+			let stdout = '';
+			while (!stdout || !stdout.includes('Hedron action is complete')) {
+				stdout = this.terminal.stdout;
+			}
+			console.log('Done!');
+			return Promise.resolved();
 	}
 
 }

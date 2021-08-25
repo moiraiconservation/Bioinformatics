@@ -9,6 +9,9 @@ function TERMINAL() {
 	this.out = '';
 	this.error = '';
 
+	this._trigger = '';
+	this._callback = undefined;
+
 	this.activate = async (options) => {
 		if (this.id) { await this.kill(); }
 		this.id = await wrapper.create_spawn('cmd', [], options);
@@ -47,9 +50,9 @@ function TERMINAL() {
 		return out;
 	}
 
-	this.io = async (cmd) => {
+	this.io = async (cmd, trigger, callback) => {
 		this.flush_buffer();
-		await this.stdin(cmd);
+		await this.stdin(cmd, trigger, callback);
 		return await this.get_output();
 	}
 
@@ -57,7 +60,10 @@ function TERMINAL() {
 		await wrapper.kill_spawn(this.id);
 	}
 
-	this.stdin = async (cmd) => {
+	this.stdin = async (cmd, trigger, callback) => {
+		this._trigger = trigger ?? '';
+		this._callback = callback;
+		if (this._trigger && !this._callback) { this._trigger = ''; }
 		await wrapper.write_to_spawn(this.id, cmd);
 	}
 
@@ -69,6 +75,9 @@ function TERMINAL() {
 			else { this.error = arg.data; }
 			this.buffer += arg.data;
 			console.log(arg.data);
+			if (this._trigger && this._callback) {
+				if (arg.data.includes(this._trigger)) { this._callback(); }
+			}
 		}
 	});
 

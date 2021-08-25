@@ -49,7 +49,7 @@ function T_COFFEE() {
 			const target_path = await target_record.get_full_path({ os: 'Linux' });
 			contents += this.create_cmd(source_path, target_path, options);
 		}
-		contents += 'echo Hedron action is complete\n';
+		contents += 'echo Hedron batch complete';
 		await wrapper.write_file('t_coffee.sh', contents);
 	}
 
@@ -80,15 +80,9 @@ function T_COFFEE() {
 		return target;
 	}
 
-	this.run_batch_file = async () => {
+	this.run_batch_file = async (callback) => {
 			await this.terminal.io('chmod +x t_coffee.sh');
-			await this.terminal.io('./t_coffee.sh');
-			let stdout = '';
-			while (!stdout || !stdout.includes('Hedron action is complete')) {
-				stdout = this.terminal.stdout;
-			}
-			console.log('Done!');
-			return Promise.resolved();
+		await this.terminal.io('./t_coffee.sh', 'Hedron batch complete', callback);
 	}
 
 }

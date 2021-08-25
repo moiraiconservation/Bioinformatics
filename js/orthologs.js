@@ -860,7 +860,7 @@ function ORTHOLOGS() {
 		await wrapper.write_file(full_path, contents);
 	}
 
-	this.t_coffee = async (folders, options) => {
+	this.t_coffee = async (folders, options, callback) => {
 		if (typeof (folders) === 'undefined' || typeof (folders) !== 'object') { folders = {}; }
 		if (typeof (folders.ortho_protein_aln) === 'undefined') { folders.ortho_protein_aln = 'ortho_protein_aln'; }
 		if (typeof (options) === 'undefined' || typeof (options) !== 'object') { options = {}; }
@@ -879,13 +879,17 @@ function ORTHOLOGS() {
 			for (let j = 0; j < this.cargo[i].resources.protein.length; j++) {
 				source_arr.push(this.cargo[i].resources.protein[j].file);
 				const aln_record = await t_coffee.create_target_filename(this.cargo[i].resources.protein[j].file, target, { output: 'fasta_aln' });
-				this.cargo[i].resources.protein_aln.push(await aln_record.get_full_path());
+				const target_path = await aln_record.get_full_path();
+				this.cargo[i].resources.protein_aln.push({ file: target_path });
 			}
 		}
 		await this.save_as(folders.project);
-		await t_coffee.create_batch_file(source_arr, target, { thread: 0, output: 'fasta_aln' });
-		await t_coffee.run_batch_file();
-		t_coffee.kill();
+		await t_coffee.create_batch_file(source_arr, target, { output: 'fasta_aln' });
+		await t_coffee.run_batch_file(() => {
+			t_coffee.kill();
+			if (callback) { callback(); }
+			console.log('Done!');
+		});
 	}
 
 	////////////////////////////////////////////////////////////////////////

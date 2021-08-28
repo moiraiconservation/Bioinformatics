@@ -886,6 +886,7 @@ function ORTHOLOGS() {
 		await t_coffee.create_batch_file(source_arr, target, { output: 'fasta_aln' });
 		await t_coffee.run_batch_file(() => {
 			t_coffee.kill();
+			await this.verify_t_coffee();
 			if (callback) { callback(); }
 		});
 	}

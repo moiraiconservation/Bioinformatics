@@ -171,6 +171,13 @@ module.exports = {
 						label: 'T-Coffee',
 						enabled: true,
 						click() { win.main.webContents.send('fromMain', { command: 't_coffee' }); 	}
+					},
+
+					{
+						id: 'verify_t_coffee',
+						label: 'Verify T-Coffee',
+						enabled: true,
+						click() { win.main.webContents.send('fromMain', { command: 'verify_t_coffee' }); }
 					}
 
 				]

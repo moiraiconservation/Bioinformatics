@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-// CD-HIT /////////////////////////////////////////////////////////////////////////////////////////
+// cd_hit.js
 //  This file contains an object that relates the tolerance (99%, 95%, 90%, 80%, or 60%), the    //
 //  percent identity, and the word size to the short-word identity (defined as the number of     //
 //  identical words between two sequences, divided by the length of the alignment).  The pattern //

@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // orthologs.js
-//	Requires: isoforms.js, pather.js, sequences.js, t_coffee.js, tsv.js,
-//	and wrapper.js
+//	Requires: cd_hit.js, isoforms.js, pather.js, sequences.js, t_coffee.js,
+//	tsv.js, and wrapper.js
 //	Uses main.js for reading and writing files
 
 function ORTHO_BLAST() {
@@ -716,7 +716,7 @@ function ORTHOLOGS() {
 		return cargo;
 	}
 
-	this.create_isoform_files = async (folders) => {
+	this.create_isoform_files = async (folders, tolerance, percent_identity, word_size) => {
 		console.log('Saving isoform files');
 		if (typeof (folders) === 'undefined' || typeof (folders) !== 'object') { folders = {}; }
 		if (typeof (folders.iso_fasta) === 'undefined') { folders.iso_fasta = 'iso_fasta'; }
@@ -728,7 +728,7 @@ function ORTHOLOGS() {
 			const cds_sequences = await this.cargo[i].get_cds_sequences(folders);
 			const protein_sequences = await this.cargo[i].get_protein_sequences(folders);
 			if (cds_sequences.length === this.cargo[i].isoforms.length && protein_sequences.length === this.cargo[i].isoforms.length) {
-				const protein_arr = match_isoforms(protein_sequences);
+				const protein_arr = match_isoforms(protein_sequences, tolerance, percent_identity, word_size);
 				if (protein_arr.length) {
 					const cds_arr = match_cds_to_proteins(protein_arr, cds_sequences);
 					if (protein_arr.length === cds_arr.length) {
@@ -883,13 +883,29 @@ function ORTHOLOGS() {
 				this.cargo[i].resources.protein_aln.push({ file: target_path });
 			}
 		}
-		await this.save_as(folders.project);
 		await t_coffee.create_batch_file(source_arr, target, { output: 'fasta_aln' });
 		await t_coffee.run_batch_file(() => {
 			t_coffee.kill();
 			if (callback) { callback(); }
-			console.log('Done!');
 		});
+	}
+
+	this.verify_t_coffee = async () => {
+		for (let i = 0; i < this.cargo.length; i++) {
+			const ortho_record = this.cargo[i];
+			if (!ortho_record?.resources?.protein_aln?.length) { continue; }
+			for (let j = ortho_record.resources.protein_aln.length - 1; j >= 0; j--) {
+				const protein_aln = ortho_record.resources.protein_aln[j];
+				protein_aln.max_gap = protein_aln.max_gap ?? 0;
+				if (!protein_aln.file) { this.cargo[i].resources.protein_aln.splice(j, 1); }
+				else {
+					const sequences = new SEQUENCES();
+					await sequences.load_fasta_file(protein_aln.file);
+					if (!sequences.number_of_sequences) { this.cargo[i].resources.protein_aln.splice(j, 1); }
+					else { this.cargo[i].resources.protein_aln[j].max_gap = sequences.longest_gap(); }
+				}
+			}
+		}
 	}
 
 	////////////////////////////////////////////////////////////////////////
@@ -915,7 +931,13 @@ function ORTHOLOGS() {
 		return result;
 	}
 
-	function match_isoforms(protein_sequences) {
+	function match_isoforms(protein_sequences, tolerance, percent_identity, word_size) {
+		tolerance = tolerance ?? '99';
+		percent_identity = percent_identity ?? '80';
+		word_size = word_size ?? '5';
+		if (typeof (tolerance) === 'number') { tolerance = tolerance.toString(); }
+		if (typeof (percent_identity) === 'number') { percent_identity = percent_identity.toString(); }
+		if (typeof (word_size) === 'number') { word_size = word_size.toString(); }
 		const result = [];
 		protein_sequences.sort((a, b) => { return a.cargo.length - b.cargo.length; });
 		for (let x = 0; x < protein_sequences[0].cargo.length; x++) {
@@ -935,9 +957,9 @@ function ORTHOLOGS() {
 						max_index = z;
 					}
 				}
-				// The threshold 0.18 is the CD-HIT threshold representing 99%
-				//	tolerance and 80% identity for words 5 amino acids in length.
-				if (max_score > 0.18) { seq_path[y] = protein_sequences[y].cargo[max_index].clone(); }
+				if (max_score > CDHIT[tolerance][percent_identity][word_size]) {
+					seq_path[y] = protein_sequences[y].cargo[max_index].clone();
+				}
 			}
 			let all_good = true;
 			for (let i = 0; i < seq_path.length; i++) {

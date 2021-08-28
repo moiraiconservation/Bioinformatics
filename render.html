@@ -10,6 +10,7 @@
 	<script src="project.js" type="text/javascript"></script>
 	<script src="wrapper.js" type="text/javascript"></script>
 	<script src="js/alignment.js" type="text/javascript"></script>
+	<script src="js/cd_hit.js" type="text/javascript"></script>
 	<script src="js/clustal.js" type="text/javascript"></script>
 	<script src="js/codons.js" type="text/javascript"></script>
 	<script src="js/csv.js" type="text/javascript"></script>
@@ -178,7 +179,15 @@
 
 					// actions
 					case 't_coffee': {
-						await orthologs.t_coffee(project.folders);
+						await orthologs.t_coffee(project.folders, {}, () => {
+							orthologs.save_as(project.directory);
+						});
+						break;
+					}
+
+					case 'verify_t_coffee': {
+						await orthologs.verify_t_coffee();
+						console.log(orthologs);
 						break;
 					}
 

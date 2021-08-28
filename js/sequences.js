@@ -106,10 +106,18 @@ function SEQ_RECORD() {
 		return Array.from(new Set(words));
 	}
 
+	this.longest_gap = () => {
+		const gaps = this.sequence.match(/(-)\1*/g);
+		if (!gaps?.length) { return 0; }
+		return gaps.sort((a, b) => b.length - a.length)[0].length;
+	}
+
 	this.mask_low_complexity = (options) => {
 		if (this.seq_type === 'amino acids') { this.seg(options); }
 		else { this.sdust(options); }
 	}
+
+	this.number_of_gaps = () => { return this.sequence.split('-').length - 1; }
 
 	this.save_as_fasta = async (path, options) => {
 		// If the filename has not been supplied, one will be created from the
@@ -936,11 +944,22 @@ function SEQUENCES() {
 
 	this.load_string = (str) => { this.cargo = parse_fasta(str); }
 
+	this.longest_gap = () => {
+		let longest = 0;
+		for (let i = 0; i < this.cargo.length; i++) {
+			let max_gap = this.cargo[i].longest_gap();
+			if (max_gap > longest) { longest = max_gap; }
+		}
+		return longest;
+	}
+
 	this.mask_low_complexity = (options) => {
 		for (let i = 0; i < this.cargo.length; i++) {
 			this.cargo[i].mask_low_complexity(options);
 		}
 	}
+
+	this.number_of_sequences = () => { return this.cargo.length; }
 
 	this.save_as_fasta = async (path, options) => {
 		// If the filename has not been supplied, one will be created from the

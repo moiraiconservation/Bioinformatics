@@ -187,6 +187,13 @@
 
 					case 'verify_t_coffee': {
 						await orthologs.verify_t_coffee();
+						await orthologs.save_as(project.directory);
+						console.log(orthologs);
+						break;
+					}
+
+					case 'pal2nal': {
+						await orthologs.pal2nal(project.folders);
 						console.log(orthologs);
 						break;
 					}

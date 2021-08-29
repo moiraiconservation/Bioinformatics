@@ -1,9 +1,9 @@
-node_modules
 data
 iso_fasta
 iso_compact
 iso_rbh
+node_modules
 ortho_fasta
 ortho_aln
+pal2nal.pl
 t_coffee.sh
-

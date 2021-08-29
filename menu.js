@@ -178,6 +178,13 @@ module.exports = {
 						label: 'Verify T-Coffee',
 						enabled: true,
 						click() { win.main.webContents.send('fromMain', { command: 'verify_t_coffee' }); }
+					},
+
+					{
+						id: 'pal2nal',
+						label: 'PAL2NAL',
+						enabled: true,
+						click() { win.main.webContents.send('fromMain', { command: 'pal2nal' }); }
 					}
 
 				]

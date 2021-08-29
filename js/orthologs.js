@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // orthologs.js
-//	Requires: cd_hit.js, isoforms.js, pather.js, sequences.js, t_coffee.js,
-//	tsv.js, and wrapper.js
+//	Requires: cd_hit.js, isoforms.js, pal2nal.js, pather.js, sequences.js,
+//	t_coffee.js, tsv.js, and wrapper.js
 //	Uses main.js for reading and writing files
 
 function ORTHO_BLAST() {
@@ -854,6 +854,7 @@ function ORTHOLOGS() {
 		if (typeof (folders.ortho_fasta) === 'undefined') { folders.ortho_fasta = 'ortho_fasta'; }
 		if (typeof (options) === 'undefined' || typeof (options) !== 'object') { options = {}; }
 		options.engine = options.engine ?? '';
+		const source_arr = [];
 		for (let i = 0; i < this.cargo.length; i++) {
 			const ortho_record = this.cargo[i];
 			if (!ortho_record?.resources?.protein_aln?.length) { continue; }
@@ -869,9 +870,12 @@ function ORTHOLOGS() {
 				// check that the cds ortholog FASTA file exists
 				const contents = await wrapper.read_file(cds_full_path);
 				if (!contents) { continue; }
-				console.log('We are good.');
+				source_arr.push({ cds_fasta: cds_full_path, protein_aln: protein_full_path });
 			}
 		}
+		const pal2nal = new PAL2NAL();
+		await pal2nal.install_engine();
+		await pal2nal.create_batch_file(source_arr, folders.ortho_cds_aln, { output: 'paml' });
 	}
 
 	this.save_as = async (path) => {

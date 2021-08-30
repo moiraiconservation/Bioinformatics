@@ -281,10 +281,9 @@ ipc.on('toMain', async (event, arg) => {
 			}
 
 			case 'read_file': {
-				if (!arg.filename) { win.main.webContents.send('fromMain', { command: arg.command, success: false, data: data }); }
+				if (!arg.filename) { win.main.webContents.send('fromMain', { command: arg.command, success: false, data: '' }); }
 				let data = '';
-				encoding = 'utf-8';
-				if (arg.encoding) { encoding = arg.encoding; }
+				let encoding = arg.enconding ?? 'utf-8';
 				const handle = fs.createReadStream(arg.filename, { encoding: encoding, flags: 'r' });
 				handle.on('close', () => { win.main.webContents.send('fromMain', { command: arg.command, success: true, data: data }); });
 				handle.on('data', (chunk) => { data += chunk; });

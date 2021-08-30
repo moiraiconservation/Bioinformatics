@@ -854,9 +854,12 @@ function ORTHOLOGS() {
 		if (typeof (folders.ortho_fasta) === 'undefined') { folders.ortho_fasta = 'ortho_fasta'; }
 		if (typeof (options) === 'undefined' || typeof (options) !== 'object') { options = {}; }
 		options.engine = options.engine ?? '';
+		const pal2nal = new PAL2NAL();
+		await pal2nal.install_engine();
 		const source_arr = [];
 		for (let i = 0; i < this.cargo.length; i++) {
 			const ortho_record = this.cargo[i];
+			this.cargo[i].resources.cds_aln = [];
 			if (!ortho_record?.resources?.protein_aln?.length) { continue; }
 			for (let j = 0; j < ortho_record.resources.protein_aln.length; j++) {
 				const protein_aln = ortho_record.resources.protein_aln[j];
@@ -871,11 +874,17 @@ function ORTHOLOGS() {
 				const contents = await wrapper.read_file(cds_full_path);
 				if (!contents) { continue; }
 				source_arr.push({ cds_fasta: cds_full_path, protein_aln: protein_full_path });
+				// add the full path to the CDS PHYLIP alignment to the resources
+				const pal2nal_record = await pal2nal.create_target_filename(protein_full_path, folders.ortho_cds_aln);
+				const pal2nal_path = await pal2nal_record.get_full_path();
+				this.cargo[i].resources.cds_aln.push({ file: pal2nal_path });
 			}
 		}
-		const pal2nal = new PAL2NAL();
-		await pal2nal.install_engine();
 		await pal2nal.create_batch_file(source_arr, folders.ortho_cds_aln, { output: 'paml' });
+		await pal2nal.run_batch_file(() => {
+			pal2nal.kill();
+			if (callback) { callback(); }
+		});
 	}
 
 	this.save_as = async (path) => {
@@ -916,11 +925,23 @@ function ORTHOLOGS() {
 			}
 		}
 		await t_coffee.create_batch_file(source_arr, target, { output: 'fasta_aln' });
-		await t_coffee.run_batch_file(async () => {
+		await t_coffee.run_batch_file(() => {
 			t_coffee.kill();
-			await this.verify_t_coffee();
 			if (callback) { callback(); }
 		});
+	}
+
+	this.verify_pal2nal = async () => {
+		for (let i = 0; i < this.cargo.length; i++) {
+			if (!this.cargo[i].resources.cds_aln.length) { continue; }
+			for (let j = this.cargo[i].resources.cds_aln.length - 1; j >= 0; j--) {
+				if (!this.cargo[i].resources.cds_aln[j].file) { this.cargo[i].resources.cds_aln.splice(j, 1); }
+				else {
+					const contents = await wrapper.read_file(this.cargo[i].resources.cds_aln[j].file);
+					if (!contents) { this.cargo[i].resources.cds_aln.splice(j, 1); }
+				}
+			}
+		}
 	}
 
 	this.verify_t_coffee = async () => {

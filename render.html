@@ -99,14 +99,32 @@
 
 					// file
 
+					case 'open_orthologs': {
+						if (arg.data && arg.data.filePaths.length) {
+							await orthologs.load_orthologs_file(arg.data.filePaths[0]);
+							console.log('loaded');
+							console.log(orthologs);
+						}
+						break;
+					}
+
+					case 'save_orthologs': {
+						if (arg.data && arg.data.filePath) {
+							await orthologs.save_as(arg.data.filePath);
+							console.log('saved');
+							console.log(orthologs);
+						}
+						break;
+					}
+
+					// components
+
 					case 'open_blast': {
 						if (arg.data && arg.data.filePaths.length) {
 							ortho_creator.add_blast_files(arg.data.filePaths);
 							orthologs = await ortho_creator.create(project.folders);
 							console.log('loaded');
-							if (orthologs.is_loaded()) {
-								console.log(orthologs);
-							}
+							if (orthologs.is_loaded()) { console.log(orthologs); }
 						}
 						break;
 					}
@@ -116,9 +134,7 @@
 							ortho_creator.add_cds_files(arg.data.filePaths);
 							orthologs = await ortho_creator.create(project.folders);
 							console.log('loaded');
-							if (orthologs.is_loaded()) {
-								console.log(orthologs);
-							}
+							if (orthologs.is_loaded()) { console.log(orthologs); }
 						}
 						break;
 					}
@@ -128,10 +144,7 @@
 							ortho_creator.add_isoform_files(arg.data.filePaths);
 							orthologs = await ortho_creator.create(project.folders);
 							console.log('loaded');
-							if (orthologs.is_loaded()) {
-								await orthologs.save_as(project.directory);
-								console.log(orthologs);
-							}
+							if (orthologs.is_loaded()) { console.log(orthologs); }
 						}
 						break;
 					}
@@ -145,22 +158,12 @@
 						break;
 					}
 
-					case 'open_orthologs': {
-						if (arg.data && arg.data.filePaths.length) {
-							await orthologs.load_orthologs_file(arg.data.filePaths[0]);
-							console.log(orthologs);
-						}
-						break;
-					}
-
 					case 'open_protein': {
 						if (arg.data && arg.data.filePaths.length) {
 							ortho_creator.add_protein_files(arg.data.filePaths);
 							orthologs = await ortho_creator.create(project.folders);
 							console.log('loaded');
-							if (orthologs.is_loaded()) {
-								console.log(orthologs);
-							}
+							if (orthologs.is_loaded()) { console.log(orthologs); }
 						}
 						break;
 					}
@@ -170,10 +173,7 @@
 							ortho_creator.add_rbh_files(arg.data.filePaths);
 							orthologs = await ortho_creator.create(project.folders);
 							console.log('loaded');
-							if (orthologs.is_loaded()) {
-								await orthologs.save_as(project.directory);
-								console.log(orthologs);
-							}
+							if (orthologs.is_loaded()) { console.log(orthologs); }
 						}
 						break;
 					}
@@ -181,20 +181,30 @@
 					// actions
 					case 't_coffee': {
 						await orthologs.t_coffee(project.folders, {}, () => {
-							orthologs.save_as(project.directory);
+							console.log('t_coffee is done!');
+							console.log(orthologs);
 						});
 						break;
 					}
 
 					case 'verify_t_coffee': {
 						await orthologs.verify_t_coffee();
-						await orthologs.save_as(project.directory);
+						console.log('t_coffee is done!');
 						console.log(orthologs);
 						break;
 					}
 
 					case 'pal2nal': {
-						await orthologs.pal2nal(project.folders);
+						await orthologs.pal2nal(project.folders, {}, () => {
+							console.log('pal2nal is done!');
+							console.log(orthologs);
+						});
+						break;
+					}
+
+					case 'verify_pal2nal': {
+						await orthologs.verify_pal2nal();
+						console.log('pal2nal is done!');
 						console.log(orthologs);
 						break;
 					}

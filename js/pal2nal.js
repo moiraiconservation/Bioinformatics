@@ -33,7 +33,7 @@ function PAL2NAL() {
 			if (!source_arr[i].cds_fasta || !source_arr[i].protein_aln) { continue; }
 			const cds_record = await pather.parse(source_arr[i].cds_fasta);
 			const protein_record = await pather.parse(source_arr[i].protein_aln);
-			target_record = await this.create_target_filename(source_record, target_record);
+			target_record = await this.create_target_filename(protein_record, target_record);
 			const cds_path = await cds_record.get_full_path();
 			const protein_path = await protein_record.get_full_path();
 			const target_path = await target_record.get_full_path();
@@ -44,15 +44,15 @@ function PAL2NAL() {
 	}
 
 	this.create_cmd = (cds_path, protein_path, target_path, options) => {
-		let cmd = this.engine + ' ' + protein_path + ' ' + cds_path;
+		let cmd = 'perl ' + this.engine + ' ' + protein_path + ' ' + cds_path;
 		const keys = Object.keys(options);
 		for (let i = 0; i < keys.length; i++) {
-			switch (key[i]) {
-				case 'blockonly': { if (options[key[i]]) { cmd += ' -blockonly'; } break; }
-				case 'codontable': { cmd += ' -codontable ' + options[key[i]]; break; }
-				case 'nogap': { if (options[key[i]]) { cmd += ' -nogap'; } break; }
-				case 'nomismatch': { if (options[key[i]]) { cmd += ' -nomismatch'; } break; }
-				case 'output': { cmd += ' -output ' + options[key[i]]; break; }
+			switch (keys[i]) {
+				case 'blockonly': { if (options[keys[i]]) { cmd += ' -blockonly'; } break; }
+				case 'codontable': { if (options[keys[i]]) { cmd += ' -codontable ' + options[keys[i]]; } break; }
+				case 'nogap': { if (options[keys[i]]) { cmd += ' -nogap'; } break; }
+				case 'nomismatch': { if (options[keys[i]]) { cmd += ' -nomismatch'; } break; }
+				case 'output': { if (options[keys[i]]) { cmd += ' -output ' + options[keys[i]]; } break; }
 			}
 		}
 		cmd += ' > ' + target_path + '\n';

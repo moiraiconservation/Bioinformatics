@@ -15,6 +15,51 @@ module.exports = {
 				submenu: [
 
 					{
+						id: 'open_orthologs',
+						label: 'Open Orthologs File...',
+						enabled: true,
+						click() {
+							dialog.showOpenDialog({
+								filters: [
+									{ name: 'Orthologs', extensions: ['ortho'] },
+									{ name: 'Text', extensions: ['txt'] },
+									{ name: 'All Files', extensions: ['*'] }
+								],
+								properties: ['openFile']
+							})
+								.then((response) => {
+									if (!response.canceled) {
+										win.main.webContents.send('fromMain', { command: 'open_orthologs', success: true, data: response });
+									}
+								});
+						}
+					},
+
+					{
+						id: 'save_orthologs',
+						label: 'Save Orthologs File As...',
+						enabled: true,
+						click() {
+							dialog.showSaveDialog({
+								defaultPath: 'orthologs.ortho',
+								filters: [
+									{ name: 'Orthologs', extensions: ['ortho'] },
+									{ name: 'Text', extensions: ['txt'] },
+									{ name: 'All Files', extensions: ['*'] }
+								],
+								properties: ['saveFile']
+							})
+								.then((response) => {
+									if (!response.canceled) {
+										win.main.webContents.send('fromMain', { command: 'save_orthologs', success: true, data: response });
+									}
+								});
+						}
+					},
+
+					{ type: 'separator' },
+
+					{
 						id: 'open_blast',
 						label: 'Open BLAST Output Files...',
 						enabled: true,
@@ -71,27 +116,6 @@ module.exports = {
 								.then((response) => {
 									if (!response.canceled) {
 										win.main.webContents.send('fromMain', { command: 'open_compact_isoforms', success: true, data: response });
-									}
-								});
-						}
-					},
-
-					{
-						id: 'open_orthologs',
-						label: 'Open Orthologs File...',
-						enabled: true,
-						click() {
-							dialog.showOpenDialog({
-								filters: [
-									{ name: 'Orthologs', extensions: ['ortho'] },
-									{ name: 'Text', extensions: ['txt'] },
-									{ name: 'All Files', extensions: ['*'] }
-								],
-								properties: ['openFile']
-							})
-								.then((response) => {
-									if (!response.canceled) {
-										win.main.webContents.send('fromMain', { command: 'open_orthologs', success: true, data: response });
 									}
 								});
 						}
@@ -185,7 +209,14 @@ module.exports = {
 						label: 'PAL2NAL',
 						enabled: true,
 						click() { win.main.webContents.send('fromMain', { command: 'pal2nal' }); }
-					}
+					},
+
+					{
+						id: 'verify_pal2nal',
+						label: 'Verify PAL2NAL',
+						enabled: true,
+						click() { win.main.webContents.send('fromMain', { command: 'verify_pal2nal' }); }
+					},
 
 				]
 			},

@@ -81,7 +81,7 @@ function T_COFFEE() {
 	}
 
 	this.run_batch_file = async (callback) => {
-			await this.terminal.io('chmod +x t_coffee.sh');
+		await this.terminal.io('chmod +x t_coffee.sh');
 		await this.terminal.io('./t_coffee.sh', 'Hedron batch complete', callback);
 	}
 

@@ -1,36 +1,31 @@
 ///////////////////////////////////////////////////////////////////////////////
-// tree.js ////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-// OBJECT /////////////////////////////////////////////////////////////////////
+// tree.js
+
 function TREE() {
-	////////////////////////////////////////////////////////////////////////
-	// OBJECT //////////////////////////////////////////////////////////////
-	function CONNECTION() {
+
+	function TREE_CONNECTION() {
 		this.distance = 0;
 		this.gene = { query: '', score: 0, subject: ''};
 		this.newick = '';
 		this.protein = { query: '', score: 0, subject: '' };
 		this.variance = 0;
 	}
-	this.new_connection = () => { return new CONNECTION(); }
-	////////////////////////////////////////////////////////////////////////
-	// OBJECT //////////////////////////////////////////////////////////////
-	function GRAPH() {
+	this.new_connection = () => { return new TREE_CONNECTION(); }
+
+	function TREE_GRAPH() {
 		this.complete = true;
 		this.connection = []; // array of CONNECTION objects
 		this.vertex = []; // array of VERTEX objects
 	}
-	this.new_graph = () => { return new GRAPH(); }
-	////////////////////////////////////////////////////////////////////////
-	// OBJECT //////////////////////////////////////////////////////////////
-	function VERTEX() {
+	this.new_graph = () => { return new TREE_GRAPH(); }
+
+	function TREE_VERTEX() {
 		this.accession = '';
 		this.name = ''; // the name of the protein and/or gene
 		this.organism = '';
 	}
-	this.new_vertex = () => { return new VERTEX(); }
-	////////////////////////////////////////////////////////////////////////
-	// METHOD //////////////////////////////////////////////////////////////
+	this.new_vertex = () => { return new TREE_VERTEX(); }
+
 	this.calculate_protein_distance = (graph, distance_func, clock_func, ignore_gaps) => {
 		if (!graph || !distance_func) { return graph; }
 		if (Array.isArray(graph)) {
@@ -63,24 +58,21 @@ function TREE() {
 		}
 		return graph;
 	}
-	////////////////////////////////////////////////////////////////////////
-	// METHOD //////////////////////////////////////////////////////////////
+
 	this.dayhoff_distance = (sequence1, sequence2, clock_func, ignore_gaps) => {
 		if (!sequence1 || !sequence2) { return { distance: 0, variance: 0 }; }
 		const alpha = 2.25;
 		const pcgd = this.poisson_correction_gamma_distance(sequence1, sequence2, alpha, clock_func, ignore_gaps);
 		return { distance: pcgd.distance, variance: pcgd.variance }
 	}
-	////////////////////////////////////////////////////////////////////////
-	// METHOD //////////////////////////////////////////////////////////////
+
 	this.jtt_distance = (sequence1, sequence2, clock_func, ignore_gaps) => {
 		if (!sequence1 || !sequence2) { return { distance: 0, variance: 0 }; }
 		const alpha = 2.4;
 		const jtt = this.poisson_correction_gamma_distance(sequence1, sequence2, alpha, clock_func, ignore_gaps);
 		return { distance: jtt.distance, variance: jtt.variance };
 	}
-	////////////////////////////////////////////////////////////////////////
-	// METHOD //////////////////////////////////////////////////////////////
+
 	this.neighbor_joining = (graph, show_distance) => {
 		/////////////////////////////////////////////////////////////////
 		// Reference:
@@ -131,8 +123,7 @@ function TREE() {
 		graph.newick = labels[0] + ';';
 		return graph;
 	}
-	////////////////////////////////////////////////////////////////////////
-	// METHOD //////////////////////////////////////////////////////////////
+
 	this.p_distance = (sequence1, sequence2, clock_func, ignore_gaps) => {
 		if (!sequence1 || !sequence2) { return { distance: 0, variance: 0 }; }
 		if (sequence1.length !== sequence2.length) { return { distance: 0, variance: 0 }; }
@@ -145,8 +136,7 @@ function TREE() {
 		const variance = (p * (1 - p)) / n;
 		return { distance: p, variance: variance };
 	}
-	////////////////////////////////////////////////////////////////////////
-	// METHOD //////////////////////////////////////////////////////////////
+
 	this.poisson_correction_distance = (sequence1, sequence2, clock_func, ignore_gaps) => {
 		if (!sequence1 || !sequence2) { return { distance: 0, variance: 0 }; }
 		if (sequence1.length !== sequence2.length) { return { distance: 0, variance: 0 }; }
@@ -161,8 +151,7 @@ function TREE() {
 		const variance = p / ((1 - p) * n);
 		return { distance: d, variance: variance };
 	}
-	////////////////////////////////////////////////////////////////////////
-	// METHOD //////////////////////////////////////////////////////////////
+
 	this.poisson_correction_gamma_distance = (sequence1, sequence2, alpha, clock_func, ignore_gaps) => {
 		if (!sequence1 || !sequence2) { return { distance: 0, variance: 0 }; }
 		if (sequence1.length !== sequence2.length) { return { distance: 0, variance: 0 }; }
@@ -177,8 +166,7 @@ function TREE() {
 		const variance = (p * (Math.pow((1 - p), (-1 * (1 + (2 / alpha)))))) / n;
 		return { distance: dg, variance: variance };
 	}
-	////////////////////////////////////////////////////////////////////////
-	// METHOD //////////////////////////////////////////////////////////////
+
 	this.scoredist = (sequence1, sequence2, clock_func, ignore_gaps) => {
 		/////////////////////////////////////////////////////////////////
 		// NOTE: This method is an implementation of the scoredist
@@ -262,8 +250,7 @@ function TREE() {
 		const dr = clock_func(-1 * Math.log(sigma_n / sigma_un) * 100);
 		return { distance: dr, variance: 0 };
 	}		
-	////////////////////////////////////////////////////////////////////////
-	// METHOD //////////////////////////////////////////////////////////////
+
 	this.parse_newick = (str) => {
 		/////////////////////////////////////////////////////////////////
 		// Newick format parser in JavaScript.
@@ -361,8 +348,7 @@ function TREE() {
 		}
 		catch(err) { return undefined; }
 	}
-	////////////////////////////////////////////////////////////////////////
-	// METHOD //////////////////////////////////////////////////////////////
+
 	this.upgma = (graph, show_distance) => {
 		/////////////////////////////////////////////////////////////////
 		// Reference:
@@ -413,22 +399,21 @@ function TREE() {
 		graph.newick = labels[0] + ';';
 		return graph;
 	}
-	////////////////////////////////////////////////////////////////////////
-	// PRIVATE METHOD //////////////////////////////////////////////////////
+
 	function append_column(column, d) {
 		for (let x = 0; x < d.length; x++) {
 			d[x].push(column[x]);
 		}
 		return d;
 	}
-	////////////////////////////////////////////////////////////////////////
-	// PRIVATE METHOD //////////////////////////////////////////////////////
+
 	function append_row(row, d) {
 		d.push(row);
 		return d;
 	}
+	
 	////////////////////////////////////////////////////////////////////////
-	// PRIVATE METHOD //////////////////////////////////////////////////////
+
 	function create_d_matrix(graph) {
 		let d = JSON.parse(JSON.stringify(graph.connection));
 		d.push(Array(graph.connection[0].length).fill(0));
@@ -441,8 +426,7 @@ function TREE() {
 		}
 		return d;
 	}
-	////////////////////////////////////////////////////////////////////////
-	// PRIVATE METHOD //////////////////////////////////////////////////////
+
 	function create_d_star_matrix(d) {
 		const n = d.length;
 		const d_star = new Array(n);
@@ -456,21 +440,18 @@ function TREE() {
 		}
 		return d_star;
 	}
-	////////////////////////////////////////////////////////////////////////
-	// PRIVATE METHOD //////////////////////////////////////////////////////
+
 	function delete_column(j, d) {
 		for (let m = 0; m < d.length; m++) {
 			d[m] = d[m].slice(0, j).concat(d[m].slice(j + 1));
 		}
 		return d;
 	}
-	////////////////////////////////////////////////////////////////////////
-	// PRIVATE METHOD //////////////////////////////////////////////////////
+
 	function delete_row(i, d) {
 		return d.slice(0, i).concat(d.slice(i + 1));
 	}
-	////////////////////////////////////////////////////////////////////////
-	// PRIVATE METHOD //////////////////////////////////////////////////////
+
 	function delete_two_columns(i, j, d) {
 		const max = Math.max(i, j);
 		const min = Math.min(i, j);
@@ -478,8 +459,7 @@ function TREE() {
 		d = delete_column(min, d);
 		return d;
 	}
-		////////////////////////////////////////////////////////////////////////
-	// PRIVATE METHOD //////////////////////////////////////////////////////
+
 	function delete_two_rows(i, j, d) {
 		const max = Math.max(i, j);
 		const min = Math.min(i, j);
@@ -487,8 +467,7 @@ function TREE() {
 		d = delete_row(min, d);
 		return d;
 	}
-	////////////////////////////////////////////////////////////////////////
-	// PRIVATE METHOD //////////////////////////////////////////////////////
+
 	function get_column(j, d) {
 		let column = [];
 		for (let m = 0; m < d.length; m++) {
@@ -496,15 +475,13 @@ function TREE() {
 		}
 		return column;
 	}
-	////////////////////////////////////////////////////////////////////////
-	// PRIVATE METHOD //////////////////////////////////////////////////////
+
 	function get_delta_ij(i, j, d) {
 		const n = d.length;
 		const totals = get_matrix_totals(d);
 		return (totals[i] - totals[j]) / (n - 2);
 	}
-	////////////////////////////////////////////////////////////////////////
-	// PRIVATE METHOD //////////////////////////////////////////////////////
+
 	function get_matrix_totals(d) {
 		const n = d.length;
 		const totals = new Array(n).fill(0);
@@ -515,13 +492,11 @@ function TREE() {
 		}
 		return totals;
 	}
-	////////////////////////////////////////////////////////////////////////
-	// PRIVATE METHOD //////////////////////////////////////////////////////
+
 	function get_row(i, d) {
 		return JSON.parse(JSON.stringify(d[i]));
 	}
-	////////////////////////////////////////////////////////////////////////
-	// PRIVATE METHOD //////////////////////////////////////////////////////
+
 	function get_smallest_distance(d) {
 		let min = { i: 0, j: 0, d: Infinity }
 		if (d.length === 2) { min = { i: 0, j: 1, d: d[0][1] }; }
@@ -540,8 +515,7 @@ function TREE() {
 		if (min.d === Infinity) { min.d = 0; }
 		return [ min.i, min.j, min.d ];
 	}
-	////////////////////////////////////////////////////////////////////////
-	// PRIVATE METHOD //////////////////////////////////////////////////////
+
 	function get_vertices(graph) {
 		const vertices = [];
 		for (let i = 0; i < graph.vertex.length; i++) {
@@ -551,8 +525,7 @@ function TREE() {
 		}
 		return vertices;
 	}
-	////////////////////////////////////////////////////////////////////////
-	// PRIVATE METHOD //////////////////////////////////////////////////////
+
 	function mismatches(sequence1, sequence2) {
 		if (!sequence1 || !sequence2) { return 0; }
 		if (sequence1.length !== sequence2.length) { return 0; }
@@ -565,8 +538,7 @@ function TREE() {
 		}
 		return mismatches++;
 	}
-	////////////////////////////////////////////////////////////////////////
-	// PRIVATE METHOD //////////////////////////////////////////////////////
+
 	function new_upgma(i, j, i_vector, j_vector, weights) {
 		const n = i_vector.length;
 		let new_vector = new Array(n).fill(0);
@@ -579,8 +551,7 @@ function TREE() {
 		new_vector = new_vector.slice(0, min).concat(new_vector.slice(min + 1));
 		return new_vector;
 	}
-	////////////////////////////////////////////////////////////////////////
-	// PRIVATE METHOD //////////////////////////////////////////////////////
+
 	function new_nj(i, j, i_vector, j_vector, distance) {
 		const n = i_vector.length;
 		let new_vector = new Array(n).fill(0);
@@ -593,8 +564,7 @@ function TREE() {
 		new_vector = new_vector.slice(0, min).concat(new_vector.slice(min + 1));
 		return new_vector;
 	}
-	////////////////////////////////////////////////////////////////////////
-	// PRIVATE METHOD //////////////////////////////////////////////////////
+
 	function strip_gaps(arr) {
 		if (typeof (arr) === 'undefined') { return []; }
 		for (let i = 0; i < arr.length; i++) {
@@ -608,8 +578,7 @@ function TREE() {
 		}
 		return arr;
 	}
-	////////////////////////////////////////////////////////////////////////
-	// PRIVATE METHOD //////////////////////////////////////////////////////
+
 	function update_branches_upgma(i, j, branches) {
 		const max = Math.max(i, j);
 		const min = Math.min(i, j);
@@ -622,8 +591,7 @@ function TREE() {
 		branches.push(new_branch);
 		return branches;
 	}
-	////////////////////////////////////////////////////////////////////////
-	// PRIVATE METHOD //////////////////////////////////////////////////////
+
 	function update_labels(i, j, labels, branches) {
 		const max = Math.max(i, j);
 		const min = Math.min(i, j);
@@ -639,8 +607,7 @@ function TREE() {
 		labels.push(new_label);
 		return labels;
 	}
-	////////////////////////////////////////////////////////////////////////
-	// PRIVATE METHOD //////////////////////////////////////////////////////
+
 	function update_weights(i, j, weights) {
 		const max = Math.max(i, j);
 		const min = Math.min(i, j);
@@ -650,6 +617,5 @@ function TREE() {
 		weights.push(new_weight);
 		return weights;
 	}
-	////////////////////////////////////////////////////////////////////////
+
 }
-///////////////////////////////////////////////////////////////////////////////

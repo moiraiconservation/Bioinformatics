@@ -10,7 +10,7 @@
   "author": "Neil Copes, Moirai Conservation and Research Inc., 2021",
   "license": "MIT",
   "devDependencies": {
-    "electron": "13.1.6"
+    "electron": "13.3.0"
   },
   "dependencies": {
     "@fortawesome/fontawesome-free": "^5.15.3",

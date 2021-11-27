@@ -38,20 +38,41 @@ function SEQ_RECORD() {
 		return record;
 	}
 
-	this.create_file_name = () => {
+	this.create_file_name = (format) => {
+		format = format || '';
 		let filename = this.defline || 'sequence';
 		filename = filename.replace(/[/\\?%*:|"<>]/g, ' '); // removes all illegal file characters
 		filename = filename.replace(/[^\x20-\x7E]/g, ''); // removes all non-printable characters
 		filename = filename.trim();
 		filename = filename.replace(/ /g, '_');
 		filename = filename.replace(/_+/g, '_');
-		switch (this.info.seq_type) {
-			case 'amino acids': { filename += '.faa'; break; }
-			case 'nucleotides': { filename += '.fna'; break; }
-			default: { filename += '.fasta'; break; }
+		if (format) {
+			switch (format) {
+				case 'fasta': {
+					switch (this.info.seq_type) {
+						case 'amino acids': { filename += '.faa'; break; }
+						case 'nucleotides': { filename += '.fna'; break; }
+						default: { filename += '.fasta'; break; }
+					}
+					break;
+				}
+				default: { filename += '.txt'; break; }
+			}
 		}
 		return filename;
 	}
+
+	this.get = (parameter) => { return this.info[parameter]; }
+
+	this.get_accession = () => { return this.info.accession; }
+
+	this.get_database = () => { return this.info.database; }
+
+	this.get_gene_name = () => { return this.info.gene; }
+
+	this.get_location = () => { return this.info.location; }
+
+	this.get_organism_name = () => { return this.info.organism; }
 
 	this.get_phylip_accession = () => {
 		if (!this.info.accession) { return ''; }
@@ -88,22 +109,32 @@ function SEQ_RECORD() {
 		return replacement;
 	}
 
-	this.get_words = (word_size) => {
-		const words = [];
-		let sequence = this.sequence.toUpperCase().replace(/-/g, '');
-		for (let i = 0; i < sequence.length - word_size; i++) {
-			words.push(sequence.slice(i, i + word_size));
-		}
-		return words;
-	}
+	this.get_protein_name = () => { return this.info.protein; }
+
+	this.get_sequence_name = () => { return this.info.seq_name; }
+
+	this.get_sequence_type = () => { return this.info.seq_type; }
+
+	this.get_status = () => { return this.info.status; }
 
 	this.get_unique_words = (word_size) => {
+		word_size = word_size || 1;
 		const words = [];
 		let sequence = this.sequence.toUpperCase().replace(/-/g, '');
 		for (let i = 0; i < sequence.length - word_size; i++) {
 			words.push(sequence.slice(i, i + word_size));
 		}
 		return Array.from(new Set(words));
+	}
+
+	this.get_words = (word_size) => {
+		word_size = word_size || 1;
+		const words = [];
+		let sequence = this.sequence.toUpperCase().replace(/-/g, '');
+		for (let i = 0; i < sequence.length - word_size; i++) {
+			words.push(sequence.slice(i, i + word_size));
+		}
+		return words;
 	}
 
 	this.longest_gap = () => {
@@ -113,11 +144,14 @@ function SEQ_RECORD() {
 	}
 
 	this.mask_low_complexity = (options) => {
-		if (this.seq_type === 'amino acids') { this.seg(options); }
+		if (this.info.seq_type === 'amino acids') { this.seg(options); }
 		else { this.sdust(options); }
 	}
 
 	this.number_of_gaps = () => { return this.sequence.split('-').length - 1; }
+
+	// NOTE: Each time a "save_as" method is added, the appropriate extension
+	//	should be added to the create_file_name method
 
 	this.save_as_fasta = async (path, options) => {
 		// If the filename has not been supplied, one will be created from the
@@ -125,12 +159,11 @@ function SEQ_RECORD() {
 		//	created.
 		if (typeof (path) === 'undefined') { path = ''; }
 		const path_record = await pather.parse(path);
-		const new_filename = this.create_file_name();
-		if (!path_record.filename) { await path_record.set_file_name(new_filename); }
+		if (!path_record.filename) { await path_record.set_file_name(this.create_file_name('fasta')); }
 		await path_record.force_path();
 		const full_path = await path_record.get_full_path();
 		const contents = this.to_fasta(options);
-		await wrapper.write_file(full_path, contents);
+		await wrapper.write_file(full_path, contents); // Note: refactor
 		return;
 	}
 
@@ -525,7 +558,7 @@ function SEQ_RECORD() {
 
 	this.to_uppercase = () => { this.sequence = this.sequence.toUpperCase(); }
 
-	this.unmask = () => { this.to_uppercase(); }
+	this.unmask = () => { this.sequence = this.sequence.toUpperCase(); }
 
 	function build_defline(info) {
 		if (typeof (info) === 'undefined') { return ''; }
@@ -679,18 +712,26 @@ function SEQUENCES() {
 		return cargo;
 	}
 
-	this.create_file_name = () => {
+	this.create_file_name = (format) => {
+		format = format || '';
 		let filename = this.get_consensus_organism_name() || 'sequences';
 		filename = filename.replace(/[/\\?%*:|"<>]/g, ' '); // removes all illegal file characters
 		filename = filename.replace(/[^\x20-\x7E]/g, ''); // removes all non-printable characters
 		filename = filename.trim();
 		filename = filename.replace(/ /g, '_');
 		filename = filename.replace(/_+/g, '_');
-		const seq_type = this.get_sequence_type();
-		switch (seq_type) {
-			case 'amino acids': { filename += '.faa'; break; }
-			case 'nucleotides': { filename += '.fna'; break; }
-			default: { filename += '.fasta'; break; }
+		if (format) {
+			switch (format) {
+				case 'fasta': {
+					switch (this.get_sequence_type()) {
+						case 'amino acids': { filename += '.faa'; break; }
+						case 'nucleotides': { filename += '.fna'; break; }
+						default: { filename += '.fasta'; break; }
+					}
+					break;
+				}
+				default: { filename += '.txt'; break; }
+			}
 		}
 		return filename;
 	}
@@ -961,6 +1002,9 @@ function SEQUENCES() {
 
 	this.number_of_sequences = () => { return this.cargo.length; }
 
+	// NOTE: Each time a "save_as" method is added, the appropriate extension
+	//	should be added to the create_file_name method
+
 	this.save_as_fasta = async (path, options) => {
 		// If the filename has not been supplied, one will be created from the
 		//	defline.  If the specified folders do not exist, they will be
@@ -968,7 +1012,16 @@ function SEQUENCES() {
 		if (typeof (path) === 'undefined') { path = ''; }
 		if (this.cargo.length) {
 			const path_record = await pather.parse(path);
-			if (!path_record.filename) { await path_record.set_file_name(this.create_file_name()); }
+			if (!path_record.filename) {
+				let new_filename = this.create_file_name();
+				const seq_type = this.get_sequence_type();
+				switch (seq_type) {
+					case 'amino acids': { new_filename += '.faa'; break; }
+					case 'nucleotides': { new_filename += '.fna'; break; }
+					default: { new_filename += '.fasta'; break; }
+				}
+				await path_record.set_file_name(new_filename);
+			}
 			await path_record.force_path();
 			const full_path = await path_record.get_full_path();
 			let contents = '';

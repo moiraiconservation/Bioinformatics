@@ -1013,14 +1013,7 @@ function SEQUENCES() {
 		if (this.cargo.length) {
 			const path_record = await pather.parse(path);
 			if (!path_record.filename) {
-				let new_filename = this.create_file_name();
-				const seq_type = this.get_sequence_type();
-				switch (seq_type) {
-					case 'amino acids': { new_filename += '.faa'; break; }
-					case 'nucleotides': { new_filename += '.fna'; break; }
-					default: { new_filename += '.fasta'; break; }
-				}
-				await path_record.set_file_name(new_filename);
+				await path_record.set_file_name(this.create_file_name());
 			}
 			await path_record.force_path();
 			const full_path = await path_record.get_full_path();

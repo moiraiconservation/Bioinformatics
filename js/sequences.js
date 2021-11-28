@@ -502,13 +502,13 @@ function SEQ_RECORD() {
 		this.defline = build_defline(this.info);
 	}
 
-	this.set_location = (value) => {
-		this.info.location = value;
+	this.set_gene_name = (value) => {
+		this.info.gene = value;
 		this.defline = build_defline(this.info);
 	}
 
-	this.set_gene_name = (value) => {
-		this.info.gene = value;
+	this.set_location = (value) => {
+		this.info.location = value;
 		this.defline = build_defline(this.info);
 	}
 

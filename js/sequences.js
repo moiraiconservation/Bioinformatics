@@ -763,9 +763,9 @@ function SEQUENCES() {
 
 	this.delete_by_exception = (filter) => { this.delete_by('exception', filter); }
 
-	this.delete_by_location = (filter) => { this.delete_by('location', filter); }
-
 	this.delete_by_gene_name = (filter) => { this.delete_by('gene', filter); }
+
+	this.delete_by_location = (filter) => { this.delete_by('location', filter); }
 
 	this.delete_by_organism_name = (filter) => { this.delete_by('organism', filter); }
 

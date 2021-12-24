@@ -1,8 +1,9 @@
 ///////////////////////////////////////////////////////////////////////////////
 // sequences.js
-//	Requires globals: pather and wrapper
-//	Requires: pather.js and wrapper.js
-//	Uses main.js for reading and writing files
+
+const fs = require('fs');
+const pat = require('./pather.js');
+const pather = new pat.PATHER();
 
 function SEQ_INFO() {
 	// These are the standard entries, but more variable can be added
@@ -163,7 +164,7 @@ function SEQ_RECORD() {
 		await path_record.force_path();
 		const full_path = await path_record.get_full_path();
 		const contents = this.to_fasta(options);
-		await wrapper.write_file(full_path, contents); // Note: refactor
+		await write_file(full_path, contents); // Note: refactor
 		return;
 	}
 
@@ -978,7 +979,7 @@ function SEQUENCES() {
 	this.load_fasta_file = async (path) => {
 		const path_record = await pather.parse(path);
 		const full_path = await path_record.get_full_path();
-		const contents = await wrapper.read_file(full_path);
+		const contents = await read_file(full_path);
 		if (contents) { this.cargo = parse_fasta(contents); }
 		return;
 	}
@@ -1021,7 +1022,7 @@ function SEQUENCES() {
 			for (let i = 0; i < this.cargo.length; i++) {
 				contents += this.cargo[i].to_fasta(options);
 			}
-			await wrapper.write_file(full_path, contents);
+			await write_file(full_path, contents);
 		}
 		return;
 	}
@@ -1381,4 +1382,46 @@ function SEQUENCES() {
 		return info;
 	}
 
+}
+
+async function read_file(filename, encoding) {
+	return new Promise((resolve) => {
+		if (!filename) { return resolve(''); }
+		let data = '';
+		encoding = encoding || 'utf-8';
+		const handle = fs.createReadStream(filename, { encoding: encoding, flags: 'r' });
+		handle.on('close', () => { return resolve(data); });
+		handle.on('data', (chunk) => { data += chunk; });
+		handle.on('end', () => { handle.close(); });
+		handle.on('error', () => { return resolve(''); });
+	});
+}
+
+async function write_file(filename, data, encoding) {
+	return new Promise((resolve) => {
+			if (filename) {
+				data = data || '';
+				encoding = encoding || 'utf-8';
+				if (data.length <= 10000) {
+					fs.writeFile(filename, data, encoding, (err) => {
+						if (err) { return resolve(err); }
+						else { return resolve(true); }
+					});
+				}
+				else {
+					const handle = fs.createWriteStream(filename, { encoding: encoding, flags: 'w' });
+					handle.write(data);
+					handle.end();
+					handle.close();
+					handle.on('error', () => { return resolve(false); });
+					handle.on('finish', () => { return resolve(true); });
+				}
+			}
+		});
+}
+
+module.exports = {
+	SEQ_INFO: SEQ_INFO,
+	SEQ_RECORD: SEQ_RECORD,
+	SEQUENCES: SEQUENCES
 }

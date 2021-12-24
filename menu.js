@@ -15,71 +15,6 @@ module.exports = {
 				submenu: [
 
 					{
-						id: 'open_orthologs',
-						label: 'Open Orthologs File...',
-						enabled: true,
-						click() {
-							dialog.showOpenDialog({
-								filters: [
-									{ name: 'Orthologs', extensions: ['ortho'] },
-									{ name: 'Text', extensions: ['txt'] },
-									{ name: 'All Files', extensions: ['*'] }
-								],
-								properties: ['openFile']
-							})
-								.then((response) => {
-									if (!response.canceled) {
-										win.main.webContents.send('fromMain', { command: 'open_orthologs', success: true, data: response });
-									}
-								});
-						}
-					},
-
-					{
-						id: 'save_orthologs',
-						label: 'Save Orthologs File As...',
-						enabled: true,
-						click() {
-							dialog.showSaveDialog({
-								defaultPath: 'orthologs.ortho',
-								filters: [
-									{ name: 'Orthologs', extensions: ['ortho'] },
-									{ name: 'Text', extensions: ['txt'] },
-									{ name: 'All Files', extensions: ['*'] }
-								],
-								properties: ['saveFile']
-							})
-								.then((response) => {
-									if (!response.canceled) {
-										win.main.webContents.send('fromMain', { command: 'save_orthologs', success: true, data: response });
-									}
-								});
-						}
-					},
-
-					{ type: 'separator' },
-
-					{
-						id: 'open_blast',
-						label: 'Open BLAST Output Files...',
-						enabled: true,
-						click() {
-							dialog.showOpenDialog({
-								filters: [
-									{ name: 'Text', extensions: ['txt'] },
-									{ name: 'All Files', extensions: ['*'] }
-								],
-								properties: ['multiSelections', 'openFile']
-							})
-								.then((response) => {
-									if (!response.canceled) {
-										win.main.webContents.send('fromMain', { command: 'open_blast', success: true, data: response });
-									}
-								});
-						}
-					},
-
-					{
 						id: 'open_cds',
 						label: 'Open CDS Files...',
 						enabled: true,
@@ -94,44 +29,7 @@ module.exports = {
 							})
 								.then((response) => {
 									if (!response.canceled) {
-										win.main.webContents.send('fromMain', { command: 'open_cds', success: true, data: response });
-									}
-								});
-						}
-					},
-
-					{
-						id: 'open_compact_isoforms',
-						label: 'Open Isoform Files...',
-						enabled: true,
-						click() {
-							dialog.showOpenDialog({
-								filters: [
-									{ name: 'Isoforms', extensions: ['isoforms'] },
-									{ name: 'Text', extensions: ['txt'] },
-									{ name: 'All Files', extensions: ['*'] }
-								],
-								properties: ['multiSelections', 'openFile']
-							})
-								.then((response) => {
-									if (!response.canceled) {
-										win.main.webContents.send('fromMain', { command: 'open_compact_isoforms', success: true, data: response });
-									}
-								});
-						}
-					},
-
-					{
-						id: 'open_project_folder',
-						label: 'Open Project Folder...',
-						enabled: true,
-						click() {
-							dialog.showOpenDialog({
-								properties: ['openDirectory']
-							})
-								.then((response) => {
-									if (!response.canceled) {
-										win.main.webContents.send('fromMain', { command: 'open_project_folder', success: true, data: response });
+										win.main.webContents.send('toRender', { command: 'bounce', subcommand: 'open_cds', success: true, data: response });
 									}
 								});
 						}
@@ -152,71 +50,15 @@ module.exports = {
 							})
 							.then((response) => {
 								if (!response.canceled) {
-									win.main.webContents.send('fromMain', { command: 'open_protein', success: true, data: response });
+									win.main.webContents.send('toRender', { command: 'bounce', subcommand: 'open_cds', success: true, data: response });
 								}
 							});
-						}
-					},
-
-					{
-						id: 'open_rbh',
-						label: 'Open RBH Files...',
-						enabled: true,
-						click() {
-							dialog.showOpenDialog({
-								filters: [
-									{ name: 'RBH', extensions: ['rbh'] },
-									{ name: 'Text', extensions: ['txt'] },
-									{ name: 'All Files', extensions: ['*'] }
-								],
-								properties: ['multiSelections', 'openFile']
-							})
-								.then((response) => {
-									if (!response.canceled) {
-										win.main.webContents.send('fromMain', { command: 'open_rbh', success: true, data: response });
-									}
-								});
 						}
 					},
 
 					{ type: 'separator' },
 
 					{ label: 'Exit', click() { app.quit() } }
-
-				]
-			},
-
-			{
-				label: 'Actions',
-				submenu: [
-
-					{
-						id: 't_coffee',
-						label: 'T-Coffee',
-						enabled: true,
-						click() { win.main.webContents.send('fromMain', { command: 't_coffee' }); 	}
-					},
-
-					{
-						id: 'verify_t_coffee',
-						label: 'Verify T-Coffee',
-						enabled: true,
-						click() { win.main.webContents.send('fromMain', { command: 'verify_t_coffee' }); }
-					},
-
-					{
-						id: 'pal2nal',
-						label: 'PAL2NAL',
-						enabled: true,
-						click() { win.main.webContents.send('fromMain', { command: 'pal2nal' }); }
-					},
-
-					{
-						id: 'verify_pal2nal',
-						label: 'Verify PAL2NAL',
-						enabled: true,
-						click() { win.main.webContents.send('fromMain', { command: 'verify_pal2nal' }); }
-					},
 
 				]
 			},

@@ -12,15 +12,15 @@ const eStore = require('electron-store');
 const fs = require('fs');
 const ipc = require('electron').ipcMain;
 const path = require('path');
-//const sqlite3 = require('sqlite3'); // uncomment this if using sqlite3 database
 const qs = require('qs');
+const seq = require('./js/sequences.js');
 
 ///////////////////////////////////////////////////////////////////////////////
 // GLOBAL VARIABLES ///////////////////////////////////////////////////////////
 
 const store = new eStore();
 const spawns = [];
-const win = { main: null, icon: 'assets/icons/pentagon_512x512.png' };
+const win = { main: null, icon: 'assets/icons/icon.png' };
 
 ///////////////////////////////////////////////////////////////////////////////
 // LOAD THE DEFAULT SETTINGS //////////////////////////////////////////////////
@@ -58,6 +58,7 @@ function show_window(filename) {
 		win.main = new BrowserWindow({
 			frame: true,
 			height: app_storage.window_bounds.height,
+			icon: win.icon,
 			show: false,
 			webPreferences: {
 				contextIsolation: true,
@@ -148,252 +149,166 @@ function SPAWN() {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// IPC COMMUNICATION //////////////////////////////////////////////////////////
+// FUNCTIONS //////////////////////////////////////////////////////////////////
 
-// toMain Manifest:
-//	append_file
-//	axios_get
-//	axios_post
-//	create_directory
-//	create_spawn
-//	delete_file
-//	get_app_data_directory
-//	get_app_directory
-//	get_app_storage
-//	get_operating_system
-//	open_file_dialog
-//	read_file
-//	set_app_storage
-//	sqlite3_all
-//	sqlite3_run
-//	update_menu_item
-//	update_menu_item_batch
-//	url_exists
-//	write_canvas_to_png
-//	write_file
+async function append_file(filename, data) {
+	if (filename && data) { fs.appendFile(filename, data, () => { return true; }); }
+}
 
-ipc.on('toMain', async (event, arg) => {
-	event.preventDefault();
-	if (arg.command) {
-		switch (arg.command) {
+async function axios_get(url) {
+	if (url) {
+		axios.get(url)
+			.then(result => { return result.data })
+			.catch(() => { return ''; });
+	}
+}
 
-			case 'append_file': {
-				if (arg.filename && arg.data) {
-					fs.appendFile(arg.filename, arg.data, () => { win.main.webContents.send('fromMain', { command: arg.command, success: true }); });
-				}
-				break;
+async function axios_post(url, data, config) {
+	if (url && data && config) {
+		data = qs.stringify(arg.data);
+		axios.post(url, data, config)
+			.then(result => { return result.data })
+			.catch(() => { return {} });
+	}
+}
+
+async function create_directory(dir_name) {
+	if (dir_name) {
+		if (!fs.existsSync(dir_name)) { fs.mkdirSync(dir_name); }
+		return true;
+	}
+}
+
+async function create_spawn() {
+	let cmd = arg.cmd;
+	let args = arg.args;
+	let options = arg.options;
+	if (!cmd) { cmd = 'cmd'; }
+	if (!args) { args = []; }
+	if (!options) { options = { shell: true }; }
+	let id = '';
+	const spawn = new SPAWN();
+	id = spawn.create(cmd, args, options);
+	spawns.push(spawn);
+	return id;
+}
+
+async function delete_file(filename) {
+	if (filename) { fs.unlink(filename, () => { return true; }); }
+}
+
+async function get_app_data_directory() { return app.getPath('userData'); }
+
+async function get_app_directory() { return __dirname; }
+
+async function get_operating_system() {
+	let os = '';
+	switch (process.platform) {
+		case 'darwin': { os = 'MacOS'; break; }
+		case 'linux': { os = 'Linux'; break; }
+		case 'win32': { os = 'Windows'; break; }
+		case 'win64': { os = 'Windows'; break; }
+		default: { os = 'Unknown'; }
+	}
+	return os;
+}
+
+async function open_file_dialog(filters) {
+	filters = filters || [
+		{ name: 'Text Files', extensions: ['txt'] },
+		{ name: 'All Files', extensions: ['*'] }
+	];
+	dialog.showOpenDialog({
+		filters: filters,
+		properties: ['openFile']
+	})
+		.then((response) => {
+			if (!response.canceled) {
+				return response;
 			}
+		});
+}
 
-			case 'axios_get': {
-				if (arg.url) {
-					axios.get(arg.url)
-						.then(result => { win.main.webContents.send('fromMain', { command: arg.command, success: true, data: result.data }); })
-						.catch(() => { win.main.webContents.send('fromMain', { command: arg.command, success: false, data: '' }); });
-				}
-				break;
+async function read_file(filename, encoding) {
+	if (!filename) { return ''; }
+	let data = '';
+	encoding = enconding ?? 'utf-8';
+	const handle = fs.createReadStream(filename, { encoding: encoding, flags: 'r' });
+	handle.on('close', () => { return data; });
+	handle.on('data', (chunk) => { data += chunk; });
+	handle.on('end', () => { handle.close(); });
+	handle.on('error', () => { return ''; });
+}
+
+async function update_menu_item(item, state) {
+	if (item) {
+		const menu_item = menu.getMenuItemById(item);
+		if (state) {
+			switch (state) {
+				case 'disable': { menu_item.enabled = false; break; }
+				case 'enable': { menu_item.enabled = true; break; }
 			}
-
-			case 'axios_post': {
-				if (arg.url && arg.data && arg.config) {
-					const data = qs.stringify(arg.data);
-					axios.post(arg.url, data, arg.config)
-					.then(result => { win.main.webContents.send('fromMain', { command: arg.command, success: true, data: result.data }); })
-						.catch(() => { win.main.webContents.send('fromMain', { command: arg.command, success: true, data: {} }); });
-				}
-				break;
-			}
-
-			case 'create_directory': {
-				if (arg.dir_name) {
-					if (!fs.existsSync(arg.dir_name)) { fs.mkdirSync(arg.dir_name); }
-					win.main.webContents.send('fromMain', { command: arg.command, success: true });
-				}
-				break;
-			}
-
-			case 'create_spawn': {
-				let cmd = arg.cmd;
-				let args = arg.args;
-				let options = arg.options;
-				if (!cmd) { cmd = 'cmd'; }
-				if (!args) { args = []; }
-				if (!options) { options = { shell: true }; }
-				let id = '';
-				const spawn = new SPAWN();
-				id = spawn.create(cmd, args, options);
-				spawns.push(spawn);
-				win.main.webContents.send('fromMain', { command: arg.command, data: id, success: true });
-				break;
-			}
-
-			case 'delete_file': {
-				if (arg.filename) {
-					fs.unlink(arg.filename, () => { win.main.webContents.send('fromMain', { command: arg.command, success: true }); });
-				}
-				break;
-			}
-
-			case 'get_app_data_directory': {
-				win.main.webContents.send('fromMain', { command: arg.command, success: true, data: app.getPath('userData') });
-				break;
-			}
-
-			case 'get_app_directory': {
-				win.main.webContents.send('fromMain', { command: arg.command, success: true, data: __dirname });
-				break;
-			}
-
-			case 'get_app_storage': {
-				win.main.webContents.send('fromMain', { command: arg.command, success: true, data: app_storage });
-				break;
-			}
-
-			case 'get_operating_system': {
-				let os = '';
-				switch(process.platform) {
-					case 'darwin': { os = 'MacOS'; break; }
-					case 'linux': { os = 'Linux'; break; }
-					case 'win32': { os = 'Windows'; break; }
-					case 'win64': { os = 'Windows'; break; }
-					default: { os = 'Unknown'; }
-				}
-				win.main.webContents.send('fromMain', { command: arg.command, success: true, data: os });
-				break;
-			}
-
-			case 'open_file_dialog': {
-				let filters = [
-					{ name: 'FASTA', extensions: ['fasta', 'faa', 'fna'] },
-					{ name: 'Text Files', extensions: ['txt'] },
-					{ name: 'All Files', extensions: ['*'] }
-				];
-				if (arg.filters) { filters = arg.filters; }
-				dialog.showOpenDialog({
-					filters: filters,
-					properties: ['openFile']
-				})
-					.then((response) => {
-						if (!response.canceled) {
-							win.main.webContents.send('fromMain', { command: arg.command, success: true, data: response });
-						}
-					});
-				break;
-			}
-
-			case 'read_file': {
-				if (!arg.filename) { win.main.webContents.send('fromMain', { command: arg.command, success: false, data: '' }); }
-				let data = '';
-				let encoding = arg.enconding ?? 'utf-8';
-				const handle = fs.createReadStream(arg.filename, { encoding: encoding, flags: 'r' });
-				handle.on('close', () => { win.main.webContents.send('fromMain', { command: arg.command, success: true, data: data }); });
-				handle.on('data', (chunk) => { data += chunk; });
-				handle.on('end', () => { handle.close(); });
-				handle.on('error', () => { win.main.webContents.send('fromMain', { command: arg.command, success: false, data: '' }); });
-				break;
-			}
-
-			case 'set_app_storage': {
-				if (arg.data) { app_storage = arg.data; }
-				break;
-			}
-
-			case 'sqlite3_all': {
-				if (arg.sql) {
-					db.all(arg.sql, (error, rows) => {
-						if (error) { win.main.webContents.send('fromMain', { command: arg.command, success: false }); }
-						else { win.main.webContents.send('fromMain', { command: arg.command, success: true, data: rows }); }
-					});
-				}
-				break;
-			}
-			
-			case 'sqlite3_run': {
-				if (arg.sql) {
-					db.run(arg.sql, arg.param, (error) => {
-						if (error) { console.log(error); win.main.webContents.send('fromMain', { command: arg.command, success: false }); }
-						else { win.main.webContents.send('fromMain', { command: arg.command, success: true }); }
-					});
-				}
-				break;
-			}
-
-			case 'update_menu_item': {
-				if (arg.item) {
-					const menu_item = menu.getMenuItemById(arg.item);
-					if (arg.state) {
-						switch (arg.state) {
-							case 'disable': { menu_item.enabled = false; break; }
-							case 'enable': { menu_item.enabled = true; break; }
-						}
-					}
-				}
-				break;
-			}
-
-			case 'update_menu_item_batch': {
-				if (arg.batch && arg.state) {
-					for (let i = 0; i < arg.batch.length; i++) {
-						let menu_item = menu.getMenuItemById(arg.batch[i]);
-						if (menu_item) {
-							switch (arg.state) {
-								case 'disable': { menu_item.enabled = false; break; }
-								case 'enable': { menu_item.enabled = true; break; }
-							}
-						}
-					}
-				}
-				break;
-			}
-
-			case 'url_exists': {
-				if (arg.url) {
-					axios.head(url)
-						.then(() => { win.main.webContents.send('fromMain', { command: arg.command, success: true }); })
-						.catch(() => { win.main.webContents.send('fromMain', { command: arg.command, success: false }); });
-				}
-				break;
-			}
-
-			case 'write_canvas_to_png': {
-				if (arg.filename && arg.data) {
-					const buff = buffer.from(arg.data, 'base64');
-					fs.writeFile(arg.filename, buff, 'base64', (err) => {
-						if (err) { win.main.webContents.send('fromMain', { command: arg.command, success: false, data: err }) }
-						else { win.main.webContents.send('fromMain', { command: arg.command, success: true }); }
-					});
-				}
-				break;
-			}
-
-			case 'write_file': {
-				if (arg.filename) {
-					data = '';
-					encoding = 'utf-8';
-					if (arg.data) { data = arg.data; }
-					if (arg.encoding) { encoding = arg.encoding; }
-					if (data.length <= 10000) {
-						fs.writeFile(arg.filename, data, encoding, (err) => {
-							if (err) { win.main.webContents.send('fromMain', { command: arg.command, success: false, data: err }) }
-							else { win.main.webContents.send('fromMain', { command: arg.command, success: true }); }
-						});
-					}
-					else {
-						const handle = fs.createWriteStream(arg.filename, { encoding: encoding, flags: 'w' });
-						await handle.write(data);
-						await handle.end();
-						handle.close();
-						handle.on('error', () => { win.main.webContents.send('fromMain', { command: arg.command, success: false }); });
-						handle.on('finish', () => { win.main.webContents.send('fromMain', { command: arg.command, success: true }); });
-					}
-				}
-				break;
-			}
-
-			default: { win.main.webContents.send('fromMain', { command: arg.command, success: false, data: undefined }); }
-
 		}
 	}
-});
+	return true;
+}
+
+async function update_menu_item_batch(batch, state) {
+	if (batch && state) {
+		for (let i = 0; i < batch.length; i++) {
+			let menu_item = menu.getMenuItemById(arg.batch[i]);
+			if (menu_item) {
+				switch (state) {
+					case 'disable': { menu_item.enabled = false; break; }
+					case 'enable': { menu_item.enabled = true; break; }
+				}
+			}
+		}
+	}
+	return true;
+}
+
+async function url_exists(url) {
+	if (url) {
+		axios.head(url)
+			.then(() => { return true; })
+			.catch(() => { return false; });
+	}
+	return false;
+}
+
+async function write_canvas_to_png(filename, data) {
+	if (filename && data) {
+		const buff = buffer.from(data, 'base64');
+		fs.writeFile(filename, buff, 'base64', (err) => {
+			if (err) { return err; }
+			else { return true; }
+		});
+	}
+	return false;
+}
+
+async function write_file(filename, data, encoding) {
+	if (filename) {
+		data = data || '';
+		encoding = encoding || 'utf-8';
+		if (data.length <= 10000) {
+			fs.writeFile(filename, data, encoding, (err) => {
+				if (err) { return err; }
+				else { return true; }
+			});
+		}
+		else {
+			const handle = fs.createWriteStream(filename, { encoding: encoding, flags: 'w' });
+			await handle.write(data);
+			await handle.end();
+			handle.close();
+			handle.on('error', () => { return false; });
+			handle.on('finish', () => { return true; });
+		}
+	}
+	return false;
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -423,3 +338,26 @@ ipc.on('toSpawn', async (event, arg) => {
 		}
 	}
 });
+
+///////////////////////////////////////////////////////////////////////////////
+// IPC COMMUNICATION //////////////////////////////////////////////////////////
+
+ipc.on('toMain', async (event, arg) => {
+	event.preventDefault();
+	if (arg.command) {
+		
+		switch (arg.command) {
+
+			case 'open_cds': {
+				const sequences = new seq.SEQUENCES();
+				await sequences.load_fasta_file(arg.data.filePaths[0]);
+				console.log(sequences.cargo[0]);
+				break;
+			}
+		
+		}
+
+	}
+});
+
+///////////////////////////////////////////////////////////////////////////////

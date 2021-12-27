@@ -1,8 +1,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 // pather.js
 
-const { app } = require('electron');
-const fs = require('fs');
+const { IO } = require('./io.js');
+const io = new IO();
 
 function PATHER_RECORD() {
 	this.app_drive = '';
@@ -57,7 +57,7 @@ function PATHER_RECORD() {
 	}
 
 	this.get_delimiter = async () => {
-		const platform = await get_operating_system();
+		const platform = io.get_operating_system();
 		if (platform === 'win32') { this.delimiter = '\\'; return '\\'; }
 		else { this.delimiter = '/'; return '/'; }
 	}
@@ -86,7 +86,7 @@ function PATHER_RECORD() {
 			let new_dir = this.drive;
 			for (let i = this.verified_folders.length; i < this.folders.length; i++) {
 				new_dir += this.delimiter + this.folders[i];
-				create_directory(new_dir);
+				io.create_directory(new_dir);
 				this.verified_folders.push(this.folders[i]);
 			}
 		}
@@ -94,7 +94,7 @@ function PATHER_RECORD() {
 
 	this.get_full_path = async (options) => {
 		if (typeof (options) === 'undefined' || typeof (options) !== 'object') { options = {}; }
-		const os = get_operating_system();
+		const os = io.get_operating_system();
 		options.os = options.os ?? os;
 		let path = '';
 		switch (options.os) {
@@ -189,7 +189,7 @@ function PATHER() {
 		}
 		if (parts[last] && parts[last].includes('.')) { await record.set_file_name(parts[last]); }
 		// parse the path to the application
-		const app_path = get_app_directory();
+		const app_path = io.get_app_directory();
 		const app_parts = await record.agnostic_split(app_path);
 		record.folders_to_app = await record.get_folders_from_parts(app_parts);
 		if (app_parts[0] && app_parts[0].includes(':')) { record.app_drive = app_parts[0]; }
@@ -203,27 +203,6 @@ function PATHER() {
 	}
 
 }
-
-function get_operating_system() {
-	let os = '';
-	switch (process.platform) {
-		case 'darwin': { os = 'MacOS'; break; }
-		case 'linux': { os = 'Linux'; break; }
-		case 'win32': { os = 'Windows'; break; }
-		case 'win64': { os = 'Windows'; break; }
-		default: { os = 'Unknown'; }
-	}
-	return os;
-}
-
-function create_directory(dir_name) {
-	if (dir_name) {
-		if (!fs.existsSync(dir_name)) { fs.mkdirSync(dir_name); }
-		return true;
-	}
-}
-
-function get_app_directory() { return __dirname; }
 
 module.exports = {
 	PATHER_RECORD: PATHER_RECORD,

@@ -6,13 +6,10 @@
 
 const { app, BrowserWindow, dialog, Menu } = require('electron');
 const app_menu = require ('./menu.js');
-const axios = require('axios');
 const child_process = require('child_process');
 const eStore = require('electron-store');
-const fs = require('fs');
 const ipc = require('electron').ipcMain;
 const path = require('path');
-const qs = require('qs');
 const seq = require('./js/sequences.js');
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -151,35 +148,7 @@ function SPAWN() {
 ///////////////////////////////////////////////////////////////////////////////
 // FUNCTIONS //////////////////////////////////////////////////////////////////
 
-async function append_file(filename, data) {
-	if (filename && data) { fs.appendFile(filename, data, () => { return true; }); }
-}
-
-async function axios_get(url) {
-	if (url) {
-		axios.get(url)
-			.then(result => { return result.data })
-			.catch(() => { return ''; });
-	}
-}
-
-async function axios_post(url, data, config) {
-	if (url && data && config) {
-		data = qs.stringify(arg.data);
-		axios.post(url, data, config)
-			.then(result => { return result.data })
-			.catch(() => { return {} });
-	}
-}
-
-async function create_directory(dir_name) {
-	if (dir_name) {
-		if (!fs.existsSync(dir_name)) { fs.mkdirSync(dir_name); }
-		return true;
-	}
-}
-
-async function create_spawn() {
+function create_spawn() {
 	let cmd = arg.cmd;
 	let args = arg.args;
 	let options = arg.options;
@@ -193,54 +162,7 @@ async function create_spawn() {
 	return id;
 }
 
-async function delete_file(filename) {
-	if (filename) { fs.unlink(filename, () => { return true; }); }
-}
-
-async function get_app_data_directory() { return app.getPath('userData'); }
-
-async function get_app_directory() { return __dirname; }
-
-async function get_operating_system() {
-	let os = '';
-	switch (process.platform) {
-		case 'darwin': { os = 'MacOS'; break; }
-		case 'linux': { os = 'Linux'; break; }
-		case 'win32': { os = 'Windows'; break; }
-		case 'win64': { os = 'Windows'; break; }
-		default: { os = 'Unknown'; }
-	}
-	return os;
-}
-
-async function open_file_dialog(filters) {
-	filters = filters || [
-		{ name: 'Text Files', extensions: ['txt'] },
-		{ name: 'All Files', extensions: ['*'] }
-	];
-	dialog.showOpenDialog({
-		filters: filters,
-		properties: ['openFile']
-	})
-		.then((response) => {
-			if (!response.canceled) {
-				return response;
-			}
-		});
-}
-
-async function read_file(filename, encoding) {
-	if (!filename) { return ''; }
-	let data = '';
-	encoding = enconding ?? 'utf-8';
-	const handle = fs.createReadStream(filename, { encoding: encoding, flags: 'r' });
-	handle.on('close', () => { return data; });
-	handle.on('data', (chunk) => { data += chunk; });
-	handle.on('end', () => { handle.close(); });
-	handle.on('error', () => { return ''; });
-}
-
-async function update_menu_item(item, state) {
+function update_menu_item(item, state) {
 	if (item) {
 		const menu_item = menu.getMenuItemById(item);
 		if (state) {
@@ -253,7 +175,7 @@ async function update_menu_item(item, state) {
 	return true;
 }
 
-async function update_menu_item_batch(batch, state) {
+function update_menu_item_batch(batch, state) {
 	if (batch && state) {
 		for (let i = 0; i < batch.length; i++) {
 			let menu_item = menu.getMenuItemById(arg.batch[i]);
@@ -266,48 +188,6 @@ async function update_menu_item_batch(batch, state) {
 		}
 	}
 	return true;
-}
-
-async function url_exists(url) {
-	if (url) {
-		axios.head(url)
-			.then(() => { return true; })
-			.catch(() => { return false; });
-	}
-	return false;
-}
-
-async function write_canvas_to_png(filename, data) {
-	if (filename && data) {
-		const buff = buffer.from(data, 'base64');
-		fs.writeFile(filename, buff, 'base64', (err) => {
-			if (err) { return err; }
-			else { return true; }
-		});
-	}
-	return false;
-}
-
-async function write_file(filename, data, encoding) {
-	if (filename) {
-		data = data || '';
-		encoding = encoding || 'utf-8';
-		if (data.length <= 10000) {
-			fs.writeFile(filename, data, encoding, (err) => {
-				if (err) { return err; }
-				else { return true; }
-			});
-		}
-		else {
-			const handle = fs.createWriteStream(filename, { encoding: encoding, flags: 'w' });
-			await handle.write(data);
-			await handle.end();
-			handle.close();
-			handle.on('error', () => { return false; });
-			handle.on('finish', () => { return true; });
-		}
-	}
-	return false;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

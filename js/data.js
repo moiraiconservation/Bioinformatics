@@ -1,10 +1,10 @@
 ///////////////////////////////////////////////////////////////////////////////
-// table.js
-//	Methods for manimpulating tab separated value (tsv) files (also known as
-//	tab delimited files) and comma separated value (csv) files, and custom
-//	delimited files.
+// data.js
 
-function TABLE() {
+const { IO } = require('./io.js');
+const io = new IO();
+
+function DATA() {
 
 	this.cargo = [];
 
@@ -26,24 +26,13 @@ function TABLE() {
 	}
 
 	this.load_csv_file = async (path) => {
-		const str = await read_file(path);
+		const str = await io.read_file(path);
 		this.cargo = parse(str, ',');
 	}
 
 	this.load_tsv_file = async (path) => {
-		const str = await read_file(path);
+		const str = await io.read_file(path);
 		this.cargo = parse(str, '\t');
-	}
-
-	function parse(str, delimiter) {
-		delimiter = delimiter || ',';
-		const arr = [];
-		let lines = str.split(/\r?\n/);
-		for (let i = 0; i < lines.length; i++) {
-			let data = lines[i].split(delimiter);
-			arr.push(data);
-		}
-		return arr;
 	}
 
 	this.get_list = () => {
@@ -64,17 +53,15 @@ function TABLE() {
 
 }
 
-async function read_file(filename, encoding) {
-	return new Promise((resolve) => {
-		if (!filename) { return resolve(''); }
-		let data = '';
-		encoding = encoding || 'utf-8';
-		const handle = fs.createReadStream(filename, { encoding: encoding, flags: 'r' });
-		handle.on('close', () => { return resolve(data); });
-		handle.on('data', (chunk) => { data += chunk; });
-		handle.on('end', () => { handle.close(); });
-		handle.on('error', () => { return resolve(''); });
-	});
+function parse(str, delimiter) {
+	delimiter = delimiter || ',';
+	const arr = [];
+	let lines = str.split(/\r?\n/);
+	for (let i = 0; i < lines.length; i++) {
+		let data = lines[i].split(delimiter);
+		arr.push(data);
+	}
+	return arr;
 }
 
-module.exports = { TABLE: TABLE }
+module.exports = { DATA: DATA }

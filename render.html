@@ -35,6 +35,7 @@
 			if (arg.command) {
 				switch (arg.command) {
 					case 'bounce': { window.api.send('toMain', { command: arg.subcommand, success: arg.success, data: arg.data }); break; }
+					case 'console.log': { console.log(arg.data); break; }
 				}
 			}
 		});

@@ -2,6 +2,7 @@
 // data.js
 
 const { IO } = require('./io.js');
+const xlsx = require('xlsx');
 const io = new IO();
 
 function DATA() {
@@ -28,11 +29,24 @@ function DATA() {
 	this.load_csv_file = async (path) => {
 		const str = await io.read_file(path);
 		this.cargo = parse(str, ',');
+		return true;
 	}
 
 	this.load_tsv_file = async (path) => {
 		const str = await io.read_file(path);
 		this.cargo = parse(str, '\t');
+		return true;
+	}
+
+	this.load_xlsx_file = async (path) => {
+		const file = xlsx.readFile(path);
+		this.cargo = [];
+		const sheets = file.SheetNames
+		for (let i = 0; i < sheets.length; i++) {
+			const temp = xlsx.utils.sheet_to_json(file.Sheets[file.SheetNames[i]]);
+			temp.forEach((res) => { this.cargo.push(res) });
+		}
+		return true;
 	}
 
 	this.get_list = () => {

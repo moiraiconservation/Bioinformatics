@@ -16,6 +16,7 @@
     "@fortawesome/fontawesome-free": "^5.15.4",
     "axios": "^0.21.4",
     "electron-store": "^8.0.1",
-    "qs": "^6.10.1"
+    "qs": "^6.10.1",
+    "xlsx": "^0.17.4"
   }
 }

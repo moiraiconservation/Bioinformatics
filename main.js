@@ -4,13 +4,17 @@
 ///////////////////////////////////////////////////////////////////////////////
 // REQUIRED COMPONENTS ////////////////////////////////////////////////////////
 
-const { app, BrowserWindow, dialog, Menu } = require('electron');
+const { app, BrowserWindow, Menu } = require('electron');
 const app_menu = require ('./menu.js');
 const child_process = require('child_process');
 const eStore = require('electron-store');
 const ipc = require('electron').ipcMain;
 const path = require('path');
-const seq = require('./js/sequences.js');
+
+const { SEQUENCES } = require('./js/sequences.js');
+const { DATA } = require('./js/data.js');
+const sequences = new SEQUENCES();
+const data = new DATA();
 
 ///////////////////////////////////////////////////////////////////////////////
 // GLOBAL VARIABLES ///////////////////////////////////////////////////////////
@@ -229,9 +233,11 @@ ipc.on('toMain', async (event, arg) => {
 		switch (arg.command) {
 
 			case 'open_cds': {
-				const sequences = new seq.SEQUENCES();
-				await sequences.load_fasta_file(arg.data.filePaths[0]);
-				console.log(sequences.cargo[0]);
+				//const sequences = new seq.SEQUENCES();
+				//await sequences.load_fasta_file(arg.data.filePaths[0]);
+				//console.log(sequences.cargo[0]);
+				await data.load_xlsx_file(arg.data.filePaths[0]);
+				win.main.webContents.send('toRender', { command: 'console.log', data: data.cargo });
 				break;
 			}
 		

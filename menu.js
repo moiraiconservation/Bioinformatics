@@ -36,6 +36,26 @@ module.exports = {
 					},
 
 					{
+						id: 'open_drugbank',
+						label: 'Open DrugBank File...',
+						enabled: true,
+						click() {
+							dialog.showOpenDialog({
+								filters: [
+									{ name: 'XML', extensions: ['xml'] },
+									{ name: 'All Files', extensions: ['*'] }
+								],
+								properties: ['multiSelections', 'openFile']
+							})
+								.then((response) => {
+									if (!response.canceled) {
+										win.main.webContents.send('toRender', { command: 'bounce', subcommand: 'open_drugbank', success: true, data: response });
+									}
+								});
+						}
+					},
+
+					{
 						id: 'open_protein',
 						label: 'Open Protein Files...',
 						enabled: true,

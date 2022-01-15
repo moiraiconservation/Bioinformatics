@@ -2,8 +2,10 @@
 // data.js
 
 const { IO } = require('./io.js');
+const { XML } = require('./xml.js');
 const xlsx = require('xlsx');
 const io = new IO();
+const xml = new XML();
 
 function DATA() {
 
@@ -46,6 +48,12 @@ function DATA() {
 			const temp = xlsx.utils.sheet_to_json(file.Sheets[file.SheetNames[i]]);
 			temp.forEach((res) => { this.cargo.push(res) });
 		}
+		return true;
+	}
+
+	this.load_xml_file = async (path) => {
+		const str = await io.read_file(path);
+		this.cargo = xml.xml2json(str);
 		return true;
 	}
 

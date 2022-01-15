@@ -240,6 +240,12 @@ ipc.on('toMain', async (event, arg) => {
 				win.main.webContents.send('toRender', { command: 'console.log', data: data.cargo });
 				break;
 			}
+
+			case 'open_drugbank': {
+				await data.load_xml_file(arg.data.filePaths[0]);
+				win.main.webContents.send('toRender', { command: 'console.log', data: data.cargo });
+				break;
+			}
 		
 		}
 

@@ -1,4 +1,6 @@
+assets
 data
+examples
 iso_fasta
 iso_compact
 iso_rbh
@@ -9,3 +11,11 @@ pal2nal.bat
 pal2nal.pl
 refactor
 t_coffee.sh
+main.js
+menu.js
+package-lock.json
+package.json
+preload.js
+project.js
+render.html
+theme.css

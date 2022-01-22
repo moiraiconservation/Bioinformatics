@@ -7,6 +7,7 @@
   --color-button:                 #434343;
   --color-caution:                #ffcc00;
   --color-dashboard:              #272935;
+	--color-deep-blue:							#030b21;
   --color-document:               #343434;
   --color-document-highlight:     #434343;
   --color-highlight:              #7ebbed;
@@ -36,7 +37,8 @@
 /*///////////////////////////////////////////////////////////////////////////*/
 /*// BODY ///////////////////////////////////////////////////////////////////*/
 body {
-  background-color: var(--color-base-foundation);
+  /*background-color: var(--color-base-foundation);*/
+	background-color: var(--color-deep-blue);
   color: var(--color-text-light);
   font-family: "Roboto", sans-serif;
   text-rendering: optimizelegibility;

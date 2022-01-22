@@ -12,3 +12,9 @@ pal2nal.bat
 pal2nal.pl
 refactor
 t_coffee.sh
+main.js
+menu.jspackage-lock.json
+package.json
+preload.js
+render.html
+theme.css
